@@ -2254,7 +2254,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
     };
     
 
-    // ==================== RECAP GENERATOR V2 - ULTRA COMPLET ====================
+
+    // ==================== RECAP GENERATOR V2.1 FIXED ====================
     const RecapGenerator = {
         StoryBrain: {
             analyze(history, players) {
@@ -2392,14 +2393,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 const canvas = document.createElement('canvas');
                 canvas.width = 1080;
-                canvas.height = 2400;
-                const ctx = canvas.getContext('2d');
                 
                 const brain = this.StoryBrain.analyze(gameState.history, gameState.players);
                 const cast = this.PlayerCasting.analyze(gameState.history, gameState.players);
                 const narrative = this.NarrativeEngine.build(brain, cast);
                 
-                // Trouver highlights
                 let bestRound = { player: null, score: -999, round: 0 };
                 let worstRound = { player: null, score: 999, round: 0 };
                 gameState.history.forEach((round, idx) => {
@@ -2415,7 +2413,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                     });
                 });
                 
-                // Trouver la série
                 let bestStreak = { player: null, count: 0 };
                 gameState.players.forEach(player => {
                     let current = 0, max = 0;
@@ -2432,9 +2429,21 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                     if (max > bestStreak.count) bestStreak = { player: player.name, count: max };
                 });
                 
-                // Écart final
                 const sorted = [...gameState.players].sort((a,b) => b.total - a.total);
                 const finalGap = sorted[0].total - sorted[1].total;
+                
+                const ctx = canvas.getContext('2d');
+                const height = await this.draw(ctx, { 
+                    brain, 
+                    cast, 
+                    narrative, 
+                    bestRound, 
+                    worstRound, 
+                    bestStreak,
+                    finalGap
+                }, gameState);
+                
+                canvas.height = height;
                 
                 await this.draw(ctx, { 
                     brain, 
@@ -2458,42 +2467,39 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         
         async draw(ctx, ai, gameState) {
             const width = 1080;
-            const height = 2400;
             
-            // Fond papier journal
             ctx.fillStyle = '#F5F1E8';
-            ctx.fillRect(0, 0, width, height);
+            ctx.fillRect(0, 0, width, 3000);
             
-            // Texture papier
             ctx.fillStyle = 'rgba(139, 119, 101, 0.03)';
             for (let i = 0; i < 5000; i++) {
-                ctx.fillRect(Math.random() * width, Math.random() * height, 1, 1);
+                ctx.fillRect(Math.random() * width, Math.random() * 3000, 1, 1);
             }
             
-            // Bordure noire
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 4;
-            ctx.strokeRect(25, 25, width - 50, height - 50);
             
             let y = 50;
             
-            // Bandeau LE SCORE
             y = this.drawBanner(ctx, y, width);
             
-            // Titre avec trophée + gagnant
-            ctx.font = 'italic 900 70px Arial';
+            ctx.font = 'italic 900 65px Arial';
             ctx.fillStyle = '#2B5AA0';
             ctx.textAlign = 'center';
-            ctx.fillText('🏆', width / 2 - 180, y + 50);
-            ctx.fillText(ai.brain.winner.toUpperCase(), width / 2 + 20, y + 50);
+            const tropheeWidth = ctx.measureText('🏆').width;
+            const nameWidth = ctx.measureText(ai.brain.winner.toUpperCase()).width;
+            const totalWidth = tropheeWidth + nameWidth + 20;
+            const startX = (width - totalWidth) / 2;
+            
+            ctx.fillText('🏆', startX + tropheeWidth / 2, y + 50);
+            ctx.fillText(ai.brain.winner.toUpperCase(), startX + tropheeWidth + 20 + nameWidth / 2, y + 50);
             y += 75;
             
-            ctx.font = 'italic 900 52px Arial';
+            ctx.font = 'italic 900 48px Arial';
             ctx.fillText('ÉCRASE LA CONCURRENCE', width / 2, y);
-            y += 70;
+            y += 65;
             
-            // Sous-titre narratif
-            ctx.font = 'italic 700 24px Georgia';
+            ctx.font = 'italic 700 22px Georgia';
             ctx.fillStyle = '#1A1A1A';
             const words = ai.narrative.split(' ');
             let lines = [];
@@ -2510,26 +2516,22 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             });
             if (line) lines.push(line.trim());
             lines.forEach((l, idx) => {
-                ctx.fillText(l, width / 2, y + (idx * 32));
+                ctx.fillText(l, width / 2, y + (idx * 30));
             });
-            y += lines.length * 32 + 40;
+            y += lines.length * 30 + 35;
             
-            // Double ligne séparation
             ctx.fillStyle = '#000000';
             ctx.fillRect(55, y, width - 110, 3);
             y += 30;
             
-            // GRAPHIQUE D'ÉVOLUTION
             y = this.drawGraph(ctx, 55, y, width - 110, ai, gameState);
             y += 30;
             
-            // Double ligne séparation
             ctx.fillStyle = '#000000';
             ctx.fillRect(55, y, width - 110, 2);
             ctx.fillRect(55, y + 5, width - 110, 2);
             y += 40;
             
-            // LAYOUT 2 COLONNES
             const leftCol = 55;
             const colWidth = 465;
             const rightCol = leftCol + colWidth + 30;
@@ -2537,17 +2539,14 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             let yLeft = y;
             let yRight = y;
             
-            // COLONNE GAUCHE
             yLeft = this.drawClassement(ctx, leftCol, yLeft, colWidth, gameState.players);
             yLeft += 30;
             yLeft = this.drawReactions(ctx, leftCol, yLeft, colWidth, ai);
             
-            // COLONNE DROITE
             yRight = this.drawTempsForts(ctx, rightCol, yRight, colWidth, ai);
             yRight += 30;
             yRight = this.drawStats(ctx, rightCol, yRight, colWidth, ai, gameState);
             
-            // Footer
             const finalY = Math.max(yLeft, yRight) + 60;
             ctx.font = 'bold 26px Arial';
             ctx.fillStyle = '#2B5AA0';
@@ -2556,26 +2555,28 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.font = 'italic 20px Georgia';
             ctx.fillStyle = '#666';
             ctx.fillText('"On immortalise vos défaites depuis 2026"', width / 2, finalY + 35);
+            
+            const totalHeight = finalY + 80;
+            
+            ctx.strokeRect(25, 25, width - 50, totalHeight - 50);
+            
+            return totalHeight;
         },
         
         drawBanner(ctx, y, width) {
-            // Ligne noire du haut
             ctx.fillStyle = '#000000';
             ctx.fillRect(55, y, width - 110, 4);
             y += 4;
             
-            // Bandeau bleu dégradé
             const gradient = ctx.createLinearGradient(0, y, 0, y + 120);
             gradient.addColorStop(0, '#2B5AA0');
             gradient.addColorStop(1, '#1E3F6E');
             ctx.fillStyle = gradient;
             ctx.fillRect(55, y, width - 110, 120);
             
-            // Ligne noire du bas
             ctx.fillStyle = '#000000';
             ctx.fillRect(55, y + 120, width - 110, 4);
             
-            // Texte LE SCORE avec ombre
             ctx.font = 'italic 900 90px Georgia';
             ctx.fillStyle = '#FFFFFF';
             ctx.textAlign = 'center';
@@ -2591,7 +2592,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             y += 140;
             
-            // Date
             ctx.font = '700 20px Arial';
             ctx.fillStyle = '#000000';
             const date = new Date().toLocaleDateString('fr-FR', {
@@ -2609,34 +2609,28 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const h = 320;
             const padding = 50;
             
-            // Fond blanc
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(x, y, w, h);
             
-            // Bordure
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, w, h);
             
-            // Titre
             ctx.font = 'bold 26px Arial';
             ctx.fillStyle = '#2B5AA0';
             ctx.textAlign = 'center';
             ctx.fillText('📈 ÉVOLUTION DES SCORES', x + w / 2, y + 30);
             
-            // Zone de graphique
             const gx = x + padding;
             const gy = y + 60;
             const gw = w - padding * 2;
             const gh = h - 110;
             
-            // Calculer les courbes
             const curves = ai.brain.curves;
             const maxScore = Math.max(...curves.flat());
-            const minScore = Math.min(...curves.flat());
+            const minScore = Math.min(...curves.flat(), 0);
             const nbRounds = gameState.history.length;
             
-            // Grille horizontale
             ctx.strokeStyle = '#E5E5E5';
             ctx.lineWidth = 1;
             for (let i = 0; i <= 4; i++) {
@@ -2646,7 +2640,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 ctx.lineTo(gx + gw, gridY);
                 ctx.stroke();
                 
-                // Valeurs à gauche
                 const value = maxScore - ((maxScore - minScore) / 4) * i;
                 ctx.font = '14px Arial';
                 ctx.fillStyle = '#666';
@@ -2654,7 +2647,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 ctx.fillText(Math.round(value), gx - 10, gridY + 5);
             }
             
-            // Labels manches en bas
             ctx.font = '14px Arial';
             ctx.fillStyle = '#666';
             ctx.textAlign = 'center';
@@ -2664,44 +2656,38 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 ctx.fillText(`M${i + 1}`, labelX, y + h - 25);
             }
             
-            // Dessiner les courbes
             curves.forEach((curve, playerIdx) => {
                 const player = gameState.players[playerIdx];
                 ctx.strokeStyle = player.color;
                 ctx.lineWidth = 4;
                 ctx.beginPath();
                 
-                // Point 0
                 ctx.moveTo(gx, gy + gh);
                 
-                // Points des manches
                 curve.forEach((score, roundIdx) => {
                     const px = gx + ((gw / nbRounds) * (roundIdx + 1));
-                    const py = gy + gh - ((score - minScore) / (maxScore - minScore)) * gh;
+                    const py = gy + gh - ((score - minScore) / (maxScore - minScore || 1)) * gh;
                     ctx.lineTo(px, py);
                 });
                 
                 ctx.stroke();
                 
-                // Points sur la courbe
                 ctx.fillStyle = player.color;
                 curve.forEach((score, roundIdx) => {
                     const px = gx + ((gw / nbRounds) * (roundIdx + 1));
-                    const py = gy + gh - ((score - minScore) / (maxScore - minScore)) * gh;
+                    const py = gy + gh - ((score - minScore) / (maxScore - minScore || 1)) * gh;
                     ctx.beginPath();
                     ctx.arc(px, py, 6, 0, Math.PI * 2);
                     ctx.fill();
                 });
                 
-                // Point final agrandi
                 const lastScore = curve[curve.length - 1];
                 const lastX = gx + gw;
-                const lastY = gy + gh - ((lastScore - minScore) / (maxScore - minScore)) * gh;
+                const lastY = gy + gh - ((lastScore - minScore) / (maxScore - minScore || 1)) * gh;
                 ctx.beginPath();
                 ctx.arc(lastX, lastY, 9, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Nom du joueur à droite
                 ctx.font = 'bold 16px Arial';
                 ctx.fillStyle = player.color;
                 ctx.textAlign = 'left';
@@ -2712,7 +2698,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         },
         
         drawClassement(ctx, x, y, w, players) {
-            // Bandeau bleu
             ctx.fillStyle = '#2B5AA0';
             ctx.fillRect(x, y, w, 45);
             
@@ -2723,11 +2708,9 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             y += 60;
             
-            // Fond blanc
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(x, y, w, players.length * 55 + 20);
             
-            // Bordure
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, w, players.length * 55 + 20);
@@ -2761,7 +2744,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         },
         
         drawReactions(ctx, x, y, w, ai) {
-            // Bandeau rouge
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, '#C8102E');
             gradient.addColorStop(1, '#8B0000');
@@ -2775,18 +2757,15 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             y += 60;
             
-            // Fond blanc
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(x, y, w, 180);
             
-            // Bordure
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, w, 180);
             
             y += 35;
             
-            // Gagnant
             ctx.font = 'bold 20px Arial';
             ctx.fillStyle = '#2B5AA0';
             ctx.textAlign = 'left';
@@ -2803,7 +2782,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             y += winnerLines.length * 25 + 30;
             
-            // Perdant
             ctx.font = 'bold 20px Arial';
             ctx.fillStyle = '#C8102E';
             ctx.fillText(`😭 ${ai.cast.boulet.toUpperCase()}`, x + 20, y);
@@ -2821,7 +2799,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         },
         
         drawTempsForts(ctx, x, y, w, ai) {
-            // Bandeau rouge dégradé
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, '#C8102E');
             gradient.addColorStop(1, '#8B0000');
@@ -2835,18 +2812,15 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             y += 60;
             
-            // Fond blanc
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(x, y, w, 350);
             
-            // Bordure
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, w, 350);
             
             y += 35;
             
-            // LE MOMENT FEU
             ctx.font = 'bold 22px Arial';
             ctx.fillStyle = '#FF6600';
             ctx.textAlign = 'left';
@@ -2859,7 +2833,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             y += 30;
             ctx.font = 'bold 24px Arial';
             ctx.fillStyle = '#FF6600';
-            ctx.fillText(`→ ${ai.bestRound.score} pts en manche ${ai.bestRound.round}`, x + 20, y);
+            const feuLine = `→ ${ai.bestRound.score} pts en manche ${ai.bestRound.round}`;
+            ctx.fillText(feuLine, x + 20, y);
             
             y += 50;
             ctx.strokeStyle = '#DDDDDD';
@@ -2870,7 +2845,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.stroke();
             y += 40;
             
-            // LE DRAMA
             if (ai.worstRound.score < 0) {
                 ctx.font = 'bold 22px Arial';
                 ctx.fillStyle = '#8B0000';
@@ -2879,8 +2853,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = '20px Arial';
                 ctx.fillStyle = '#333';
-                ctx.fillText(`${ai.worstRound.player} fait un score catastrophique`, x + 20, y);
-                y += 30;
+                const dramaLines = this.wrapText(ctx, `${ai.worstRound.player} fait un score catastrophique`, w - 40);
+                dramaLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 25));
+                });
+                y += dramaLines.length * 25 + 5;
+                
                 ctx.font = 'bold 24px Arial';
                 ctx.fillStyle = '#8B0000';
                 ctx.fillText(`→ ${ai.worstRound.score} pts (Manche ${ai.worstRound.round})`, x + 20, y);
@@ -2895,7 +2873,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 y += 40;
             }
             
-            // LA SÉRIE
             if (ai.bestStreak.count > 1) {
                 ctx.font = 'bold 22px Arial';
                 ctx.fillStyle = '#FFD700';
@@ -2904,18 +2881,24 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = '20px Arial';
                 ctx.fillStyle = '#333';
-                ctx.fillText(`${ai.bestStreak.player} : ${ai.bestStreak.count} victoires consécutives`, x + 20, y);
-                y += 30;
-                ctx.font = 'bold 24px Arial';
+                const serieLines = this.wrapText(ctx, `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires consécutives`, w - 40);
+                serieLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 25));
+                });
+                y += serieLines.length * 25 + 5;
+                
+                ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#FFD700';
-                ctx.fillText(`→ Machine à gagner en mode automatique`, x + 20, y);
+                const autoLines = this.wrapText(ctx, '→ Mode automatique activé', w - 40);
+                autoLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 25));
+                });
             }
             
             return y + 50;
         },
         
         drawStats(ctx, x, y, w, ai, gameState) {
-            // Bandeau rouge dégradé
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, '#C8102E');
             gradient.addColorStop(1, '#8B0000');
@@ -2929,23 +2912,24 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             y += 60;
             
-            // Fond blanc
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(x, y, w, 280);
             
-            // Bordure
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, w, 280);
             
             y += 35;
             
-            // Meilleure manche
             ctx.font = '20px Arial';
             ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
-            ctx.fillText(`🔧 Meilleure manche : ${ai.bestRound.player} (${ai.bestRound.score} pts)`, x + 20, y);
-            y += 40;
+            
+            const statLines = this.wrapText(ctx, `🔧 Meilleure manche : ${ai.bestRound.player} (${ai.bestRound.score} pts)`, w - 40);
+            statLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 25));
+            });
+            y += statLines.length * 25 + 15;
             
             ctx.strokeStyle = '#EEEEEE';
             ctx.lineWidth = 1;
@@ -2955,10 +2939,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.stroke();
             y += 30;
             
-            // Pire manche
             if (ai.worstRound.score < 0) {
-                ctx.fillText(`🔧 Pire manche : ${ai.worstRound.player} (${ai.worstRound.score} pts)`, x + 20, y);
-                y += 40;
+                const worstLines = this.wrapText(ctx, `🔧 Pire manche : ${ai.worstRound.player} (${ai.worstRound.score} pts)`, w - 40);
+                worstLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 25));
+                });
+                y += worstLines.length * 25 + 15;
                 
                 ctx.beginPath();
                 ctx.moveTo(x + 20, y);
@@ -2967,10 +2953,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 y += 30;
             }
             
-            // Série
             if (ai.bestStreak.count > 1) {
-                ctx.fillText(`🔧 Série : ${ai.bestStreak.player} (${ai.bestStreak.count} victoires)`, x + 20, y);
-                y += 40;
+                const streakLines = this.wrapText(ctx, `🔧 Série : ${ai.bestStreak.player} (${ai.bestStreak.count} victoires)`, w - 40);
+                streakLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 25));
+                });
+                y += streakLines.length * 25 + 15;
                 
                 ctx.beginPath();
                 ctx.moveTo(x + 20, y);
@@ -2979,7 +2967,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 y += 30;
             }
             
-            // Écart final
             ctx.fillText(`🎯 Écart final : ${ai.finalGap} pts`, x + 20, y);
             y += 40;
             
@@ -2989,7 +2976,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.stroke();
             y += 30;
             
-            // Nombre de manches
             ctx.fillText(`📈 Nombre de manches : ${gameState.history.length}`, x + 20, y);
             
             return y + 50;
