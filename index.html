@@ -2256,14 +2256,15 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 
 
 
-    // ==================== RECAP GENERATOR V3 ULTRA PRO ====================
+
+    // ==================== RECAP GENERATOR V3.1 REFINED ====================
     const RecapGenerator = {
-        // Palette de couleurs par genre
+        // Palette de couleurs BLEUE par défaut + par genre
         GENRE_COLORS: {
             DOMINATION: { primary: '#8B0000', secondary: '#FFD700', accent: '#FF4500', bg: 'rgba(139, 0, 0, 0.1)' },
             THRILLER: { primary: '#FF6B35', secondary: '#F7931E', accent: '#FDC830', bg: 'rgba(255, 107, 53, 0.1)' },
             CHAOS: { primary: '#6A0572', secondary: '#AB47BC', accent: '#E91E63', bg: 'rgba(106, 5, 114, 0.1)' },
-            COMEBACK: { primary: '#4CAF50', secondary: '#8BC34A', accent: '#CDDC39', bg: 'rgba(76, 175, 80, 0.1)' }
+            COMEBACK: { primary: '#2B5AA0', secondary: '#5B9BD5', accent: '#1E88E5', bg: 'rgba(43, 90, 160, 0.1)' }
         },
         
         StoryBrain: {
@@ -2394,7 +2395,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         
         async generate(gameState) {
             try {
-                UI.showToast('🎨 Génération du récap ULTRA...', 'info');
+                UI.showToast('🎨 Génération du récap REFINED...', 'info');
                 
                 const canvas = document.createElement('canvas');
                 canvas.width = 1080;
@@ -2460,7 +2461,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                     finalGap
                 }, gameState);
                 
-                UI.showToast('✅ Récap ULTRA généré !', 'success');
+                UI.showToast('✅ Récap REFINED généré !', 'success');
                 return canvas;
                 
             } catch(error) {
@@ -2489,7 +2490,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             let y = 50;
             
-            y = this.drawBanner(ctx, y, width, colors);
+            y = this.drawBanner3D(ctx, y, width, colors);
             
             y = this.drawConfetti(ctx, width / 2, y + 60, 30);
             
@@ -2500,7 +2501,13 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.font = 'italic 900 48px Arial';
             ctx.fillStyle = colors.primary;
             ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetY = 2;
             ctx.fillText('ÉCRASE LA CONCURRENCE', width / 2, y);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
             y += 65;
             
             ctx.font = 'italic 700 22px Georgia';
@@ -2543,13 +2550,13 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             let yLeft = y;
             let yRight = y;
             
-            yLeft = this.drawPodium3D(ctx, leftCol, yLeft, colWidth, gameState.players, colors);
+            yLeft = this.drawPodium3DImproved(ctx, leftCol, yLeft, colWidth, gameState.players, colors);
             yLeft += 30;
-            yLeft = this.drawReactionsBubbles(ctx, leftCol, yLeft, colWidth, ai, colors);
+            yLeft = this.drawReactionsImproved(ctx, leftCol, yLeft, colWidth, ai, colors);
             
             yRight = this.drawTempsForts(ctx, rightCol, yRight, colWidth, ai, colors);
             yRight += 30;
-            yRight = this.drawStatsWithBars(ctx, rightCol, yRight, colWidth, ai, gameState, colors);
+            yRight = this.drawStatsFixed(ctx, rightCol, yRight, colWidth, ai, gameState, colors);
             
             const finalY = Math.max(yLeft, yRight) + 60;
             
@@ -2599,43 +2606,53 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             }
         },
         
-        drawBanner(ctx, y, width, colors) {
+        drawBanner3D(ctx, y, width, colors) {
             ctx.fillStyle = '#000000';
             ctx.fillRect(55, y, width - 110, 4);
             y += 4;
             
-            const gradient = ctx.createLinearGradient(0, y, 0, y + 120);
+            const gradient = ctx.createLinearGradient(0, y, 0, y + 130);
             gradient.addColorStop(0, colors.primary);
-            gradient.addColorStop(1, colors.primary + 'CC');
+            gradient.addColorStop(0.5, colors.primary + 'DD');
+            gradient.addColorStop(1, colors.primary + 'BB');
             ctx.fillStyle = gradient;
             
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetY = 5;
-            ctx.fillRect(55, y, width - 110, 120);
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetY = 8;
+            ctx.fillRect(55, y, width - 110, 130);
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
             
             ctx.fillStyle = '#000000';
-            ctx.fillRect(55, y + 120, width - 110, 4);
+            ctx.fillRect(55, y + 130, width - 110, 4);
             
-            ctx.font = 'italic 900 90px Georgia';
-            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'italic 900 95px Georgia';
             ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 8;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
-            ctx.fillText('LE SCORE', width / 2, y + 82);
+            
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 3;
+            ctx.shadowOffsetX = 6;
+            ctx.shadowOffsetY = 6;
+            ctx.fillStyle = '#000000';
+            ctx.fillText('LE SCORE', width / 2, y + 87);
+            
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+            ctx.shadowBlur = 5;
+            ctx.shadowOffsetX = -2;
+            ctx.shadowOffsetY = -2;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText('LE SCORE', width / 2, y + 85);
+            
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             
-            y += 140;
+            y += 150;
             
-            ctx.font = '700 20px Arial';
+            ctx.font = 'bold 21px Arial';
             ctx.fillStyle = '#000000';
             const date = new Date().toLocaleDateString('fr-FR', {
                 weekday: 'long',
@@ -2680,8 +2697,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.fillStyle = gradient;
             
             ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 8;
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetY = 10;
             ctx.fillRect(x, y, blockWidth, blockHeight);
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
@@ -2694,7 +2711,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.font = 'bold 50px Arial';
             ctx.fillStyle = '#000';
             ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+            ctx.shadowBlur = 3;
             ctx.fillText(`🏆 ${name.toUpperCase()} 🏆`, width / 2, y + 45);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
             
             ctx.font = 'bold 32px Arial';
             ctx.fillText(`${score} pts`, width / 2, y + 80);
@@ -2837,12 +2858,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             return y + h + 20;
         },
         
-        drawPodium3D(ctx, x, y, w, players, colors) {
+        drawPodium3DImproved(ctx, x, y, w, players, colors) {
             const sorted = [...players].sort((a,b) => b.total - a.total);
-            
-            ctx.font = 'bold 24px Arial';
-            ctx.fillStyle = colors.primary;
-            ctx.textAlign = 'center';
             
             ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
             ctx.shadowBlur = 10;
@@ -2853,13 +2870,15 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
             
+            ctx.font = 'bold 24px Arial';
             ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
             ctx.fillText('🏆 LE CLASSEMENT FINAL', x + w / 2, y + 30);
             
             y += 60;
             
             const podiumY = y;
-            const podiumHeight = 280;
+            const podiumHeight = 320;
             
             ctx.fillStyle = '#FFFFFF';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
@@ -2874,89 +2893,139 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, w, podiumHeight);
             
-            y += 30;
+            y += 25;
             
-            const blockWidth = w / 3 - 15;
-            const pos2X = x + 10;
-            const pos1X = x + w/3 + 5;
-            const pos3X = x + 2*w/3;
+            const blockWidth = 130;
+            const spacing = 10;
+            const totalWidth = blockWidth * 3 + spacing * 2;
+            const startX = x + (w - totalWidth) / 2;
+            
+            const pos2X = startX;
+            const pos1X = startX + blockWidth + spacing;
+            const pos3X = startX + (blockWidth + spacing) * 2;
             
             if (sorted.length > 1) {
-                const h2 = 100;
-                const y2 = podiumY + podiumHeight - h2 - 20;
+                const h2 = 120;
+                const y2 = podiumY + podiumHeight - h2 - 30;
+                
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetY = 4;
+                
                 const grad2 = ctx.createLinearGradient(pos2X, y2, pos2X, y2 + h2);
-                grad2.addColorStop(0, '#C0C0C0');
-                grad2.addColorStop(1, '#A0A0A0');
+                grad2.addColorStop(0, '#E0E0E0');
+                grad2.addColorStop(0.3, '#C0C0C0');
+                grad2.addColorStop(0.7, '#A8A8A8');
+                grad2.addColorStop(1, '#909090');
                 ctx.fillStyle = grad2;
                 ctx.fillRect(pos2X, y2, blockWidth, h2);
-                ctx.strokeStyle = '#000';
+                ctx.restore();
+                
+                ctx.strokeStyle = '#666';
                 ctx.lineWidth = 3;
                 ctx.strokeRect(pos2X, y2, blockWidth, h2);
                 
-                ctx.font = '35px Arial';
-                ctx.fillText('🥈', pos2X + blockWidth/2, y2 - 8);
-                ctx.font = 'bold 18px Arial';
+                ctx.font = '40px Arial';
+                ctx.fillText('🥈', pos2X + blockWidth/2, y2 - 10);
+                
+                ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#000';
-                ctx.fillText(sorted[1].name, pos2X + blockWidth/2, y2 + h2/2 - 10);
-                ctx.font = 'bold 22px Arial';
-                ctx.fillText(sorted[1].total + ' pts', pos2X + blockWidth/2, y2 + h2/2 + 15);
-                const diff1 = sorted[0].total - sorted[1].total;
+                const name2 = sorted[1].name.length > 7 ? sorted[1].name.substring(0, 7) : sorted[1].name;
+                ctx.fillText(name2, pos2X + blockWidth/2, y2 + h2/2 - 5);
+                
+                ctx.font = 'bold 24px Arial';
+                ctx.fillStyle = '#333';
+                ctx.fillText(sorted[1].total, pos2X + blockWidth/2, y2 + h2/2 + 22);
+                
                 ctx.font = '16px Arial';
                 ctx.fillStyle = '#666';
-                ctx.fillText(`(-${diff1})`, pos2X + blockWidth/2, y2 + h2/2 + 38);
+                const diff1 = sorted[0].total - sorted[1].total;
+                ctx.fillText(`-${diff1}`, pos2X + blockWidth/2, y2 + h2/2 + 42);
             }
             
-            const h1 = 160;
-            const y1 = podiumY + podiumHeight - h1 - 20;
+            const h1 = 180;
+            const y1 = podiumY + podiumHeight - h1 - 30;
+            
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 6;
+            
             const grad1 = ctx.createLinearGradient(pos1X, y1, pos1X, y1 + h1);
             grad1.addColorStop(0, '#FFD700');
-            grad1.addColorStop(0.5, '#FFA500');
-            grad1.addColorStop(1, '#FF8C00');
+            grad1.addColorStop(0.3, '#FFED4E');
+            grad1.addColorStop(0.5, '#FFC107');
+            grad1.addColorStop(0.7, '#FFB300');
+            grad1.addColorStop(1, '#FF8F00');
             ctx.fillStyle = grad1;
             ctx.fillRect(pos1X, y1, blockWidth, h1);
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 3;
+            ctx.restore();
+            
+            ctx.strokeStyle = '#CC8800';
+            ctx.lineWidth = 4;
             ctx.strokeRect(pos1X, y1, blockWidth, h1);
             
-            ctx.font = '40px Arial';
-            ctx.fillText('🏆', pos1X + blockWidth/2, y1 - 8);
-            ctx.font = 'bold 20px Arial';
+            ctx.font = '45px Arial';
+            ctx.fillText('🏆', pos1X + blockWidth/2, y1 - 10);
+            
+            ctx.font = 'bold 22px Arial';
             ctx.fillStyle = '#000';
-            ctx.fillText(sorted[0].name, pos1X + blockWidth/2, y1 + h1/2 - 15);
-            ctx.font = 'bold 26px Arial';
-            ctx.fillText(sorted[0].total + ' pts', pos1X + blockWidth/2, y1 + h1/2 + 15);
-            ctx.font = 'bold 16px Arial';
-            ctx.fillText('CHAMPION', pos1X + blockWidth/2, y1 + h1/2 + 40);
+            const name1 = sorted[0].name.length > 7 ? sorted[0].name.substring(0, 7) : sorted[0].name;
+            ctx.fillText(name1, pos1X + blockWidth/2, y1 + h1/2 - 18);
+            
+            ctx.font = 'bold 28px Arial';
+            ctx.fillStyle = '#000';
+            ctx.fillText(sorted[0].total, pos1X + blockWidth/2, y1 + h1/2 + 10);
+            
+            ctx.font = 'bold 18px Arial';
+            ctx.fillStyle = '#8B4513';
+            ctx.fillText('CHAMPION', pos1X + blockWidth/2, y1 + h1/2 + 35);
             
             if (sorted.length > 2) {
-                const h3 = 70;
-                const y3 = podiumY + podiumHeight - h3 - 20;
+                const h3 = 90;
+                const y3 = podiumY + podiumHeight - h3 - 30;
+                
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                ctx.shadowBlur = 6;
+                ctx.shadowOffsetY = 3;
+                
                 const grad3 = ctx.createLinearGradient(pos3X, y3, pos3X, y3 + h3);
-                grad3.addColorStop(0, '#CD7F32');
-                grad3.addColorStop(1, '#8B5A00');
+                grad3.addColorStop(0, '#E4A853');
+                grad3.addColorStop(0.4, '#CD7F32');
+                grad3.addColorStop(0.7, '#B87333');
+                grad3.addColorStop(1, '#8B5A2B');
                 ctx.fillStyle = grad3;
                 ctx.fillRect(pos3X, y3, blockWidth, h3);
-                ctx.strokeStyle = '#000';
+                ctx.restore();
+                
+                ctx.strokeStyle = '#8B5A2B';
                 ctx.lineWidth = 3;
                 ctx.strokeRect(pos3X, y3, blockWidth, h3);
                 
                 ctx.font = '35px Arial';
                 ctx.fillText('🥉', pos3X + blockWidth/2, y3 - 8);
-                ctx.font = 'bold 16px Arial';
+                
+                ctx.font = 'bold 18px Arial';
                 ctx.fillStyle = '#000';
-                ctx.fillText(sorted[2].name, pos3X + blockWidth/2, y3 + h3/2 - 5);
-                ctx.font = 'bold 20px Arial';
-                ctx.fillText(sorted[2].total + ' pts', pos3X + blockWidth/2, y3 + h3/2 + 18);
+                const name3 = sorted[2].name.length > 7 ? sorted[2].name.substring(0, 7) : sorted[2].name;
+                ctx.fillText(name3, pos3X + blockWidth/2, y3 + h3/2 - 2);
+                
+                ctx.font = 'bold 22px Arial';
+                ctx.fillStyle = '#333';
+                ctx.fillText(sorted[2].total, pos3X + blockWidth/2, y3 + h3/2 + 22);
+                
                 const diff2 = sorted[0].total - sorted[2].total;
                 ctx.font = '14px Arial';
                 ctx.fillStyle = '#666';
-                ctx.fillText(`(-${diff2})`, pos3X + blockWidth/2, y3 + h3/2 + 36);
+                ctx.fillText(`-${diff2}`, pos3X + blockWidth/2, y3 + h3/2 + 40);
             }
             
             return podiumY + podiumHeight + 10;
         },
         
-        drawReactionsBubbles(ctx, x, y, w, ai, colors) {
+        drawReactionsImproved(ctx, x, y, w, ai, colors) {
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, colors.accent);
             gradient.addColorStop(1, colors.primary);
@@ -2977,47 +3046,79 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             y += 60;
             
+            const sectionHeight = 260;
+            
             ctx.fillStyle = '#FFFFFF';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
             ctx.shadowBlur = 15;
             ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, y, w, 240);
+            ctx.fillRect(x, y, w, sectionHeight);
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
             
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, w, 240);
+            ctx.strokeRect(x, y, w, sectionHeight);
             
-            y += 25;
+            y += 30;
             
             this.drawBadge(ctx, x + 20, y, 'VAINQUEUR', '#4CAF50');
-            y += 45;
+            y += 38;
             
-            ctx.font = 'bold 18px Arial';
+            ctx.font = 'bold 19px Arial';
             ctx.fillStyle = colors.primary;
             ctx.textAlign = 'left';
             ctx.fillText(`🎤 ${ai.brain.winner.toUpperCase()}`, x + 20, y);
-            y += 30;
+            y += 28;
             
             const winnerQuote = this.NarrativeEngine.getWinnerQuote();
-            this.drawSpeechBubble(ctx, x + 20, y, w - 40, winnerQuote, '#FFFACD', colors.primary);
+            const bubbleY1 = y;
+            ctx.fillStyle = '#FFFBEA';
+            ctx.strokeStyle = colors.primary;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(x + 20, y, w - 40, 60, 10);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.font = 'italic 16px Georgia';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            const winnerLines = this.wrapText(ctx, `"${winnerQuote}"`, w - 60);
+            winnerLines.forEach((line, idx) => {
+                ctx.fillText(line, x + w/2, bubbleY1 + 25 + (idx * 20));
+            });
             y += 75;
             
             this.drawBadge(ctx, x + 20, y, 'BOULET', '#F44336');
-            y += 45;
+            y += 38;
             
-            ctx.font = 'bold 18px Arial';
+            ctx.font = 'bold 19px Arial';
             ctx.fillStyle = '#C8102E';
             ctx.textAlign = 'left';
             ctx.fillText(`😭 ${ai.cast.boulet.toUpperCase()}`, x + 20, y);
-            y += 30;
+            y += 28;
             
             const loserQuote = this.NarrativeEngine.getLoserQuote();
-            this.drawSpeechBubble(ctx, x + 20, y, w - 40, loserQuote, '#FFE4E1', '#C8102E');
+            const bubbleY2 = y;
+            ctx.fillStyle = '#FFE8E8';
+            ctx.strokeStyle = '#C8102E';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(x + 20, y, w - 40, 60, 10);
+            ctx.fill();
+            ctx.stroke();
             
-            return y + 80;
+            ctx.font = 'italic 16px Georgia';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            const loserLines = this.wrapText(ctx, `"${loserQuote}"`, w - 60);
+            loserLines.forEach((line, idx) => {
+                ctx.fillText(line, x + w/2, bubbleY2 + 25 + (idx * 20));
+            });
+            
+            return y + 75;
         },
         
         drawBadge(ctx, x, y, text, color) {
@@ -3032,35 +3133,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.fillStyle = '#FFF';
             ctx.textAlign = 'center';
             ctx.fillText(text, x + 65, y + 19);
-        },
-        
-        drawSpeechBubble(ctx, x, y, maxWidth, text, bgColor, borderColor) {
-            const lines = this.wrapText(ctx, text, maxWidth - 30);
-            const bubbleHeight = lines.length * 22 + 20;
-            
-            ctx.fillStyle = bgColor;
-            ctx.strokeStyle = borderColor;
-            ctx.lineWidth = 3;
-            
-            ctx.beginPath();
-            ctx.roundRect(x, y, maxWidth, bubbleHeight, 12);
-            ctx.fill();
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.moveTo(x + 25, y + bubbleHeight);
-            ctx.lineTo(x + 15, y + bubbleHeight + 12);
-            ctx.lineTo(x + 35, y + bubbleHeight);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            
-            ctx.font = 'italic bold 16px Georgia';
-            ctx.fillStyle = '#000';
-            ctx.textAlign = 'center';
-            lines.forEach((line, idx) => {
-                ctx.fillText(line, x + maxWidth / 2, y + 22 + (idx * 22));
-            });
         },
         
         drawTempsForts(ctx, x, y, w, ai, colors) {
@@ -3214,7 +3286,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.stroke();
         },
         
-        drawStatsWithBars(ctx, x, y, w, ai, gameState, colors) {
+        drawStatsFixed(ctx, x, y, w, ai, gameState, colors) {
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, colors.primary);
             gradient.addColorStop(1, colors.accent);
@@ -3235,18 +3307,20 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             y += 60;
             
+            const statsHeight = 350;
+            
             ctx.fillStyle = '#FFFFFF';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
             ctx.shadowBlur = 15;
             ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, y, w, 350);
+            ctx.fillRect(x, y, w, statsHeight);
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
             
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, w, 350);
+            ctx.strokeRect(x, y, w, statsHeight);
             
             y += 35;
             
@@ -3273,8 +3347,13 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
-            ctx.fillText(`🔧 Meilleure manche : ${ai.bestRound.player}`, x + 20, y);
-            y += 22;
+            ctx.textAlign = 'left';
+            const bestLines = this.wrapText(ctx, `🔧 Meilleure manche : ${ai.bestRound.player}`, w - 40);
+            bestLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 22));
+            });
+            y += bestLines.length * 22 + 5;
+            
             ctx.font = 'bold 20px Arial';
             ctx.fillStyle = colors.accent;
             ctx.fillText(`${ai.bestRound.score} pts`, x + 20, y);
@@ -3291,8 +3370,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             if (ai.worstRound.score < 0) {
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                ctx.fillText(`💀 Pire manche : ${ai.worstRound.player}`, x + 20, y);
-                y += 22;
+                const worstLines = this.wrapText(ctx, `💀 Pire manche : ${ai.worstRound.player}`, w - 40);
+                worstLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 22));
+                });
+                y += worstLines.length * 22 + 5;
+                
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#F44336';
                 ctx.fillText(`${ai.worstRound.score} pts`, x + 20, y);
@@ -3310,8 +3393,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             if (ai.bestStreak.count > 1) {
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                ctx.fillText(`⚡ Série : ${ai.bestStreak.player}`, x + 20, y);
-                y += 22;
+                const streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 40);
+                streakLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 22));
+                });
+                y += streakLines.length * 22 + 5;
+                
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = colors.secondary;
                 ctx.fillText(`${ai.bestStreak.count} victoires`, x + 20, y);
@@ -3385,7 +3472,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             return lines;
         },
         
-        downloadImage(canvas, filename = 'ScoreMaster_Recap_ULTRA.png') {
+        downloadImage(canvas, filename = 'ScoreMaster_Recap_REFINED.png') {
             canvas.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -3401,13 +3488,13 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             try {
                 const blob = await new Promise(resolve => canvas.toBlob(resolve));
-                const file = new File([blob], 'ScoreMaster_Recap_ULTRA.png', { type: 'image/png' });
+                const file = new File([blob], 'ScoreMaster_Recap_REFINED.png', { type: 'image/png' });
                 
                 if (navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
-                        title: 'ScoreMaster - Récap ULTRA',
-                        text: 'Découvrez le récap ULTRA de notre partie ! 🏆'
+                        title: 'ScoreMaster - Récap REFINED',
+                        text: 'Découvrez le récap REFINED de notre partie ! 🏆'
                     });
                     return true;
                 }
