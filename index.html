@@ -2258,11 +2258,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 
 
 
-    // ==================== RECAP GENERATOR V3.2 POLISHED ====================
+
+    // ==================== RECAP GENERATOR V3.3 PERFECT ====================
     const RecapGenerator = {
-        // Espacements constants pour cohérence
+        // Espacements corrigés
         SPACING: {
-            AFTER_BANNER: 20,           // Après "EDITION SPECIALE"
+            AFTER_BANNER: 40,           // ÉDITION SPÉCIALE décollé (au lieu de 20)
             BEFORE_CHAMPION: 40,        // Avant bloc champion
             AFTER_CHAMPION: 20,         // Après bloc champion
             SECTION_HEADER: 15,         // Entre bandeau section et contenu
@@ -2405,7 +2406,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         
         async generate(gameState) {
             try {
-                UI.showToast('🎨 Génération du récap POLISHED...', 'info');
+                UI.showToast('🎨 Génération du récap PERFECT...', 'info');
                 
                 const canvas = document.createElement('canvas');
                 canvas.width = 1080;
@@ -2480,7 +2481,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                     finalGap
                 }, gameState);
                 
-                UI.showToast('✅ Récap POLISHED généré !', 'success');
+                UI.showToast('✅ Récap PERFECT généré !', 'success');
                 return canvas;
                 
             } catch(error) {
@@ -3178,7 +3179,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             ctx.font = 'bold 20px Arial';
             ctx.fillStyle = '#FF6600';
-            ctx.fillText(`▶ ${ai.bestRound.score} pts en manche ${ai.bestRound.round}`, x + 20, y);
+            const mancheLines = this.wrapText(ctx, `▶ ${ai.bestRound.score} pts (M${ai.bestRound.round})`, w - 40);
+            mancheLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 22));
+            });
+            y += mancheLines.length * 22;
             
             y += 38;
             ctx.strokeStyle = '#DDDDDD';
@@ -3207,7 +3212,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#8B0000';
-                ctx.fillText(`▶ ${ai.worstRound.score} pts (M${ai.worstRound.round})`, x + 20, y);
+                const dramaScoreLines = this.wrapText(ctx, `▶ ${ai.worstRound.score} pts (M${ai.worstRound.round})`, w - 40);
+                dramaScoreLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 22));
+                });
+                y += dramaScoreLines.length * 22;
             } else {
                 ctx.font = '28px Arial';
                 ctx.fillText('🎯', x + 20, y);
@@ -3218,12 +3227,19 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                ctx.fillText(`${ai.secondBestRound.player} également en feu`, x + 20, y);
-                y += 27;
+                const exploitLines = this.wrapText(ctx, `${ai.secondBestRound.player} également en feu`, w - 40);
+                exploitLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 22));
+                });
+                y += exploitLines.length * 22 + 5;
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#4CAF50';
-                ctx.fillText(`▶ ${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})`, x + 20, y);
+                const exploitScoreLines = this.wrapText(ctx, `▶ ${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})`, w - 40);
+                exploitScoreLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 22));
+                });
+                y += exploitScoreLines.length * 22;
             }
             
             y += 38;
@@ -3252,7 +3268,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#FFD700';
-                ctx.fillText(`▶ Mode automatique activé`, x + 20, y);
+                const autoLines = this.wrapText(ctx, '▶ Mode automatique', w - 40);
+                autoLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 22));
+                });
+                y += autoLines.length * 22;
             } else {
                 ctx.font = '28px Arial';
                 ctx.fillText('📊', x + 20, y);
@@ -3268,7 +3288,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = colors.primary;
-                ctx.fillText(`▶ ${gameState.history.length} manches disputées`, x + 20, y);
+                const manchesLines = this.wrapText(ctx, `▶ ${gameState.history.length} manches disputées`, w - 40);
+                manchesLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 22));
+                });
+                y += manchesLines.length * 22;
             }
             
             return y + 40;
@@ -3346,12 +3370,15 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
-            ctx.fillText('🎯 Précision', x + 20, y);
-            y += 26;
-            
             const precision = ai.cast.precision;
             if (precision && precision.length > 0) {
                 const topPlayer = precision[0];
+                const precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${topPlayer.name}`, w - 40);
+                precisionLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 22));
+                });
+                y += precisionLines.length * 22 + 4;
+                
                 this.drawStatBar(ctx, x + 20, y, w - 40, topPlayer.value, 100, colors.primary);
                 y += 32;
             }
@@ -3434,8 +3461,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
-            ctx.fillText(`🎯 Écart final : ${ai.finalGap} pts`, x + 20, y);
-            y += 28;
+            const ecartLines = this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 40);
+            ecartLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 22));
+            });
+            y += ecartLines.length * 22 + 6;
             
             ctx.strokeStyle = '#EEEEEE';
             ctx.lineWidth = 1;
@@ -3445,7 +3475,10 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.stroke();
             y += 22;
             
-            ctx.fillText(`📈 Manches : ${gameState.history.length}`, x + 20, y);
+            const manchesLines = this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 40);
+            manchesLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 22));
+            });
             
             return y + 30;
         },
@@ -3491,7 +3524,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             return lines;
         },
         
-        downloadImage(canvas, filename = 'ScoreMaster_Recap_POLISHED.png') {
+        downloadImage(canvas, filename = 'ScoreMaster_Recap_PERFECT.png') {
             canvas.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -3507,13 +3540,13 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             try {
                 const blob = await new Promise(resolve => canvas.toBlob(resolve));
-                const file = new File([blob], 'ScoreMaster_Recap_POLISHED.png', { type: 'image/png' });
+                const file = new File([blob], 'ScoreMaster_Recap_PERFECT.png', { type: 'image/png' });
                 
                 if (navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
-                        title: 'ScoreMaster - Récap POLISHED',
-                        text: 'Découvrez le récap POLISHED de notre partie ! 🏆'
+                        title: 'ScoreMaster - Récap PERFECT',
+                        text: 'Découvrez le récap PERFECT de notre partie ! 🏆'
                     });
                     return true;
                 }
