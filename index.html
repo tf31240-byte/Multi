@@ -848,7 +848,9 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         create(mode, playerCount) {
             const colors = ['#007AFF', '#FF2D55', '#34C759', '#FF9500', '#AF52DE', '#5AC8FA', '#FFCC00', '#5856D6', '#FF3B30', '#30B0C7', '#8E8E93', '#4CD964'];
             return {
-                mode, players: Array.from({length: Math.min(playerCount, 12)}, (_, i) => ({
+                mode,
+                victoryCondition: 'highest',  // ⬆️ Plus HAUT par défaut
+                players: Array.from({length: Math.min(playerCount, 12)}, (_, i) => ({
                     id: i + 1, 
                     name: mode === 'belote' ? (i === 0 ? 'NOUS' : 'EUX') : `J${i + 1}`, 
                     color: colors[i] || '#000000',
@@ -884,6 +886,15 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             state.players.forEach(p => p.total -= (round[p.id] || 0));
             state.history.splice(index, 1);
             return state;
+        },
+        getSortedPlayers(state, descending = true) {
+            // Inverser le tri si "Plus BAS"
+            const isLowest = state.victoryCondition === 'lowest';
+            if (isLowest) descending = !descending;
+            
+            return [...state.players].sort((a, b) => 
+                descending ? b.total - a.total : a.total - b.total
+            );
         },
         validate(scores, mode) {
             const values = Object.values(scores);
@@ -1629,6 +1640,17 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const highestLabel = document.getElementById('victory-highest-label');
             const lowestLabel = document.getElementById('victory-lowest-label');
             
+            // Sauvegarder dans GameState
+            if (game.currentGame?.state) {
+                game.currentGame.state.victoryCondition = isLowest ? 'lowest' : 'highest';
+                // Rafraîchir l'affichage pour appliquer le nouveau tri
+                if (game.currentGame.state.history.length > 0) {
+                    this.updatePlayerList();
+                    this.updateHistory();
+                    this.updatePlayerBadges();
+                }
+            }
+            
             // Mettre à jour les bordures
             highestLabel.style.borderColor = !isLowest ? 'var(--primary)' : 'var(--border)';
             lowestLabel.style.borderColor = isLowest ? 'var(--primary)' : 'var(--border)';
@@ -2260,10 +2282,14 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 
 
 
-    // ==================== RECAP GENERATOR V3.5 CLEAN ====================
-    // PRINCIPE : Calculer d'abord TOUTES les hauteurs SANS DESSINER
-    // Puis dessiner le cadre, puis le contenu
-    // = ZÉRO TEXTE FANTÔME !
+    // ==================== RECAP GENERATOR V4.0 STABLE ====================
+    // OPTIMISATIONS MAJEURES :
+    // - Un seul rendu au lieu de deux (performance ×2)
+    // - Une seule boucle sur l'historique (optimisation)
+    // - Map pour les joueurs (pas de find() répété)
+    // - Fonctions de mesure séparées (architecture propre)
+    // - Gestion d'erreur complète (try/catch)
+    // - Citations raccourcies (pas de dépassement)
     
     const RecapGenerator = {
         SPACING: {
@@ -2284,7 +2310,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         },
         
         StoryBrain: {
-            analyze(history, players) {
+            analyze(history, players, isLowest = false) {
                 const totals = {};
                 players.forEach((p, i) => totals[i] = 0);
                 const leaders = [];
@@ -2295,7 +2321,9 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                         totals[i] += r[p.id] || 0;
                         curves[i].push(totals[i]);
                     });
-                    const sorted = players.map((p, i) => ({ i, t: totals[i] })).sort((a, b) => b.t - a.t);
+                    const sorted = players.map((p, i) => ({ i, t: totals[i] })).sort((a, b) => 
+                        isLowest ? a.t - b.t : b.t - a.t
+                    );
                     leaders.push(sorted[0].i);
                 });
                 
@@ -2307,8 +2335,10 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 const last = leaders[leaders.length - 1];
                 const first = leaders[0];
                 const finals = curves.map(c => c[c.length - 1]);
-                const sortedF = finals.map((t, i) => ({ i, t })).sort((a, b) => b.t - a.t);
-                const gap = sortedF[0].t - sortedF[1].t;
+                const sortedF = finals.map((t, i) => ({ i, t })).sort((a, b) => 
+                    isLowest ? a.t - b.t : b.t - a.t
+                );
+                const gap = Math.abs(sortedF[0].t - sortedF[1].t);
                 
                 let genre;
                 if (changes >= 3) genre = "CHAOS";
@@ -2321,21 +2351,29 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         },
         
         PlayerCasting: {
-            analyze(history, players) {
-                const stats = players.map(p => ({ name: p.name, color: p.color, total: 0, best: -999, worst: 999, wins: 0 }));
+            analyze(history, players, isLowest = false) {
+                const stats = players.map(p => ({ name: p.name, color: p.color, total: 0, best: isLowest ? 999 : -999, worst: isLowest ? -999 : 999, wins: 0 }));
                 history.forEach(r => {
                     const scores = players.map((p, i) => ({ i, score: r[p.id] || 0 }));
-                    const maxScore = Math.max(...scores.map(s => s.score));
+                    const bestScore = isLowest 
+                        ? Math.min(...scores.map(s => s.score))
+                        : Math.max(...scores.map(s => s.score));
                     
                     players.forEach((p, i) => {
                         const score = r[p.id] || 0;
                         stats[i].total += score;
-                        stats[i].best = Math.max(stats[i].best, score);
-                        stats[i].worst = Math.min(stats[i].worst, score);
-                        if (score === maxScore && score > 0) stats[i].wins++;
+                        stats[i].best = isLowest 
+                            ? Math.min(stats[i].best, score)
+                            : Math.max(stats[i].best, score);
+                        stats[i].worst = isLowest
+                            ? Math.max(stats[i].worst, score)
+                            : Math.min(stats[i].worst, score);
+                        if (score === bestScore && score !== 0) stats[i].wins++;
                     });
                 });
-                const sorted = [...stats].sort((a, b) => b.total - a.total);
+                const sorted = [...stats].sort((a, b) => 
+                    isLowest ? a.total - b.total : b.total - a.total
+                );
                 const precision = sorted.map(s => ({
                     name: s.name,
                     value: history.length > 0 ? Math.round((s.wins / history.length) * 100) : 0
@@ -2378,24 +2416,24 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             },
             reactions: {
                 winner: [
-                    "C'était trop facile",
-                    "Je savais que j'allais gagner",
-                    "Vous m'avez pas fait transpirer",
-                    "J'ai joué à 50%",
-                    "Merci pour l'entraînement",
-                    "On fait une vraie partie ?",
-                    "Je m'attendais à mieux",
-                    "J'ai failli m'endormir"
+                    "Trop facile",
+                    "J'ai gagné facile",
+                    "Pas transpiré",
+                    "Joué à 50%",
+                    "Merci l'entraînement",
+                    "Une vraie partie ?",
+                    "Attendais mieux",
+                    "Presque dormi"
                 ],
                 loser: [
-                    "J'ai pas eu de chance",
-                    "Je pense qu'il/elle a triché",
-                    "Les cartes étaient pourries",
-                    "J'étais pas concentré",
-                    "La prochaine fois je mélange",
-                    "C'est de la chance pure",
+                    "Pas de chance",
+                    "Il/elle a triché",
+                    "Cartes pourries",
+                    "Pas concentré",
+                    "Prochaine fois",
+                    "Chance pure",
                     "Mauvais tirage",
-                    "Que des mauvaises cartes !"
+                    "Mauvaises cartes !"
                 ]
             },
             build(brain, cast) {
@@ -2411,89 +2449,272 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         
         async generate(gameState) {
             try {
-                UI.showToast('🎨 Génération récap CLEAN...', 'info');
+                UI.showToast('🎨 Génération récap V4.0...', 'info');
                 
                 const canvas = document.createElement('canvas');
                 canvas.width = 1080;
                 
-                const brain = this.StoryBrain.analyze(gameState.history, gameState.players);
-                const cast = this.PlayerCasting.analyze(gameState.history, gameState.players);
-                const narrative = this.NarrativeEngine.build(brain, cast);
+                // Analyse des données (UNE SEULE FOIS)
+                const ai = this.analyzeGameData(gameState);
                 
-                let bestRound = { player: null, score: -999, round: 0 };
-                let worstRound = { player: null, score: 999, round: 0 };
-                let secondBestRound = { player: null, score: -999, round: 0 };
-                
-                gameState.history.forEach((round, idx) => {
-                    Object.keys(round).forEach(playerId => {
-                        const score = round[playerId];
-                        const player = gameState.players.find(p => p.id.toString() === playerId);
-                        if (player) {
-                            if (score > bestRound.score) {
-                                secondBestRound = {...bestRound};
-                                bestRound = { player: player.name, score, round: idx + 1 };
-                            } else if (score > secondBestRound.score && score !== bestRound.score) {
-                                secondBestRound = { player: player.name, score, round: idx + 1 };
-                            }
-                            if (score < worstRound.score) {
-                                worstRound = { player: player.name, score, round: idx + 1 };
-                            }
-                        }
-                    });
-                });
-                
-                let bestStreak = { player: null, count: 0 };
-                gameState.players.forEach(player => {
-                    let current = 0, max = 0;
-                    gameState.history.forEach(round => {
-                        const scores = Object.entries(round).map(([id, score]) => ({ id: parseInt(id), score }));
-                        const winner = scores.reduce((m, c) => c.score > m.score ? c : m);
-                        if (winner.id === player.id) {
-                            current++;
-                            max = Math.max(max, current);
-                        } else {
-                            current = 0;
-                        }
-                    });
-                    if (max > bestStreak.count) bestStreak = { player: player.name, count: max };
-                });
-                
-                const sorted = [...gameState.players].sort((a,b) => b.total - a.total);
-                const finalGap = sorted[0].total - sorted[1].total;
-                
+                // Calcul de la hauteur (SANS dessiner)
                 const ctx = canvas.getContext('2d');
-                const height = await this.draw(ctx, { 
-                    brain, 
-                    cast, 
-                    narrative, 
-                    bestRound,
-                    secondBestRound,
-                    worstRound, 
-                    bestStreak,
-                    finalGap
-                }, gameState);
-                
+                const height = this.calculateTotalHeight(ctx, ai, gameState);
                 canvas.height = height;
                 
-                await this.draw(ctx, { 
-                    brain, 
-                    cast, 
-                    narrative, 
-                    bestRound,
-                    secondBestRound,
-                    worstRound, 
-                    bestStreak,
-                    finalGap
-                }, gameState);
+                // Dessin (UNE SEULE FOIS)
+                this.draw(ctx, ai, gameState);
                 
-                UI.showToast('✅ Récap CLEAN généré !', 'success');
+                UI.showToast('✅ Récap V4.0 généré !', 'success');
                 return canvas;
                 
             } catch(error) {
-                console.error('[RecapGenerator] Erreur:', error);
-                UI.showToast('❌ Erreur génération', 'error');
+                console.error('[RecapGenerator V4.0] Erreur:', error);
+                UI.showToast('❌ Erreur génération: ' + error.message, 'error');
                 return null;
             }
+        },
+        
+        // Analyse optimisée : UNE SEULE passe sur l'historique
+        analyzeGameData(gameState) {
+            const victoryCondition = gameState.victoryCondition || 'highest';
+            const isLowest = victoryCondition === 'lowest';
+            
+            const brain = this.StoryBrain.analyze(gameState.history, gameState.players, isLowest);
+            const cast = this.PlayerCasting.analyze(gameState.history, gameState.players, isLowest);
+            const narrative = this.NarrativeEngine.build(brain, cast);
+            
+            // Map des joueurs pour éviter find() répété
+            const playerMap = new Map(gameState.players.map(p => [p.id.toString(), p]));
+            
+            let bestRound = { player: null, score: isLowest ? 999 : -999, round: 0 };
+            let worstRound = { player: null, score: isLowest ? -999 : 999, round: 0 };
+            let secondBestRound = { player: null, score: isLowest ? 999 : -999, round: 0 };
+            
+            // Initialiser les streaks
+            const streaks = new Map();
+            gameState.players.forEach(p => {
+                streaks.set(p.id, { current: 0, max: 0 });
+            });
+            
+            // UNE SEULE BOUCLE pour tout calculer
+            gameState.history.forEach((round, idx) => {
+                const roundScores = Object.entries(round).map(([id, score]) => ({
+                    id: parseInt(id),
+                    score
+                }));
+                
+                // Trouver le gagnant de la manche (meilleur score selon victoryCondition)
+                const bestScore = isLowest 
+                    ? Math.min(...roundScores.map(s => s.score))
+                    : Math.max(...roundScores.map(s => s.score));
+                const winner = roundScores.find(s => s.score === bestScore);
+                
+                // Mettre à jour les streaks
+                roundScores.forEach(({ id, score }) => {
+                    const streak = streaks.get(id);
+                    if (id === winner.id && score !== 0) {
+                        streak.current++;
+                        streak.max = Math.max(streak.max, streak.current);
+                    } else {
+                        streak.current = 0;
+                    }
+                    
+                    // Mettre à jour best/worst
+                    const player = playerMap.get(id.toString());
+                    if (player) {
+                        // Pour "Plus BAS" : best = le plus petit, worst = le plus grand
+                        // Pour "Plus HAUT" : best = le plus grand, worst = le plus petit
+                        const isBetterThanBest = isLowest ? score < bestRound.score : score > bestRound.score;
+                        const isBetterThanSecond = isLowest ? score < secondBestRound.score : score > secondBestRound.score;
+                        const isWorseThanWorst = isLowest ? score > worstRound.score : score < worstRound.score;
+                        
+                        if (isBetterThanBest) {
+                            secondBestRound = {...bestRound};
+                            bestRound = { player: player.name, score, round: idx + 1 };
+                        } else if (isBetterThanSecond && score !== bestRound.score) {
+                            secondBestRound = { player: player.name, score, round: idx + 1 };
+                        }
+                        if (isWorseThanWorst) {
+                            worstRound = { player: player.name, score, round: idx + 1 };
+                        }
+                    }
+                });
+            });
+            
+            // Trouver le meilleur streak
+            let bestStreak = { player: null, count: 0 };
+            streaks.forEach((streak, playerId) => {
+                if (streak.max > bestStreak.count) {
+                    const player = gameState.players.find(p => p.id === playerId);
+                    bestStreak = { player: player.name, count: streak.max };
+                }
+            });
+            
+            // Tri selon victoryCondition
+            const sorted = [...gameState.players].sort((a,b) => 
+                isLowest ? a.total - b.total : b.total - a.total
+            );
+            const finalGap = Math.abs(sorted[0].total - sorted[1].total);
+            
+            return {
+                brain,
+                cast,
+                narrative,
+                bestRound,
+                secondBestRound,
+                worstRound,
+                bestStreak,
+                finalGap
+            };
+        },
+        
+        // Calculer la hauteur totale SANS dessiner
+        calculateTotalHeight(ctx, ai, gameState) {
+            const width = 1080;
+            const sp = this.SPACING;
+            let y = 50;
+            
+            // Bandeau
+            y += 4 + 130 + 4 + 140 + 35;
+            y += sp.AFTER_BANNER;
+            
+            // Confetti
+            y += 20;
+            y += sp.BEFORE_CHAMPION;
+            
+            // Champion
+            y += 100;
+            y += sp.AFTER_CHAMPION;
+            
+            // Titre
+            y += 65;
+            
+            // Narratif (estimation)
+            const words = ai.narrative.split(' ');
+            const estimatedLines = Math.ceil(words.length / 10);
+            y += estimatedLines * 30 + 35;
+            
+            // Ligne
+            y += 30;
+            
+            // Graphique
+            y += 360;
+            
+            // Double ligne
+            y += 40;
+            
+            const leftCol = 55;
+            const colWidth = 465;
+            const rightCol = leftCol + colWidth + 30;
+            
+            // Podium (fixe)
+            const podiumHeight = 45 + sp.SECTION_HEADER + 320;
+            
+            // Réactions (mesurer)
+            const { height: reactionsHeight } = this.measureReactionsContent(ctx, colWidth, ai);
+            const reactionsTotal = 45 + sp.SECTION_HEADER + reactionsHeight;
+            
+            const yLeft = podiumHeight + sp.BETWEEN_SECTIONS + reactionsTotal;
+            
+            // Temps forts (mesurer)
+            const { height: tempsFortsHeight } = this.measureTempsFortsContent(ctx, colWidth, ai, gameState);
+            const tempsFortsTotal = 45 + sp.SECTION_HEADER + tempsFortsHeight;
+            
+            // Stats (mesurer)
+            const { height: statsHeight } = this.measureStatsContent(ctx, colWidth, ai, gameState);
+            const statsTotal = 45 + sp.SECTION_HEADER + statsHeight;
+            
+            const yRight = tempsFortsTotal + sp.BETWEEN_SECTIONS + statsTotal;
+            
+            const finalY = y + Math.max(yLeft, yRight) + 60;
+            
+            return finalY + 80;
+        },
+        
+        // Mesurer les réactions
+        measureReactionsContent(ctx, w, ai) {
+            const sp = this.SPACING;
+            
+            const winnerQuote = this.NarrativeEngine.getWinnerQuote();
+            const loserQuote = this.NarrativeEngine.getLoserQuote();
+            
+            ctx.font = 'italic 17px Georgia';
+            const winnerLines = this.wrapText(ctx, `"${winnerQuote}"`, w - 40);
+            const loserLines = this.wrapText(ctx, `"${loserQuote}"`, w - 40);
+            
+            let height = sp.SECTION_PADDING;
+            height += 24;  // Titre gagnant
+            height += winnerLines.length * 22 + 20;
+            height += 20;  // Séparateur
+            height += 24;  // Titre perdant
+            height += loserLines.length * 22 + sp.SECTION_PADDING;
+            
+            return { height, winnerLines, loserLines, winnerQuote, loserQuote };
+        },
+        
+        // Mesurer les temps forts
+        measureTempsFortsContent(ctx, w, ai, gameState) {
+            const sp = this.SPACING;
+            
+            ctx.font = '18px Arial';
+            const feuLines = this.wrapText(ctx, `${ai.bestRound.player} a explosé`, w - 40);
+            ctx.font = 'bold 20px Arial';
+            const mancheLines = this.wrapText(ctx, `▶ ${ai.bestRound.score} pts (M${ai.bestRound.round})`, w - 40);
+            
+            let dramaLines = [], dramaScoreLines = [];
+            let exploitLines = [], exploitScoreLines = [];
+            let serieLines = [], autoLines = [];
+            let manchesLines = [];
+            
+            if (ai.worstRound.score < 0) {
+                ctx.font = '18px Arial';
+                dramaLines = this.wrapText(ctx, `${ai.worstRound.player} catastrophique`, w - 40);
+                ctx.font = 'bold 20px Arial';
+                dramaScoreLines = this.wrapText(ctx, `▶ ${ai.worstRound.score} pts (M${ai.worstRound.round})`, w - 40);
+            } else {
+                ctx.font = '18px Arial';
+                exploitLines = this.wrapText(ctx, `${ai.secondBestRound.player} en feu`, w - 40);
+                ctx.font = 'bold 20px Arial';
+                exploitScoreLines = this.wrapText(ctx, `▶ ${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})`, w - 40);
+            }
+            
+            if (ai.bestStreak.count > 1) {
+                ctx.font = '18px Arial';
+                serieLines = this.wrapText(ctx, `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires`, w - 40);
+                ctx.font = 'bold 20px Arial';
+                autoLines = this.wrapText(ctx, '▶ Mode auto', w - 40);
+            } else {
+                ctx.font = 'bold 20px Arial';
+                manchesLines = this.wrapText(ctx, `▶ ${gameState.history.length} manches`, w - 40);
+            }
+            
+            let height = sp.SECTION_PADDING;
+            height += 24 + feuLines.length * 20 + 4 + mancheLines.length * 20 + sp.ITEM_SPACING;
+            height += sp.ITEM_SPACING;
+            
+            if (ai.worstRound.score < 0) {
+                height += 24 + dramaLines.length * 20 + 4 + dramaScoreLines.length * 20 + sp.ITEM_SPACING;
+            } else {
+                height += 24 + exploitLines.length * 20 + 4 + exploitScoreLines.length * 20 + sp.ITEM_SPACING;
+            }
+            
+            height += sp.ITEM_SPACING;
+            
+            if (ai.bestStreak.count > 1) {
+                height += 24 + serieLines.length * 20 + 4 + autoLines.length * 20 + sp.SECTION_PADDING;
+            } else {
+                height += 24 + 24 + manchesLines.length * 20 + sp.SECTION_PADDING;
+            }
+            
+            return {
+                height,
+                feuLines, mancheLines,
+                dramaLines, dramaScoreLines,
+                exploitLines, exploitScoreLines,
+                serieLines, autoLines,
+                manchesLines
+            };
         },
         
         async draw(ctx, ai, gameState) {
@@ -2502,14 +2723,14 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const sp = this.SPACING;
             
             ctx.fillStyle = '#F5F1E8';
-            ctx.fillRect(0, 0, width, 3000);
+            ctx.fillRect(0, 0, width, ctx.canvas.height);
             
             ctx.fillStyle = 'rgba(139, 119, 101, 0.03)';
             for (let i = 0; i < 5000; i++) {
-                ctx.fillRect(Math.random() * width, Math.random() * 3000, 1, 1);
+                ctx.fillRect(Math.random() * width, Math.random() * ctx.canvas.height, 1, 1);
             }
             
-            this.drawFoldedPaper(ctx, width, 3000);
+            this.drawFoldedPaper(ctx, width, ctx.canvas.height);
             
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 4;
@@ -2577,7 +2798,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             let yLeft = y;
             let yRight = y;
             
-            yLeft = this.drawPodium3DImproved(ctx, leftCol, yLeft, colWidth, gameState.players, colors);
+            yLeft = this.drawPodium3DImproved(ctx, leftCol, yLeft, colWidth, gameState, colors);
             yLeft += sp.BETWEEN_SECTIONS;
             yLeft = this.drawReactionsClean(ctx, leftCol, yLeft, colWidth, ai, colors);
             
@@ -2605,8 +2826,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const totalHeight = finalY + 80;
             
             ctx.strokeRect(25, 25, width - 50, totalHeight - 50);
-            
-            return totalHeight;
         },
         
         drawFoldedPaper(ctx, width, height) {
@@ -2886,8 +3105,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             return y + h + 20;
         },
         
-        drawPodium3DImproved(ctx, x, y, w, players, colors) {
-            const sorted = [...players].sort((a,b) => b.total - a.total);
+        drawPodium3DImproved(ctx, x, y, w, gameState, colors) {
+            const players = gameState.players;
+            const isLowest = gameState.victoryCondition === 'lowest';
+            const sorted = [...players].sort((a,b) => 
+                isLowest ? a.total - b.total : b.total - a.total
+            );
             
             ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
             ctx.shadowBlur = 10;
