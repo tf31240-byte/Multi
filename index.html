@@ -2260,17 +2260,20 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 
 
 
-    // ==================== RECAP GENERATOR V3.4 DYNAMIC ====================
+    // ==================== RECAP GENERATOR V3.5 CLEAN ====================
+    // PRINCIPE : Calculer d'abord TOUTES les hauteurs SANS DESSINER
+    // Puis dessiner le cadre, puis le contenu
+    // = ZÉRO TEXTE FANTÔME !
+    
     const RecapGenerator = {
-        // Espacements optimisés
         SPACING: {
             AFTER_BANNER: 40,           
             BEFORE_CHAMPION: 40,        
             AFTER_CHAMPION: 20,         
-            SECTION_HEADER: 15,         // Entre bandeau et contenu
-            BETWEEN_SECTIONS: 30,       // Entre sections
-            SECTION_PADDING: 25,        // Padding interne des sections (réduit de 30)
-            ITEM_SPACING: 20            // Entre items (réduit de 38)
+            SECTION_HEADER: 15,
+            BETWEEN_SECTIONS: 30,
+            SECTION_PADDING: 25,
+            ITEM_SPACING: 20
         },
         
         GENRE_COLORS: {
@@ -2408,7 +2411,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         
         async generate(gameState) {
             try {
-                UI.showToast('🎨 Génération récap DYNAMIC...', 'info');
+                UI.showToast('🎨 Génération récap CLEAN...', 'info');
                 
                 const canvas = document.createElement('canvas');
                 canvas.width = 1080;
@@ -2483,7 +2486,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                     finalGap
                 }, gameState);
                 
-                UI.showToast('✅ Récap DYNAMIC généré !', 'success');
+                UI.showToast('✅ Récap CLEAN généré !', 'success');
                 return canvas;
                 
             } catch(error) {
@@ -2576,11 +2579,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             yLeft = this.drawPodium3DImproved(ctx, leftCol, yLeft, colWidth, gameState.players, colors);
             yLeft += sp.BETWEEN_SECTIONS;
-            yLeft = this.drawReactionsDynamic(ctx, leftCol, yLeft, colWidth, ai, colors);
+            yLeft = this.drawReactionsClean(ctx, leftCol, yLeft, colWidth, ai, colors);
             
-            yRight = this.drawTempsFortsDynamic(ctx, rightCol, yRight, colWidth, ai, colors, gameState);
+            yRight = this.drawTempsFortsClean(ctx, rightCol, yRight, colWidth, ai, colors, gameState);
             yRight += sp.BETWEEN_SECTIONS;
-            yRight = this.drawStatsDynamic(ctx, rightCol, yRight, colWidth, ai, gameState, colors);
+            yRight = this.drawStatsClean(ctx, rightCol, yRight, colWidth, ai, gameState, colors);
             
             const finalY = Math.max(yLeft, yRight) + 60;
             
@@ -3050,10 +3053,27 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             return podiumY + podiumHeight;
         },
         
-        drawReactionsDynamic(ctx, x, y, w, ai, colors) {
+        // ========== NOUVELLES FONCTIONS CLEAN (calcul puis dessin) ==========
+        
+        drawReactionsClean(ctx, x, y, w, ai, colors) {
             const sp = this.SPACING;
-            const startY = y;
             
+            // ÉTAPE 1 : Calculer la hauteur SANS dessiner
+            const winnerQuote = this.NarrativeEngine.getWinnerQuote();
+            const loserQuote = this.NarrativeEngine.getLoserQuote();
+            
+            ctx.font = 'italic 17px Georgia';
+            const winnerLines = this.wrapText(ctx, `"${winnerQuote}"`, w - 40);
+            const loserLines = this.wrapText(ctx, `"${loserQuote}"`, w - 40);
+            
+            let calcH = sp.SECTION_PADDING;
+            calcH += 24; // Titre gagnant
+            calcH += winnerLines.length * 22 + 20;
+            calcH += 20; // Séparateur
+            calcH += 24; // Titre perdant
+            calcH += loserLines.length * 22 + sp.SECTION_PADDING;
+            
+            // ÉTAPE 2 : Dessiner le bandeau
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, colors.accent);
             gradient.addColorStop(1, colors.primary);
@@ -3073,63 +3093,24 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.fillText('💬 LES RÉACTIONS', x + w / 2, y + 30);
             
             y += 45 + sp.SECTION_HEADER;
+            const contentY = y;
             
-            const contentStartY = y;
-            y += sp.SECTION_PADDING;
-            
-            ctx.font = 'bold 19px Arial';
-            ctx.fillStyle = colors.primary;
-            ctx.textAlign = 'left';
-            ctx.fillText(`🎤 ${ai.brain.winner.toUpperCase()}`, x + 20, y);
-            y += 24;
-            
-            const winnerQuote = this.NarrativeEngine.getWinnerQuote();
-            ctx.font = 'italic 17px Georgia';
-            ctx.fillStyle = '#555';
-            const winnerLines = this.wrapText(ctx, `"${winnerQuote}"`, w - 40);
-            winnerLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 22));
-            });
-            y += winnerLines.length * 22 + 20;
-            
-            ctx.strokeStyle = '#EEEEEE';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
-            ctx.stroke();
-            y += 20;
-            
-            ctx.font = 'bold 19px Arial';
-            ctx.fillStyle = '#C8102E';
-            ctx.fillText(`😭 ${ai.cast.boulet.toUpperCase()}`, x + 20, y);
-            y += 24;
-            
-            const loserQuote = this.NarrativeEngine.getLoserQuote();
-            ctx.font = 'italic 17px Georgia';
-            ctx.fillStyle = '#555';
-            const loserLines = this.wrapText(ctx, `"${loserQuote}"`, w - 40);
-            loserLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 22));
-            });
-            y += loserLines.length * 22 + sp.SECTION_PADDING;
-            
-            const sectionHeight = y - contentStartY;
-            
+            // ÉTAPE 3 : Dessiner le cadre blanc
             ctx.fillStyle = '#FFFFFF';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
             ctx.shadowBlur = 15;
             ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, contentStartY, w, sectionHeight);
+            ctx.fillRect(x, contentY, w, calcH);
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
             
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
-            ctx.strokeRect(x, contentStartY, w, sectionHeight);
+            ctx.strokeRect(x, contentY, w, calcH);
             
-            y = contentStartY + sp.SECTION_PADDING;
+            // ÉTAPE 4 : Dessiner le contenu (UNE SEULE FOIS !)
+            y = contentY + sp.SECTION_PADDING;
             
             ctx.font = 'bold 19px Arial';
             ctx.fillStyle = colors.primary;
@@ -3163,13 +3144,64 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 ctx.fillText(line, x + 20, y + (idx * 22));
             });
             
-            return contentStartY + sectionHeight;
+            return contentY + calcH;
         },
         
-        drawTempsFortsDynamic(ctx, x, y, w, ai, colors, gameState) {
+        drawTempsFortsClean(ctx, x, y, w, ai, colors, gameState) {
             const sp = this.SPACING;
-            const startY = y;
             
+            // ÉTAPE 1 : Calculer la hauteur SANS dessiner
+            ctx.font = '18px Arial';
+            const feuLines = this.wrapText(ctx, `${ai.bestRound.player} a explosé`, w - 40);
+            ctx.font = 'bold 20px Arial';
+            const mancheLines = this.wrapText(ctx, `▶ ${ai.bestRound.score} pts (M${ai.bestRound.round})`, w - 40);
+            
+            let dramaLines = [], dramaScoreLines = [];
+            let exploitLines = [], exploitScoreLines = [];
+            let serieLines = [], autoLines = [];
+            let manchesLines = [];
+            
+            if (ai.worstRound.score < 0) {
+                ctx.font = '18px Arial';
+                dramaLines = this.wrapText(ctx, `${ai.worstRound.player} catastrophique`, w - 40);
+                ctx.font = 'bold 20px Arial';
+                dramaScoreLines = this.wrapText(ctx, `▶ ${ai.worstRound.score} pts (M${ai.worstRound.round})`, w - 40);
+            } else {
+                ctx.font = '18px Arial';
+                exploitLines = this.wrapText(ctx, `${ai.secondBestRound.player} en feu`, w - 40);
+                ctx.font = 'bold 20px Arial';
+                exploitScoreLines = this.wrapText(ctx, `▶ ${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})`, w - 40);
+            }
+            
+            if (ai.bestStreak.count > 1) {
+                ctx.font = '18px Arial';
+                serieLines = this.wrapText(ctx, `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires`, w - 40);
+                ctx.font = 'bold 20px Arial';
+                autoLines = this.wrapText(ctx, '▶ Mode auto', w - 40);
+            } else {
+                ctx.font = 'bold 20px Arial';
+                manchesLines = this.wrapText(ctx, `▶ ${gameState.history.length} manches`, w - 40);
+            }
+            
+            let calcH = sp.SECTION_PADDING;
+            calcH += 24 + feuLines.length * 20 + 4 + mancheLines.length * 20 + sp.ITEM_SPACING;
+            calcH += sp.ITEM_SPACING;
+            
+            if (ai.worstRound.score < 0) {
+                calcH += 24 + dramaLines.length * 20 + 4 + dramaScoreLines.length * 20 + sp.ITEM_SPACING;
+            } else {
+                calcH += 24 + exploitLines.length * 20 + 4 + exploitScoreLines.length * 20 + sp.ITEM_SPACING;
+            }
+            
+            calcH += sp.ITEM_SPACING;
+            
+            if (ai.bestStreak.count > 1) {
+                calcH += 24 + serieLines.length * 20 + 4 + autoLines.length * 20 + sp.SECTION_PADDING;
+            } else {
+                calcH += 24 + 24 + manchesLines.length * 20 + sp.SECTION_PADDING;
+            }
+            
+            // ÉTAPE 2 : Dessiner le bandeau
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, colors.primary);
             gradient.addColorStop(1, colors.accent);
@@ -3189,9 +3221,24 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.fillText('⭐ LES TEMPS FORTS', x + w / 2, y + 30);
             
             y += 45 + sp.SECTION_HEADER;
+            const contentY = y;
             
-            const contentStartY = y;
-            y += sp.SECTION_PADDING;
+            // ÉTAPE 3 : Dessiner le cadre blanc
+            ctx.fillStyle = '#FFFFFF';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetY = 5;
+            ctx.fillRect(x, contentY, w, calcH);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, contentY, w, calcH);
+            
+            // ÉTAPE 4 : Dessiner le contenu (UNE SEULE FOIS !)
+            y = contentY + sp.SECTION_PADDING;
             
             this.drawFlame(ctx, x + 30, y - 5, 18);
             ctx.font = 'bold 22px Arial';
@@ -3202,7 +3249,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
-            const feuLines = this.wrapText(ctx, `${ai.bestRound.player} a explosé`, w - 40);
             feuLines.forEach((line, idx) => {
                 ctx.fillText(line, x + 20, y + (idx * 20));
             });
@@ -3210,7 +3256,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             ctx.font = 'bold 20px Arial';
             ctx.fillStyle = '#FF6600';
-            const mancheLines = this.wrapText(ctx, `▶ ${ai.bestRound.score} pts (M${ai.bestRound.round})`, w - 40);
             mancheLines.forEach((line, idx) => {
                 ctx.fillText(line, x + 20, y + (idx * 20));
             });
@@ -3234,7 +3279,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                const dramaLines = this.wrapText(ctx, `${ai.worstRound.player} catastrophique`, w - 40);
                 dramaLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
@@ -3242,7 +3286,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#8B0000';
-                const dramaScoreLines = this.wrapText(ctx, `▶ ${ai.worstRound.score} pts (M${ai.worstRound.round})`, w - 40);
                 dramaScoreLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
@@ -3257,7 +3300,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                const exploitLines = this.wrapText(ctx, `${ai.secondBestRound.player} en feu`, w - 40);
                 exploitLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
@@ -3265,7 +3307,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#4CAF50';
-                const exploitScoreLines = this.wrapText(ctx, `▶ ${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})`, w - 40);
                 exploitScoreLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
@@ -3289,7 +3330,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                const serieLines = this.wrapText(ctx, `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires`, w - 40);
                 serieLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
@@ -3297,11 +3337,9 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#FFD700';
-                const autoLines = this.wrapText(ctx, '▶ Mode auto', w - 40);
                 autoLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += autoLines.length * 20 + sp.SECTION_PADDING;
             } else {
                 ctx.font = '28px Arial';
                 ctx.fillText('📊', x + 20, y);
@@ -3317,158 +3355,201 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = colors.primary;
-                const manchesLines = this.wrapText(ctx, `▶ ${gameState.history.length} manches`, w - 40);
                 manchesLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += manchesLines.length * 20 + sp.SECTION_PADDING;
             }
             
-            const sectionHeight = y - contentStartY;
+            return contentY + calcH;
+        },
+        
+        drawStatsClean(ctx, x, y, w, ai, gameState, colors) {
+            const sp = this.SPACING;
+            const precision = ai.cast.precision;
             
+            // ÉTAPE 1 : Calculer la hauteur SANS dessiner
+            ctx.font = '18px Arial';
+            let precisionLines = [];
+            if (precision && precision.length > 0) {
+                const topPlayer = precision[0];
+                precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${topPlayer.name}`, w - 40);
+            }
+            
+            const bestLines = this.wrapText(ctx, `🔧 Meilleure : ${ai.bestRound.player}`, w - 40);
+            
+            let worstLines = [];
+            if (ai.worstRound.score < 0) {
+                worstLines = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 40);
+            }
+            
+            let streakLines = [];
+            if (ai.bestStreak.count > 1) {
+                streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 40);
+            }
+            
+            const ecartLines = this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 40);
+            const manchesLines = this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 40);
+            
+            let calcH = sp.SECTION_PADDING;
+            if (precision && precision.length > 0) {
+                calcH += precisionLines.length * 20 + 4 + 26 + 18;
+            }
+            calcH += bestLines.length * 20 + 4 + 24 + 18;
+            if (ai.worstRound.score < 0) {
+                calcH += worstLines.length * 20 + 4 + 24 + 18;
+            }
+            if (ai.bestStreak.count > 1) {
+                calcH += streakLines.length * 20 + 4 + 24 + 18;
+            }
+            calcH += ecartLines.length * 20 + 22 + 18;
+            calcH += manchesLines.length * 20 + sp.SECTION_PADDING;
+            
+            // ÉTAPE 2 : Dessiner le bandeau
+            const gradient = ctx.createLinearGradient(x, y, x + w, y);
+            gradient.addColorStop(0, colors.primary);
+            gradient.addColorStop(1, colors.accent);
+            ctx.fillStyle = gradient;
+            
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetY = 3;
+            ctx.fillRect(x, y, w, 45);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            
+            ctx.font = 'bold 24px Arial';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.fillText('📊 LES STATS', x + w / 2, y + 30);
+            
+            y += 45 + sp.SECTION_HEADER;
+            const contentY = y;
+            
+            // ÉTAPE 3 : Dessiner le cadre blanc
             ctx.fillStyle = '#FFFFFF';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
             ctx.shadowBlur = 15;
             ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, contentStartY, w, sectionHeight);
+            ctx.fillRect(x, contentY, w, calcH);
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
             
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
-            ctx.strokeRect(x, contentStartY, w, sectionHeight);
+            ctx.strokeRect(x, contentY, w, calcH);
             
-            y = contentStartY + sp.SECTION_PADDING;
-            
-            this.drawFlame(ctx, x + 30, y - 5, 18);
-            ctx.font = 'bold 22px Arial';
-            ctx.fillStyle = '#FF6600';
-            ctx.textAlign = 'left';
-            ctx.fillText('LE MOMENT FEU', x + 60, y);
-            y += 24;
+            // ÉTAPE 4 : Dessiner le contenu (UNE SEULE FOIS !)
+            y = contentY + sp.SECTION_PADDING;
             
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
-            feuLines.forEach((line, idx) => {
+            ctx.textAlign = 'left';
+            
+            if (precision && precision.length > 0) {
+                const topPlayer = precision[0];
+                precisionLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+                y += precisionLines.length * 20 + 4;
+                
+                this.drawStatBar(ctx, x + 20, y, w - 40, topPlayer.value, 100, colors.primary);
+                y += 26;
+                
+                ctx.strokeStyle = '#EEEEEE';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + 20, y);
+                ctx.lineTo(x + w - 20, y);
+                ctx.stroke();
+                y += 18;
+            }
+            
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#333';
+            bestLines.forEach((line, idx) => {
                 ctx.fillText(line, x + 20, y + (idx * 20));
             });
-            y += feuLines.length * 20 + 4;
+            y += bestLines.length * 20 + 4;
             
-            ctx.font = 'bold 20px Arial';
-            ctx.fillStyle = '#FF6600';
-            mancheLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
-            });
-            y += mancheLines.length * 20 + sp.ITEM_SPACING;
+            ctx.font = 'bold 19px Arial';
+            ctx.fillStyle = colors.accent;
+            ctx.fillText(`${ai.bestRound.score} pts`, x + 20, y);
+            y += 24;
             
-            ctx.strokeStyle = '#DDDDDD';
+            ctx.strokeStyle = '#EEEEEE';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(x + 20, y);
             ctx.lineTo(x + w - 20, y);
             ctx.stroke();
-            y += sp.ITEM_SPACING;
+            y += 18;
             
             if (ai.worstRound.score < 0) {
-                ctx.font = '28px Arial';
-                ctx.fillText('💀', x + 20, y);
-                ctx.font = 'bold 22px Arial';
-                ctx.fillStyle = '#8B0000';
-                ctx.fillText('LE DRAMA', x + 60, y);
-                y += 24;
-                
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                const dramaLines2 = this.wrapText(ctx, `${ai.worstRound.player} catastrophique`, w - 40);
-                dramaLines2.forEach((line, idx) => {
+                worstLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += dramaLines2.length * 20 + 4;
+                y += worstLines.length * 20 + 4;
                 
-                ctx.font = 'bold 20px Arial';
-                ctx.fillStyle = '#8B0000';
-                const dramaScoreLines2 = this.wrapText(ctx, `▶ ${ai.worstRound.score} pts (M${ai.worstRound.round})`, w - 40);
-                dramaScoreLines2.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += dramaScoreLines2.length * 20 + sp.ITEM_SPACING;
-            } else {
-                ctx.font = '28px Arial';
-                ctx.fillText('🎯', x + 20, y);
-                ctx.font = 'bold 22px Arial';
-                ctx.fillStyle = '#4CAF50';
-                ctx.fillText('EXPLOIT #2', x + 60, y);
+                ctx.font = 'bold 19px Arial';
+                ctx.fillStyle = '#F44336';
+                ctx.fillText(`${ai.worstRound.score} pts`, x + 20, y);
                 y += 24;
                 
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                const exploitLines2 = this.wrapText(ctx, `${ai.secondBestRound.player} en feu`, w - 40);
-                exploitLines2.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += exploitLines2.length * 20 + 4;
-                
-                ctx.font = 'bold 20px Arial';
-                ctx.fillStyle = '#4CAF50';
-                const exploitScoreLines2 = this.wrapText(ctx, `▶ ${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})`, w - 40);
-                exploitScoreLines2.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += exploitScoreLines2.length * 20 + sp.ITEM_SPACING;
+                ctx.strokeStyle = '#EEEEEE';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + 20, y);
+                ctx.lineTo(x + w - 20, y);
+                ctx.stroke();
+                y += 18;
             }
             
-            ctx.strokeStyle = '#DDDDDD';
+            if (ai.bestStreak.count > 1) {
+                ctx.font = '18px Arial';
+                ctx.fillStyle = '#333';
+                streakLines.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+                y += streakLines.length * 20 + 4;
+                
+                ctx.font = 'bold 19px Arial';
+                ctx.fillStyle = colors.secondary;
+                ctx.fillText(`${ai.bestStreak.count} victoires`, x + 20, y);
+                y += 24;
+                
+                ctx.strokeStyle = '#EEEEEE';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + 20, y);
+                ctx.lineTo(x + w - 20, y);
+                ctx.stroke();
+                y += 18;
+            }
+            
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#333';
+            ecartLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 20));
+            });
+            y += ecartLines.length * 20 + 22;
+            
+            ctx.strokeStyle = '#EEEEEE';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(x + 20, y);
             ctx.lineTo(x + w - 20, y);
             ctx.stroke();
-            y += sp.ITEM_SPACING;
+            y += 18;
             
-            if (ai.bestStreak.count > 1) {
-                this.drawLightning(ctx, x + 25, y - 20, 20);
-                ctx.font = 'bold 22px Arial';
-                ctx.fillStyle = '#FFD700';
-                ctx.fillText('LA SÉRIE', x + 60, y);
-                y += 24;
-                
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                const serieLines2 = this.wrapText(ctx, `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires`, w - 40);
-                serieLines2.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += serieLines2.length * 20 + 4;
-                
-                ctx.font = 'bold 20px Arial';
-                ctx.fillStyle = '#FFD700';
-                const autoLines2 = this.wrapText(ctx, '▶ Mode auto', w - 40);
-                autoLines2.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-            } else {
-                ctx.font = '28px Arial';
-                ctx.fillText('📊', x + 20, y);
-                ctx.font = 'bold 22px Arial';
-                ctx.fillStyle = colors.primary;
-                ctx.fillText('RÉGULARITÉ', x + 60, y);
-                y += 24;
-                
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                ctx.fillText(`Match équilibré`, x + 20, y);
-                y += 24;
-                
-                ctx.font = 'bold 20px Arial';
-                ctx.fillStyle = colors.primary;
-                const manchesLines2 = this.wrapText(ctx, `▶ ${gameState.history.length} manches`, w - 40);
-                manchesLines2.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-            }
+            manchesLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 20));
+            });
             
-            return contentStartY + sectionHeight;
+            return contentY + calcH;
         },
         
         drawFlame(ctx, x, y, size) {
@@ -3500,277 +3581,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.strokeStyle = '#FF8C00';
             ctx.lineWidth = 2;
             ctx.stroke();
-        },
-        
-        drawStatsDynamic(ctx, x, y, w, ai, gameState, colors) {
-            const sp = this.SPACING;
-            const startY = y;
-            
-            const gradient = ctx.createLinearGradient(x, y, x + w, y);
-            gradient.addColorStop(0, colors.primary);
-            gradient.addColorStop(1, colors.accent);
-            ctx.fillStyle = gradient;
-            
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetY = 3;
-            ctx.fillRect(x, y, w, 45);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.font = 'bold 24px Arial';
-            ctx.fillStyle = '#FFFFFF';
-            ctx.textAlign = 'center';
-            ctx.fillText('📊 LES STATS', x + w / 2, y + 30);
-            
-            y += 45 + sp.SECTION_HEADER;
-            
-            const contentStartY = y;
-            y += sp.SECTION_PADDING;
-            
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#333';
-            ctx.textAlign = 'left';
-            const precision = ai.cast.precision;
-            if (precision && precision.length > 0) {
-                const topPlayer = precision[0];
-                const precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${topPlayer.name}`, w - 40);
-                precisionLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += precisionLines.length * 20 + 4;
-                
-                this.drawStatBar(ctx, x + 20, y, w - 40, topPlayer.value, 100, colors.primary);
-                y += 26;
-            }
-            
-            ctx.strokeStyle = '#EEEEEE';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
-            ctx.stroke();
-            y += 18;
-            
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#333';
-            const bestLines = this.wrapText(ctx, `🔧 Meilleure : ${ai.bestRound.player}`, w - 40);
-            bestLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
-            });
-            y += bestLines.length * 20 + 4;
-            
-            ctx.font = 'bold 19px Arial';
-            ctx.fillStyle = colors.accent;
-            ctx.fillText(`${ai.bestRound.score} pts`, x + 20, y);
-            y += 24;
-            
-            ctx.strokeStyle = '#EEEEEE';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
-            ctx.stroke();
-            y += 18;
-            
-            if (ai.worstRound.score < 0) {
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                const worstLines = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 40);
-                worstLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += worstLines.length * 20 + 4;
-                
-                ctx.font = 'bold 19px Arial';
-                ctx.fillStyle = '#F44336';
-                ctx.fillText(`${ai.worstRound.score} pts`, x + 20, y);
-                y += 24;
-                
-                ctx.strokeStyle = '#EEEEEE';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x + 20, y);
-                ctx.lineTo(x + w - 20, y);
-                ctx.stroke();
-                y += 18;
-            }
-            
-            if (ai.bestStreak.count > 1) {
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                const streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 40);
-                streakLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += streakLines.length * 20 + 4;
-                
-                ctx.font = 'bold 19px Arial';
-                ctx.fillStyle = colors.secondary;
-                ctx.fillText(`${ai.bestStreak.count} victoires`, x + 20, y);
-                y += 24;
-                
-                ctx.strokeStyle = '#EEEEEE';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x + 20, y);
-                ctx.lineTo(x + w - 20, y);
-                ctx.stroke();
-                y += 18;
-            }
-            
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#333';
-            const ecartLines = this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 40);
-            ecartLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
-            });
-            y += ecartLines.length * 20 + 22;
-            
-            ctx.strokeStyle = '#EEEEEE';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
-            ctx.stroke();
-            y += 18;
-            
-            const manchesLines = this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 40);
-            manchesLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
-            });
-            y += manchesLines.length * 20 + sp.SECTION_PADDING;
-            
-            const sectionHeight = y - contentStartY;
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, contentStartY, w, sectionHeight);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, contentStartY, w, sectionHeight);
-            
-            y = contentStartY + sp.SECTION_PADDING;
-            
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#333';
-            ctx.textAlign = 'left';
-            if (precision && precision.length > 0) {
-                const topPlayer = precision[0];
-                const precisionLines2 = this.wrapText(ctx, `🎯 Taux victoire : ${topPlayer.name}`, w - 40);
-                precisionLines2.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += precisionLines2.length * 20 + 4;
-                
-                this.drawStatBar(ctx, x + 20, y, w - 40, topPlayer.value, 100, colors.primary);
-                y += 26;
-            }
-            
-            ctx.strokeStyle = '#EEEEEE';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
-            ctx.stroke();
-            y += 18;
-            
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#333';
-            const bestLines2 = this.wrapText(ctx, `🔧 Meilleure : ${ai.bestRound.player}`, w - 40);
-            bestLines2.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
-            });
-            y += bestLines2.length * 20 + 4;
-            
-            ctx.font = 'bold 19px Arial';
-            ctx.fillStyle = colors.accent;
-            ctx.fillText(`${ai.bestRound.score} pts`, x + 20, y);
-            y += 24;
-            
-            ctx.strokeStyle = '#EEEEEE';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
-            ctx.stroke();
-            y += 18;
-            
-            if (ai.worstRound.score < 0) {
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                const worstLines2 = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 40);
-                worstLines2.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += worstLines2.length * 20 + 4;
-                
-                ctx.font = 'bold 19px Arial';
-                ctx.fillStyle = '#F44336';
-                ctx.fillText(`${ai.worstRound.score} pts`, x + 20, y);
-                y += 24;
-                
-                ctx.strokeStyle = '#EEEEEE';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x + 20, y);
-                ctx.lineTo(x + w - 20, y);
-                ctx.stroke();
-                y += 18;
-            }
-            
-            if (ai.bestStreak.count > 1) {
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                const streakLines2 = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 40);
-                streakLines2.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += streakLines2.length * 20 + 4;
-                
-                ctx.font = 'bold 19px Arial';
-                ctx.fillStyle = colors.secondary;
-                ctx.fillText(`${ai.bestStreak.count} victoires`, x + 20, y);
-                y += 24;
-                
-                ctx.strokeStyle = '#EEEEEE';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x + 20, y);
-                ctx.lineTo(x + w - 20, y);
-                ctx.stroke();
-                y += 18;
-            }
-            
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#333';
-            const ecartLines2 = this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 40);
-            ecartLines2.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
-            });
-            y += ecartLines2.length * 20 + 22;
-            
-            ctx.strokeStyle = '#EEEEEE';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
-            ctx.stroke();
-            y += 18;
-            
-            const manchesLines2 = this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 40);
-            manchesLines2.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
-            });
-            
-            return contentStartY + sectionHeight;
         },
         
         drawStatBar(ctx, x, y, w, value, maxValue, color) {
@@ -3814,7 +3624,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             return lines;
         },
         
-        downloadImage(canvas, filename = 'ScoreMaster_Recap_DYNAMIC.png') {
+        downloadImage(canvas, filename = 'ScoreMaster_Recap_CLEAN.png') {
             canvas.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -3830,13 +3640,13 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             try {
                 const blob = await new Promise(resolve => canvas.toBlob(resolve));
-                const file = new File([blob], 'ScoreMaster_Recap_DYNAMIC.png', { type: 'image/png' });
+                const file = new File([blob], 'ScoreMaster_Recap_CLEAN.png', { type: 'image/png' });
                 
                 if (navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
-                        title: 'ScoreMaster - Récap DYNAMIC',
-                        text: 'Découvrez le récap DYNAMIC ! 🏆'
+                        title: 'ScoreMaster - Récap CLEAN',
+                        text: 'Découvrez le récap CLEAN ! 🏆'
                     });
                     return true;
                 }
