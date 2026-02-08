@@ -2259,18 +2259,20 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 
 
 
-    // ==================== RECAP GENERATOR V3.3 PERFECT ====================
+
+    // ==================== RECAP GENERATOR V3.4 DYNAMIC ====================
     const RecapGenerator = {
-        // Espacements corrigés
+        // Espacements optimisés
         SPACING: {
-            AFTER_BANNER: 40,           // ÉDITION SPÉCIALE décollé (au lieu de 20)
-            BEFORE_CHAMPION: 40,        // Avant bloc champion
-            AFTER_CHAMPION: 20,         // Après bloc champion
-            SECTION_HEADER: 15,         // Entre bandeau section et contenu
-            BETWEEN_SECTIONS: 30        // Entre deux sections
+            AFTER_BANNER: 40,           
+            BEFORE_CHAMPION: 40,        
+            AFTER_CHAMPION: 20,         
+            SECTION_HEADER: 15,         // Entre bandeau et contenu
+            BETWEEN_SECTIONS: 30,       // Entre sections
+            SECTION_PADDING: 25,        // Padding interne des sections (réduit de 30)
+            ITEM_SPACING: 20            // Entre items (réduit de 38)
         },
         
-        // Palette de couleurs BLEUE par défaut + par genre
         GENRE_COLORS: {
             DOMINATION: { primary: '#8B0000', secondary: '#FFD700', accent: '#FF4500', bg: 'rgba(139, 0, 0, 0.1)' },
             THRILLER: { primary: '#FF6B35', secondary: '#F7931E', accent: '#FDC830', bg: 'rgba(255, 107, 53, 0.1)' },
@@ -2373,23 +2375,23 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             },
             reactions: {
                 winner: [
-                    "C'était trop facile franchement",
-                    "Je savais dès le début que j'allais gagner",
-                    "Vous m'avez même pas fait transpirer",
-                    "J'ai joué à 50% de mes capacités",
-                    "Merci pour cette petite séance d'entraînement",
-                    "On fait une vraie partie maintenant ?",
-                    "Je m'attendais à plus de résistance",
+                    "C'était trop facile",
+                    "Je savais que j'allais gagner",
+                    "Vous m'avez pas fait transpirer",
+                    "J'ai joué à 50%",
+                    "Merci pour l'entraînement",
+                    "On fait une vraie partie ?",
+                    "Je m'attendais à mieux",
                     "J'ai failli m'endormir"
                 ],
                 loser: [
-                    "J'ai vraiment pas eu de chance",
+                    "J'ai pas eu de chance",
                     "Je pense qu'il/elle a triché",
-                    "Les cartes étaient toutes pourries",
+                    "Les cartes étaient pourries",
                     "J'étais pas concentré",
                     "La prochaine fois je mélange",
                     "C'est de la chance pure",
-                    "Mauvais tirage du début à la fin",
+                    "Mauvais tirage",
                     "Que des mauvaises cartes !"
                 ]
             },
@@ -2406,7 +2408,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         
         async generate(gameState) {
             try {
-                UI.showToast('🎨 Génération du récap PERFECT...', 'info');
+                UI.showToast('🎨 Génération récap DYNAMIC...', 'info');
                 
                 const canvas = document.createElement('canvas');
                 canvas.width = 1080;
@@ -2481,7 +2483,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                     finalGap
                 }, gameState);
                 
-                UI.showToast('✅ Récap PERFECT généré !', 'success');
+                UI.showToast('✅ Récap DYNAMIC généré !', 'success');
                 return canvas;
                 
             } catch(error) {
@@ -2574,11 +2576,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             yLeft = this.drawPodium3DImproved(ctx, leftCol, yLeft, colWidth, gameState.players, colors);
             yLeft += sp.BETWEEN_SECTIONS;
-            yLeft = this.drawReactionsSimple(ctx, leftCol, yLeft, colWidth, ai, colors);
+            yLeft = this.drawReactionsDynamic(ctx, leftCol, yLeft, colWidth, ai, colors);
             
-            yRight = this.drawTempsForts3Always(ctx, rightCol, yRight, colWidth, ai, colors, gameState);
+            yRight = this.drawTempsFortsDynamic(ctx, rightCol, yRight, colWidth, ai, colors, gameState);
             yRight += sp.BETWEEN_SECTIONS;
-            yRight = this.drawStatsFixed(ctx, rightCol, yRight, colWidth, ai, gameState, colors);
+            yRight = this.drawStatsDynamic(ctx, rightCol, yRight, colWidth, ai, gameState, colors);
             
             const finalY = Math.max(yLeft, yRight) + 60;
             
@@ -2673,7 +2675,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.shadowOffsetY = 0;
             
             y += 140;
-            y += 35;  // Espace supplémentaire pour décoller "ÉDITION SPÉCIALE" du bandeau
+            y += 35;
             
             ctx.font = 'bold 21px Arial';
             ctx.fillStyle = '#000000';
@@ -3048,7 +3050,10 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             return podiumY + podiumHeight;
         },
         
-        drawReactionsSimple(ctx, x, y, w, ai, colors) {
+        drawReactionsDynamic(ctx, x, y, w, ai, colors) {
+            const sp = this.SPACING;
+            const startY = y;
+            
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, colors.accent);
             gradient.addColorStop(1, colors.primary);
@@ -3067,30 +3072,16 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.textAlign = 'center';
             ctx.fillText('💬 LES RÉACTIONS', x + w / 2, y + 30);
             
-            y += 45 + this.SPACING.SECTION_HEADER;
+            y += 45 + sp.SECTION_HEADER;
             
-            const sectionHeight = 200;
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, y, w, sectionHeight);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, w, sectionHeight);
-            
-            y += 30;
+            const contentStartY = y;
+            y += sp.SECTION_PADDING;
             
             ctx.font = 'bold 19px Arial';
             ctx.fillStyle = colors.primary;
             ctx.textAlign = 'left';
             ctx.fillText(`🎤 ${ai.brain.winner.toUpperCase()}`, x + 20, y);
-            y += 28;
+            y += 24;
             
             const winnerQuote = this.NarrativeEngine.getWinnerQuote();
             ctx.font = 'italic 17px Georgia';
@@ -3099,7 +3090,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             winnerLines.forEach((line, idx) => {
                 ctx.fillText(line, x + 20, y + (idx * 22));
             });
-            y += winnerLines.length * 22 + 25;
+            y += winnerLines.length * 22 + 20;
             
             ctx.strokeStyle = '#EEEEEE';
             ctx.lineWidth = 1;
@@ -3107,12 +3098,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.moveTo(x + 20, y);
             ctx.lineTo(x + w - 20, y);
             ctx.stroke();
-            y += 25;
+            y += 20;
             
             ctx.font = 'bold 19px Arial';
             ctx.fillStyle = '#C8102E';
             ctx.fillText(`😭 ${ai.cast.boulet.toUpperCase()}`, x + 20, y);
-            y += 28;
+            y += 24;
             
             const loserQuote = this.NarrativeEngine.getLoserQuote();
             ctx.font = 'italic 17px Georgia';
@@ -3121,11 +3112,64 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             loserLines.forEach((line, idx) => {
                 ctx.fillText(line, x + 20, y + (idx * 22));
             });
+            y += loserLines.length * 22 + sp.SECTION_PADDING;
             
-            return y + loserLines.length * 22 + 25;
+            const sectionHeight = y - contentStartY;
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetY = 5;
+            ctx.fillRect(x, contentStartY, w, sectionHeight);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, contentStartY, w, sectionHeight);
+            
+            y = contentStartY + sp.SECTION_PADDING;
+            
+            ctx.font = 'bold 19px Arial';
+            ctx.fillStyle = colors.primary;
+            ctx.textAlign = 'left';
+            ctx.fillText(`🎤 ${ai.brain.winner.toUpperCase()}`, x + 20, y);
+            y += 24;
+            
+            ctx.font = 'italic 17px Georgia';
+            ctx.fillStyle = '#555';
+            winnerLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 22));
+            });
+            y += winnerLines.length * 22 + 20;
+            
+            ctx.strokeStyle = '#EEEEEE';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + 20, y);
+            ctx.lineTo(x + w - 20, y);
+            ctx.stroke();
+            y += 20;
+            
+            ctx.font = 'bold 19px Arial';
+            ctx.fillStyle = '#C8102E';
+            ctx.fillText(`😭 ${ai.cast.boulet.toUpperCase()}`, x + 20, y);
+            y += 24;
+            
+            ctx.font = 'italic 17px Georgia';
+            ctx.fillStyle = '#555';
+            loserLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 22));
+            });
+            
+            return contentStartY + sectionHeight;
         },
         
-        drawTempsForts3Always(ctx, x, y, w, ai, colors, gameState) {
+        drawTempsFortsDynamic(ctx, x, y, w, ai, colors, gameState) {
+            const sp = this.SPACING;
+            const startY = y;
+            
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, colors.primary);
             gradient.addColorStop(1, colors.accent);
@@ -3144,56 +3188,41 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.textAlign = 'center';
             ctx.fillText('⭐ LES TEMPS FORTS', x + w / 2, y + 30);
             
-            y += 45 + this.SPACING.SECTION_HEADER;
+            y += 45 + sp.SECTION_HEADER;
             
-            const sectionHeight = 330;
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, y, w, sectionHeight);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, w, sectionHeight);
-            
-            y += 30;
+            const contentStartY = y;
+            y += sp.SECTION_PADDING;
             
             this.drawFlame(ctx, x + 30, y - 5, 18);
             ctx.font = 'bold 22px Arial';
             ctx.fillStyle = '#FF6600';
             ctx.textAlign = 'left';
             ctx.fillText('LE MOMENT FEU', x + 60, y);
-            y += 28;
+            y += 24;
             
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
-            const feuLines = this.wrapText(ctx, `${ai.bestRound.player} a explosé tout le monde`, w - 40);
+            const feuLines = this.wrapText(ctx, `${ai.bestRound.player} a explosé`, w - 40);
             feuLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 22));
+                ctx.fillText(line, x + 20, y + (idx * 20));
             });
-            y += feuLines.length * 22 + 5;
+            y += feuLines.length * 20 + 4;
             
             ctx.font = 'bold 20px Arial';
             ctx.fillStyle = '#FF6600';
             const mancheLines = this.wrapText(ctx, `▶ ${ai.bestRound.score} pts (M${ai.bestRound.round})`, w - 40);
             mancheLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 22));
+                ctx.fillText(line, x + 20, y + (idx * 20));
             });
-            y += mancheLines.length * 22;
+            y += mancheLines.length * 20 + sp.ITEM_SPACING;
             
-            y += 38;
             ctx.strokeStyle = '#DDDDDD';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(x + 20, y);
             ctx.lineTo(x + w - 20, y);
             ctx.stroke();
-            y += 30;
+            y += sp.ITEM_SPACING;
             
             if (ai.worstRound.score < 0) {
                 ctx.font = '28px Arial';
@@ -3201,102 +3230,245 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 ctx.font = 'bold 22px Arial';
                 ctx.fillStyle = '#8B0000';
                 ctx.fillText('LE DRAMA', x + 60, y);
-                y += 28;
+                y += 24;
                 
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                const dramaLines = this.wrapText(ctx, `${ai.worstRound.player} fait un score catastrophique`, w - 40);
+                const dramaLines = this.wrapText(ctx, `${ai.worstRound.player} catastrophique`, w - 40);
                 dramaLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 22));
+                    ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += dramaLines.length * 22 + 5;
+                y += dramaLines.length * 20 + 4;
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#8B0000';
                 const dramaScoreLines = this.wrapText(ctx, `▶ ${ai.worstRound.score} pts (M${ai.worstRound.round})`, w - 40);
                 dramaScoreLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 22));
+                    ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += dramaScoreLines.length * 22;
+                y += dramaScoreLines.length * 20 + sp.ITEM_SPACING;
             } else {
                 ctx.font = '28px Arial';
                 ctx.fillText('🎯', x + 20, y);
                 ctx.font = 'bold 22px Arial';
                 ctx.fillStyle = '#4CAF50';
-                ctx.fillText('DEUXIÈME EXPLOIT', x + 60, y);
-                y += 28;
+                ctx.fillText('EXPLOIT #2', x + 60, y);
+                y += 24;
                 
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                const exploitLines = this.wrapText(ctx, `${ai.secondBestRound.player} également en feu`, w - 40);
+                const exploitLines = this.wrapText(ctx, `${ai.secondBestRound.player} en feu`, w - 40);
                 exploitLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 22));
+                    ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += exploitLines.length * 22 + 5;
+                y += exploitLines.length * 20 + 4;
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#4CAF50';
                 const exploitScoreLines = this.wrapText(ctx, `▶ ${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})`, w - 40);
                 exploitScoreLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 22));
+                    ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += exploitScoreLines.length * 22;
+                y += exploitScoreLines.length * 20 + sp.ITEM_SPACING;
             }
             
-            y += 38;
             ctx.strokeStyle = '#DDDDDD';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(x + 20, y);
             ctx.lineTo(x + w - 20, y);
             ctx.stroke();
-            y += 30;
+            y += sp.ITEM_SPACING;
             
             if (ai.bestStreak.count > 1) {
                 this.drawLightning(ctx, x + 25, y - 20, 20);
                 ctx.font = 'bold 22px Arial';
                 ctx.fillStyle = '#FFD700';
                 ctx.fillText('LA SÉRIE', x + 60, y);
-                y += 28;
+                y += 24;
                 
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                const serieLines = this.wrapText(ctx, `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires consécutives`, w - 40);
+                const serieLines = this.wrapText(ctx, `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires`, w - 40);
                 serieLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 22));
+                    ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += serieLines.length * 22 + 5;
+                y += serieLines.length * 20 + 4;
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = '#FFD700';
-                const autoLines = this.wrapText(ctx, '▶ Mode automatique', w - 40);
+                const autoLines = this.wrapText(ctx, '▶ Mode auto', w - 40);
                 autoLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 22));
+                    ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += autoLines.length * 22;
+                y += autoLines.length * 20 + sp.SECTION_PADDING;
             } else {
                 ctx.font = '28px Arial';
                 ctx.fillText('📊', x + 20, y);
                 ctx.font = 'bold 22px Arial';
                 ctx.fillStyle = colors.primary;
                 ctx.fillText('RÉGULARITÉ', x + 60, y);
-                y += 28;
+                y += 24;
                 
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
                 ctx.fillText(`Match équilibré`, x + 20, y);
-                y += 27;
+                y += 24;
                 
                 ctx.font = 'bold 20px Arial';
                 ctx.fillStyle = colors.primary;
-                const manchesLines = this.wrapText(ctx, `▶ ${gameState.history.length} manches disputées`, w - 40);
+                const manchesLines = this.wrapText(ctx, `▶ ${gameState.history.length} manches`, w - 40);
                 manchesLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 22));
+                    ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += manchesLines.length * 22;
+                y += manchesLines.length * 20 + sp.SECTION_PADDING;
             }
             
-            return y + 40;
+            const sectionHeight = y - contentStartY;
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetY = 5;
+            ctx.fillRect(x, contentStartY, w, sectionHeight);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, contentStartY, w, sectionHeight);
+            
+            y = contentStartY + sp.SECTION_PADDING;
+            
+            this.drawFlame(ctx, x + 30, y - 5, 18);
+            ctx.font = 'bold 22px Arial';
+            ctx.fillStyle = '#FF6600';
+            ctx.textAlign = 'left';
+            ctx.fillText('LE MOMENT FEU', x + 60, y);
+            y += 24;
+            
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#333';
+            feuLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 20));
+            });
+            y += feuLines.length * 20 + 4;
+            
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#FF6600';
+            mancheLines.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 20));
+            });
+            y += mancheLines.length * 20 + sp.ITEM_SPACING;
+            
+            ctx.strokeStyle = '#DDDDDD';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + 20, y);
+            ctx.lineTo(x + w - 20, y);
+            ctx.stroke();
+            y += sp.ITEM_SPACING;
+            
+            if (ai.worstRound.score < 0) {
+                ctx.font = '28px Arial';
+                ctx.fillText('💀', x + 20, y);
+                ctx.font = 'bold 22px Arial';
+                ctx.fillStyle = '#8B0000';
+                ctx.fillText('LE DRAMA', x + 60, y);
+                y += 24;
+                
+                ctx.font = '18px Arial';
+                ctx.fillStyle = '#333';
+                const dramaLines2 = this.wrapText(ctx, `${ai.worstRound.player} catastrophique`, w - 40);
+                dramaLines2.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+                y += dramaLines2.length * 20 + 4;
+                
+                ctx.font = 'bold 20px Arial';
+                ctx.fillStyle = '#8B0000';
+                const dramaScoreLines2 = this.wrapText(ctx, `▶ ${ai.worstRound.score} pts (M${ai.worstRound.round})`, w - 40);
+                dramaScoreLines2.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+                y += dramaScoreLines2.length * 20 + sp.ITEM_SPACING;
+            } else {
+                ctx.font = '28px Arial';
+                ctx.fillText('🎯', x + 20, y);
+                ctx.font = 'bold 22px Arial';
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillText('EXPLOIT #2', x + 60, y);
+                y += 24;
+                
+                ctx.font = '18px Arial';
+                ctx.fillStyle = '#333';
+                const exploitLines2 = this.wrapText(ctx, `${ai.secondBestRound.player} en feu`, w - 40);
+                exploitLines2.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+                y += exploitLines2.length * 20 + 4;
+                
+                ctx.font = 'bold 20px Arial';
+                ctx.fillStyle = '#4CAF50';
+                const exploitScoreLines2 = this.wrapText(ctx, `▶ ${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})`, w - 40);
+                exploitScoreLines2.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+                y += exploitScoreLines2.length * 20 + sp.ITEM_SPACING;
+            }
+            
+            ctx.strokeStyle = '#DDDDDD';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + 20, y);
+            ctx.lineTo(x + w - 20, y);
+            ctx.stroke();
+            y += sp.ITEM_SPACING;
+            
+            if (ai.bestStreak.count > 1) {
+                this.drawLightning(ctx, x + 25, y - 20, 20);
+                ctx.font = 'bold 22px Arial';
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText('LA SÉRIE', x + 60, y);
+                y += 24;
+                
+                ctx.font = '18px Arial';
+                ctx.fillStyle = '#333';
+                const serieLines2 = this.wrapText(ctx, `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires`, w - 40);
+                serieLines2.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+                y += serieLines2.length * 20 + 4;
+                
+                ctx.font = 'bold 20px Arial';
+                ctx.fillStyle = '#FFD700';
+                const autoLines2 = this.wrapText(ctx, '▶ Mode auto', w - 40);
+                autoLines2.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+            } else {
+                ctx.font = '28px Arial';
+                ctx.fillText('📊', x + 20, y);
+                ctx.font = 'bold 22px Arial';
+                ctx.fillStyle = colors.primary;
+                ctx.fillText('RÉGULARITÉ', x + 60, y);
+                y += 24;
+                
+                ctx.font = '18px Arial';
+                ctx.fillStyle = '#333';
+                ctx.fillText(`Match équilibré`, x + 20, y);
+                y += 24;
+                
+                ctx.font = 'bold 20px Arial';
+                ctx.fillStyle = colors.primary;
+                const manchesLines2 = this.wrapText(ctx, `▶ ${gameState.history.length} manches`, w - 40);
+                manchesLines2.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+            }
+            
+            return contentStartY + sectionHeight;
         },
         
         drawFlame(ctx, x, y, size) {
@@ -3330,7 +3502,10 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.stroke();
         },
         
-        drawStatsFixed(ctx, x, y, w, ai, gameState, colors) {
+        drawStatsDynamic(ctx, x, y, w, ai, gameState, colors) {
+            const sp = this.SPACING;
+            const startY = y;
+            
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, colors.primary);
             gradient.addColorStop(1, colors.accent);
@@ -3349,24 +3524,10 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.textAlign = 'center';
             ctx.fillText('📊 LES STATS', x + w / 2, y + 30);
             
-            y += 45 + this.SPACING.SECTION_HEADER;
+            y += 45 + sp.SECTION_HEADER;
             
-            const statsHeight = 300;
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, y, w, statsHeight);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, w, statsHeight);
-            
-            y += 30;
+            const contentStartY = y;
+            y += sp.SECTION_PADDING;
             
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
@@ -3376,12 +3537,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 const topPlayer = precision[0];
                 const precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${topPlayer.name}`, w - 40);
                 precisionLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 22));
+                    ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += precisionLines.length * 22 + 4;
+                y += precisionLines.length * 20 + 4;
                 
                 this.drawStatBar(ctx, x + 20, y, w - 40, topPlayer.value, 100, colors.primary);
-                y += 32;
+                y += 26;
             }
             
             ctx.strokeStyle = '#EEEEEE';
@@ -3390,21 +3551,20 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.moveTo(x + 20, y);
             ctx.lineTo(x + w - 20, y);
             ctx.stroke();
-            y += 22;
+            y += 18;
             
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
-            ctx.textAlign = 'left';
             const bestLines = this.wrapText(ctx, `🔧 Meilleure : ${ai.bestRound.player}`, w - 40);
             bestLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 22));
+                ctx.fillText(line, x + 20, y + (idx * 20));
             });
-            y += bestLines.length * 22 + 5;
+            y += bestLines.length * 20 + 4;
             
             ctx.font = 'bold 19px Arial';
             ctx.fillStyle = colors.accent;
             ctx.fillText(`${ai.bestRound.score} pts`, x + 20, y);
-            y += 28;
+            y += 24;
             
             ctx.strokeStyle = '#EEEEEE';
             ctx.lineWidth = 1;
@@ -3412,21 +3572,21 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.moveTo(x + 20, y);
             ctx.lineTo(x + w - 20, y);
             ctx.stroke();
-            y += 22;
+            y += 18;
             
             if (ai.worstRound.score < 0) {
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
                 const worstLines = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 40);
                 worstLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 22));
+                    ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += worstLines.length * 22 + 5;
+                y += worstLines.length * 20 + 4;
                 
                 ctx.font = 'bold 19px Arial';
                 ctx.fillStyle = '#F44336';
                 ctx.fillText(`${ai.worstRound.score} pts`, x + 20, y);
-                y += 28;
+                y += 24;
                 
                 ctx.strokeStyle = '#EEEEEE';
                 ctx.lineWidth = 1;
@@ -3434,7 +3594,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 ctx.moveTo(x + 20, y);
                 ctx.lineTo(x + w - 20, y);
                 ctx.stroke();
-                y += 22;
+                y += 18;
             }
             
             if (ai.bestStreak.count > 1) {
@@ -3442,14 +3602,14 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 ctx.fillStyle = '#333';
                 const streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 40);
                 streakLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 22));
+                    ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += streakLines.length * 22 + 5;
+                y += streakLines.length * 20 + 4;
                 
                 ctx.font = 'bold 19px Arial';
                 ctx.fillStyle = colors.secondary;
                 ctx.fillText(`${ai.bestStreak.count} victoires`, x + 20, y);
-                y += 28;
+                y += 24;
                 
                 ctx.strokeStyle = '#EEEEEE';
                 ctx.lineWidth = 1;
@@ -3457,16 +3617,16 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 ctx.moveTo(x + 20, y);
                 ctx.lineTo(x + w - 20, y);
                 ctx.stroke();
-                y += 22;
+                y += 18;
             }
             
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
             const ecartLines = this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 40);
             ecartLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 22));
+                ctx.fillText(line, x + 20, y + (idx * 20));
             });
-            y += ecartLines.length * 22 + 6;
+            y += ecartLines.length * 20 + 22;
             
             ctx.strokeStyle = '#EEEEEE';
             ctx.lineWidth = 1;
@@ -3474,14 +3634,143 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.moveTo(x + 20, y);
             ctx.lineTo(x + w - 20, y);
             ctx.stroke();
-            y += 22;
+            y += 18;
             
             const manchesLines = this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 40);
             manchesLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 22));
+                ctx.fillText(line, x + 20, y + (idx * 20));
+            });
+            y += manchesLines.length * 20 + sp.SECTION_PADDING;
+            
+            const sectionHeight = y - contentStartY;
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetY = 5;
+            ctx.fillRect(x, contentStartY, w, sectionHeight);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, contentStartY, w, sectionHeight);
+            
+            y = contentStartY + sp.SECTION_PADDING;
+            
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'left';
+            if (precision && precision.length > 0) {
+                const topPlayer = precision[0];
+                const precisionLines2 = this.wrapText(ctx, `🎯 Taux victoire : ${topPlayer.name}`, w - 40);
+                precisionLines2.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+                y += precisionLines2.length * 20 + 4;
+                
+                this.drawStatBar(ctx, x + 20, y, w - 40, topPlayer.value, 100, colors.primary);
+                y += 26;
+            }
+            
+            ctx.strokeStyle = '#EEEEEE';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + 20, y);
+            ctx.lineTo(x + w - 20, y);
+            ctx.stroke();
+            y += 18;
+            
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#333';
+            const bestLines2 = this.wrapText(ctx, `🔧 Meilleure : ${ai.bestRound.player}`, w - 40);
+            bestLines2.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 20));
+            });
+            y += bestLines2.length * 20 + 4;
+            
+            ctx.font = 'bold 19px Arial';
+            ctx.fillStyle = colors.accent;
+            ctx.fillText(`${ai.bestRound.score} pts`, x + 20, y);
+            y += 24;
+            
+            ctx.strokeStyle = '#EEEEEE';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + 20, y);
+            ctx.lineTo(x + w - 20, y);
+            ctx.stroke();
+            y += 18;
+            
+            if (ai.worstRound.score < 0) {
+                ctx.font = '18px Arial';
+                ctx.fillStyle = '#333';
+                const worstLines2 = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 40);
+                worstLines2.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+                y += worstLines2.length * 20 + 4;
+                
+                ctx.font = 'bold 19px Arial';
+                ctx.fillStyle = '#F44336';
+                ctx.fillText(`${ai.worstRound.score} pts`, x + 20, y);
+                y += 24;
+                
+                ctx.strokeStyle = '#EEEEEE';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + 20, y);
+                ctx.lineTo(x + w - 20, y);
+                ctx.stroke();
+                y += 18;
+            }
+            
+            if (ai.bestStreak.count > 1) {
+                ctx.font = '18px Arial';
+                ctx.fillStyle = '#333';
+                const streakLines2 = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 40);
+                streakLines2.forEach((line, idx) => {
+                    ctx.fillText(line, x + 20, y + (idx * 20));
+                });
+                y += streakLines2.length * 20 + 4;
+                
+                ctx.font = 'bold 19px Arial';
+                ctx.fillStyle = colors.secondary;
+                ctx.fillText(`${ai.bestStreak.count} victoires`, x + 20, y);
+                y += 24;
+                
+                ctx.strokeStyle = '#EEEEEE';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + 20, y);
+                ctx.lineTo(x + w - 20, y);
+                ctx.stroke();
+                y += 18;
+            }
+            
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#333';
+            const ecartLines2 = this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 40);
+            ecartLines2.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 20));
+            });
+            y += ecartLines2.length * 20 + 22;
+            
+            ctx.strokeStyle = '#EEEEEE';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + 20, y);
+            ctx.lineTo(x + w - 20, y);
+            ctx.stroke();
+            y += 18;
+            
+            const manchesLines2 = this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 40);
+            manchesLines2.forEach((line, idx) => {
+                ctx.fillText(line, x + 20, y + (idx * 20));
             });
             
-            return y + 30;
+            return contentStartY + sectionHeight;
         },
         
         drawStatBar(ctx, x, y, w, value, maxValue, color) {
@@ -3525,7 +3814,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             return lines;
         },
         
-        downloadImage(canvas, filename = 'ScoreMaster_Recap_PERFECT.png') {
+        downloadImage(canvas, filename = 'ScoreMaster_Recap_DYNAMIC.png') {
             canvas.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -3541,13 +3830,13 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             try {
                 const blob = await new Promise(resolve => canvas.toBlob(resolve));
-                const file = new File([blob], 'ScoreMaster_Recap_PERFECT.png', { type: 'image/png' });
+                const file = new File([blob], 'ScoreMaster_Recap_DYNAMIC.png', { type: 'image/png' });
                 
                 if (navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
-                        title: 'ScoreMaster - Récap PERFECT',
-                        text: 'Découvrez le récap PERFECT de notre partie ! 🏆'
+                        title: 'ScoreMaster - Récap DYNAMIC',
+                        text: 'Découvrez le récap DYNAMIC ! 🏆'
                     });
                     return true;
                 }
