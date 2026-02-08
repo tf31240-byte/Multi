@@ -3363,46 +3363,59 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             return contentY + calcH;
         },
         
-        drawStatsClean(ctx, x, y, w, ai, gameState, colors) {
+        // Fonction ULTRA-SAFE : Mesurer d'abord, dessiner ensuite
+        measureStatsContent(ctx, w, ai, gameState) {
             const sp = this.SPACING;
             const precision = ai.cast.precision;
             
-            // ÉTAPE 1 : Calculer la hauteur SANS dessiner
+            // Préparer toutes les données SANS DESSINER
             ctx.font = '18px Arial';
-            let precisionLines = [];
+            const data = {
+                precisionLines: [],
+                topPlayer: null,
+                bestLines: this.wrapText(ctx, `🔧 Meilleure : ${ai.bestRound.player}`, w - 40),
+                worstLines: [],
+                streakLines: [],
+                ecartLines: this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 40),
+                manchesLines: this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 40)
+            };
+            
             if (precision && precision.length > 0) {
-                const topPlayer = precision[0];
-                precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${topPlayer.name}`, w - 40);
+                data.topPlayer = precision[0];
+                data.precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${data.topPlayer.name}`, w - 40);
             }
             
-            const bestLines = this.wrapText(ctx, `🔧 Meilleure : ${ai.bestRound.player}`, w - 40);
-            
-            let worstLines = [];
             if (ai.worstRound.score < 0) {
-                worstLines = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 40);
+                data.worstLines = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 40);
             }
             
-            let streakLines = [];
             if (ai.bestStreak.count > 1) {
-                streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 40);
+                data.streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 40);
             }
             
-            const ecartLines = this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 40);
-            const manchesLines = this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 40);
+            // Calculer la hauteur totale
+            let height = sp.SECTION_PADDING;
+            if (data.topPlayer) {
+                height += data.precisionLines.length * 20 + 4 + 26 + 18;
+            }
+            height += data.bestLines.length * 20 + 4 + 24 + 18;
+            if (data.worstLines.length > 0) {
+                height += data.worstLines.length * 20 + 4 + 24 + 18;
+            }
+            if (data.streakLines.length > 0) {
+                height += data.streakLines.length * 20 + 4 + 24 + 18;
+            }
+            height += data.ecartLines.length * 20 + 22 + 18;
+            height += data.manchesLines.length * 20 + sp.SECTION_PADDING;
             
-            let calcH = sp.SECTION_PADDING;
-            if (precision && precision.length > 0) {
-                calcH += precisionLines.length * 20 + 4 + 26 + 18;
-            }
-            calcH += bestLines.length * 20 + 4 + 24 + 18;
-            if (ai.worstRound.score < 0) {
-                calcH += worstLines.length * 20 + 4 + 24 + 18;
-            }
-            if (ai.bestStreak.count > 1) {
-                calcH += streakLines.length * 20 + 4 + 24 + 18;
-            }
-            calcH += ecartLines.length * 20 + 22 + 18;
-            calcH += manchesLines.length * 20 + sp.SECTION_PADDING;
+            return { data, height };
+        },
+        
+        drawStatsClean(ctx, x, y, w, ai, gameState, colors) {
+            const sp = this.SPACING;
+            
+            // ÉTAPE 1 : Mesurer SANS DESSINER
+            const { data, height } = this.measureStatsContent(ctx, w, ai, gameState);
             
             // ÉTAPE 2 : Dessiner le bandeau
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
@@ -3431,30 +3444,29 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
             ctx.shadowBlur = 15;
             ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, contentY, w, calcH);
+            ctx.fillRect(x, contentY, w, height);
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
             
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
-            ctx.strokeRect(x, contentY, w, calcH);
+            ctx.strokeRect(x, contentY, w, height);
             
-            // ÉTAPE 4 : Dessiner le contenu (UNE SEULE FOIS !)
+            // ÉTAPE 4 : Dessiner le contenu
             y = contentY + sp.SECTION_PADDING;
             
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
             
-            if (precision && precision.length > 0) {
-                const topPlayer = precision[0];
-                precisionLines.forEach((line, idx) => {
+            if (data.topPlayer) {
+                ctx.font = '18px Arial';
+                ctx.fillStyle = '#333';
+                data.precisionLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += precisionLines.length * 20 + 4;
+                y += data.precisionLines.length * 20 + 4;
                 
-                this.drawStatBar(ctx, x + 20, y, w - 40, topPlayer.value, 100, colors.primary);
+                this.drawStatBar(ctx, x + 20, y, w - 40, data.topPlayer.value, 100, colors.primary);
                 y += 26;
                 
                 ctx.strokeStyle = '#EEEEEE';
@@ -3468,10 +3480,10 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
-            bestLines.forEach((line, idx) => {
+            data.bestLines.forEach((line, idx) => {
                 ctx.fillText(line, x + 20, y + (idx * 20));
             });
-            y += bestLines.length * 20 + 4;
+            y += data.bestLines.length * 20 + 4;
             
             ctx.font = 'bold 19px Arial';
             ctx.fillStyle = colors.accent;
@@ -3486,13 +3498,13 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.stroke();
             y += 18;
             
-            if (ai.worstRound.score < 0) {
+            if (data.worstLines.length > 0) {
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                worstLines.forEach((line, idx) => {
+                data.worstLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += worstLines.length * 20 + 4;
+                y += data.worstLines.length * 20 + 4;
                 
                 ctx.font = 'bold 19px Arial';
                 ctx.fillStyle = '#F44336';
@@ -3508,13 +3520,13 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 y += 18;
             }
             
-            if (ai.bestStreak.count > 1) {
+            if (data.streakLines.length > 0) {
                 ctx.font = '18px Arial';
                 ctx.fillStyle = '#333';
-                streakLines.forEach((line, idx) => {
+                data.streakLines.forEach((line, idx) => {
                     ctx.fillText(line, x + 20, y + (idx * 20));
                 });
-                y += streakLines.length * 20 + 4;
+                y += data.streakLines.length * 20 + 4;
                 
                 ctx.font = 'bold 19px Arial';
                 ctx.fillStyle = colors.secondary;
@@ -3532,10 +3544,10 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             ctx.font = '18px Arial';
             ctx.fillStyle = '#333';
-            ecartLines.forEach((line, idx) => {
+            data.ecartLines.forEach((line, idx) => {
                 ctx.fillText(line, x + 20, y + (idx * 20));
             });
-            y += ecartLines.length * 20 + 22;
+            y += data.ecartLines.length * 20 + 22;
             
             ctx.strokeStyle = '#EEEEEE';
             ctx.lineWidth = 1;
@@ -3545,11 +3557,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.stroke();
             y += 18;
             
-            manchesLines.forEach((line, idx) => {
+            data.manchesLines.forEach((line, idx) => {
                 ctx.fillText(line, x + 20, y + (idx * 20));
             });
             
-            return contentY + calcH;
+            return contentY + height;
         },
         
         drawFlame(ctx, x, y, size) {
