@@ -1847,6 +1847,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             UI.showVictory(winner, winner.total, this.currentGame.state);
         },
         async shareRecap() {
+            console.log('[DEBUG] shareRecap appelé');
+            
             if(!this.currentGame || !this.currentGame.finished) {
                 UI.showToast('⚠️ Terminez d\'abord la partie', 'warning');
                 return;
@@ -1854,12 +1856,13 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             SoundFX.click();
             
-            const choice = await this.showRecapFormatChoice();
-            
-            if (choice === 'gif') {
-                RecapGifGenerator.generateAnimated(this.currentGame.state);
-            } else if (choice === 'png') {
-                try {
+            try {
+                const choice = await this.showRecapFormatChoice();
+                console.log('[DEBUG] Choix:', choice);
+                
+                if (choice === 'gif') {
+                    RecapGifGenerator.generateAnimated(this.currentGame.state);
+                } else if (choice === 'png') {
                     const canvas = await RecapGenerator.generate(this.currentGame.state);
                     
                     if(!canvas) return;
@@ -1874,14 +1877,14 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                     }
                     
                     if(navigator.vibrate) navigator.vibrate([50, 30, 50]);
-                    
-                } catch (error) {
-                    console.error('[ScoreMaster] Erreur:', error);
-                    UI.showToast('❌ Erreur partage', 'error');
                 }
+            } catch (error) {
+                console.error('[ScoreMaster] Erreur shareRecap:', error);
+                UI.showToast('❌ Erreur: ' + error.message, 'error');
             }
         },
         showRecapFormatChoice() {
+            console.log('[DEBUG] showRecapFormatChoice appelé');
             return new Promise((resolve) => {
                 const modal = document.createElement('div');
                 modal.className = 'modal-overlay';
@@ -1890,22 +1893,62 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                     <div class="modal-box" style="max-width: 400px;">
                         <h3 style="margin-bottom: 20px;">📸 Format du récap</h3>
                         <div style="display: grid; gap: 12px;">
-                            <button class="btn-main" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px;" onclick="this.closest('.modal-overlay').remove(); window.recapFormatResolve('gif')">
+                            <button id="btn-gif" class="btn-main" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px;">
                                 🎬 GIF Animé
                                 <div style="font-size: 12px; opacity: 0.9; margin-top: 5px;">Journal animé (~3 Mo)</div>
                             </button>
-                            <button class="btn-main btn-primary" style="padding: 20px;" onclick="this.closest('.modal-overlay').remove(); window.recapFormatResolve('png')">
+                            <button id="btn-png" class="btn-main btn-primary" style="padding: 20px;">
                                 📸 Image PNG
                                 <div style="font-size: 12px; opacity: 0.9; margin-top: 5px;">Récap statique (~400 Ko)</div>
                             </button>
-                            <button class="btn-main" style="background: #6c757d; padding: 15px;" onclick="this.closest('.modal-overlay').remove(); window.recapFormatResolve(null)">
+                            <button id="btn-cancel" class="btn-main" style="background: #6c757d; padding: 15px;">
                                 Annuler
                             </button>
                         </div>
                     </div>
                 `;
+                
                 document.body.appendChild(modal);
-                window.recapFormatResolve = resolve;
+                console.log('[DEBUG] Modale ajoutée au DOM');
+                
+                const btnGif = modal.querySelector('#btn-gif');
+                const btnPng = modal.querySelector('#btn-png');
+                const btnCancel = modal.querySelector('#btn-cancel');
+                
+                if (!btnGif || !btnPng || !btnCancel) {
+                    console.error('[DEBUG] Boutons non trouvés!');
+                    modal.remove();
+                    resolve('png'); // Fallback vers PNG
+                    return;
+                }
+                
+                const closeAndResolve = (value) => {
+                    console.log('[DEBUG] closeAndResolve:', value);
+                    modal.remove();
+                    resolve(value);
+                };
+                
+                btnGif.addEventListener('click', () => {
+                    console.log('[DEBUG] Bouton GIF cliqué');
+                    closeAndResolve('gif');
+                });
+                
+                btnPng.addEventListener('click', () => {
+                    console.log('[DEBUG] Bouton PNG cliqué');
+                    closeAndResolve('png');
+                });
+                
+                btnCancel.addEventListener('click', () => {
+                    console.log('[DEBUG] Bouton Annuler cliqué');
+                    closeAndResolve(null);
+                });
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        console.log('[DEBUG] Clic outside modal');
+                        closeAndResolve(null);
+                    }
+                });
             });
         },
         openModal(playerId) {
