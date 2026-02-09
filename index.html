@@ -784,7 +784,14 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             <div id="victory-highlights"></div>
         </div>
 
-        <button class="btn-main" style="background:linear-gradient(135deg, #2B5AA0 0%, #1E3F6E 100%); color:white; margin:20px 0 12px; font-size:16px;" onclick="app.shareRecap()">📰 PARTAGER LE RÉCAP</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0 12px;">
+            <button class="btn-main" style="background:linear-gradient(135deg, #2B5AA0 0%, #1E3F6E 100%); color:white; font-size:16px;" onclick="app.shareRecapPNG()">
+                📸 PNG
+            </button>
+            <button class="btn-main" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; font-size:16px;" onclick="app.shareRecapGIF()">
+                🎬 GIF
+            </button>
+        </div>
         <button class="btn-main" style="background:var(--primary); color:white; margin:0 0 12px;" onclick="app.restartWithSamePlayers()">🔄 REJOUER (mêmes joueurs)</button>
         <button class="btn-main" style="background:var(--card); border:1px solid var(--border); color:var(--text);" onclick="app.showSetup()">🏠 RETOUR MENU</button>
     </div>
@@ -1846,9 +1853,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const winner = [...this.currentGame.state.players].sort((a,b) => b.total - a.total)[0];
             UI.showVictory(winner, winner.total, this.currentGame.state);
         },
-        async shareRecap() {
-            console.log('[DEBUG] shareRecap appelé');
-            
+        async shareRecapPNG() {
             if(!this.currentGame || !this.currentGame.finished) {
                 UI.showToast('⚠️ Terminez d\'abord la partie', 'warning');
                 return;
@@ -1857,99 +1862,41 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             SoundFX.click();
             
             try {
-                const choice = await this.showRecapFormatChoice();
-                console.log('[DEBUG] Choix:', choice);
+                UI.showToast('📸 Génération PNG...', 'info');
+                const canvas = await RecapGenerator.generate(this.currentGame.state);
                 
-                if (choice === 'gif') {
-                    RecapGifGenerator.generateAnimated(this.currentGame.state);
-                } else if (choice === 'png') {
-                    const canvas = await RecapGenerator.generate(this.currentGame.state);
-                    
-                    if(!canvas) return;
-                    
-                    const shared = await RecapGenerator.shareImage(canvas);
-                    
-                    if(!shared) {
-                        RecapGenerator.downloadImage(canvas, `ScoreMaster_${new Date().toISOString().split('T')[0]}.png`);
-                        UI.showToast('📥 Récap téléchargé !', 'success');
-                    } else {
-                        UI.showToast('✅ Récap partagé !', 'success');
-                    }
-                    
-                    if(navigator.vibrate) navigator.vibrate([50, 30, 50]);
+                if(!canvas) return;
+                
+                const shared = await RecapGenerator.shareImage(canvas);
+                
+                if(!shared) {
+                    RecapGenerator.downloadImage(canvas, `ScoreMaster_${new Date().toISOString().split('T')[0]}.png`);
+                    UI.showToast('📥 PNG téléchargé !', 'success');
+                } else {
+                    UI.showToast('✅ PNG partagé !', 'success');
                 }
+                
+                if(navigator.vibrate) navigator.vibrate([50, 30, 50]);
+                
             } catch (error) {
-                console.error('[ScoreMaster] Erreur shareRecap:', error);
-                UI.showToast('❌ Erreur: ' + error.message, 'error');
+                console.error('[ScoreMaster] Erreur PNG:', error);
+                UI.showToast('❌ Erreur PNG', 'error');
             }
         },
-        showRecapFormatChoice() {
-            console.log('[DEBUG] showRecapFormatChoice appelé');
-            return new Promise((resolve) => {
-                const modal = document.createElement('div');
-                modal.className = 'modal-overlay';
-                modal.style.display = 'flex';
-                modal.innerHTML = `
-                    <div class="modal-box" style="max-width: 400px;">
-                        <h3 style="margin-bottom: 20px;">📸 Format du récap</h3>
-                        <div style="display: grid; gap: 12px;">
-                            <button id="btn-gif" class="btn-main" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px;">
-                                🎬 GIF Animé
-                                <div style="font-size: 12px; opacity: 0.9; margin-top: 5px;">Journal animé (~3 Mo)</div>
-                            </button>
-                            <button id="btn-png" class="btn-main btn-primary" style="padding: 20px;">
-                                📸 Image PNG
-                                <div style="font-size: 12px; opacity: 0.9; margin-top: 5px;">Récap statique (~400 Ko)</div>
-                            </button>
-                            <button id="btn-cancel" class="btn-main" style="background: #6c757d; padding: 15px;">
-                                Annuler
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                document.body.appendChild(modal);
-                console.log('[DEBUG] Modale ajoutée au DOM');
-                
-                const btnGif = modal.querySelector('#btn-gif');
-                const btnPng = modal.querySelector('#btn-png');
-                const btnCancel = modal.querySelector('#btn-cancel');
-                
-                if (!btnGif || !btnPng || !btnCancel) {
-                    console.error('[DEBUG] Boutons non trouvés!');
-                    modal.remove();
-                    resolve('png'); // Fallback vers PNG
-                    return;
-                }
-                
-                const closeAndResolve = (value) => {
-                    console.log('[DEBUG] closeAndResolve:', value);
-                    modal.remove();
-                    resolve(value);
-                };
-                
-                btnGif.addEventListener('click', () => {
-                    console.log('[DEBUG] Bouton GIF cliqué');
-                    closeAndResolve('gif');
-                });
-                
-                btnPng.addEventListener('click', () => {
-                    console.log('[DEBUG] Bouton PNG cliqué');
-                    closeAndResolve('png');
-                });
-                
-                btnCancel.addEventListener('click', () => {
-                    console.log('[DEBUG] Bouton Annuler cliqué');
-                    closeAndResolve(null);
-                });
-                
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        console.log('[DEBUG] Clic outside modal');
-                        closeAndResolve(null);
-                    }
-                });
-            });
+        async shareRecapGIF() {
+            if(!this.currentGame || !this.currentGame.finished) {
+                UI.showToast('⚠️ Terminez d\'abord la partie', 'warning');
+                return;
+            }
+            
+            SoundFX.click();
+            
+            if (typeof GIF === 'undefined') {
+                UI.showToast('❌ Bibliothèque GIF non chargée', 'error');
+                return;
+            }
+            
+            RecapGifGenerator.generateAnimated(this.currentGame.state);
         },
         openModal(playerId) {
             SoundFX.click();
