@@ -26,7 +26,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-<title>ScoreMaster PREMIUM v4.3</title>
+<title>ScoreMaster ULTRA v4.4</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gifshot@0.4.5/dist/gifshot.min.js"></script>
@@ -572,8 +572,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 </head>
 <body>
     <!-- Badge de version pour vérifier le bon fichier -->
-    <div style="position: fixed; top: 10px; right: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 15px; border-radius: 8px; z-index: 9999; font-weight: bold; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-        ✨ PREMIUM v4.3
+    <div style="position: fixed; top: 10px; right: 10px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 8px 15px; border-radius: 8px; z-index: 9999; font-weight: bold; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+        🚀 ULTRA v4.4
     </div>
     <div id="toast" class="toast"></div>
 
@@ -3934,11 +3934,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
     
     const RecapGifGenerator = {
         CONFIG: {
-            WIDTH: 500,      // Réduit pour mobile
-            HEIGHT: 1200,    // Réduit pour mobile
-            FPS: 15,         // Réduit pour vitesse (au lieu de 30)
-            DURATION: 3,     // Réduit pour vitesse (au lieu de 5)
-            QUALITY: 20      // Qualité moyenne (au lieu de 10)
+            WIDTH: 500,      // Optimisé mobile
+            HEIGHT: 1500,    // Augmenté pour plus d'espace
+            FPS: 15,         // 15 fps fluide
+            DURATION: 3,     // 3 secondes
+            QUALITY: 20      // Qualité optimale
         },
         
         debugLog(msg) {
@@ -4092,7 +4092,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         
         drawAnimatedBanner(ctx, startY, colors, progress) {
             const w = this.CONFIG.WIDTH;
-            const h = 100;
+            const h = 120;  // 100 → 120px
             const eased = this.easeOutCubic(progress);
             const currentY = startY - (h * (1 - eased));
             
@@ -4119,8 +4119,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 ctx.fillStyle = 'rgba(255, 215, 0, 0.6)';
                 for (let i = 0; i < 15; i++) {
                     const px = (w / 15) * i + Math.sin(progress * 10 + i) * 10;
-                    const py = currentY + 15 + Math.cos(progress * 8 + i) * 8;
-                    const size = 2 + Math.sin(progress * 20 + i) * 1.5;
+                    const py = currentY + 20 + Math.cos(progress * 8 + i) * 8;
+                    const size = 2.5 + Math.sin(progress * 20 + i) * 1.5;
                     ctx.beginPath();
                     ctx.arc(px, py, size, 0, Math.PI * 2);
                     ctx.fill();
@@ -4132,29 +4132,29 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 const textAlpha = (progress - 0.5) * 2;
                 
                 // Glow effect
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
-                ctx.font = 'italic 900 60px Georgia';
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = 'rgba(255, 215, 0, 0.9)';
+                ctx.font = 'italic 900 70px Georgia';  // 60 → 70px
                 ctx.fillStyle = '#FFD700';
                 ctx.textAlign = 'center';
                 ctx.globalAlpha = textAlpha;
-                ctx.fillText('LE SCORE', w / 2, currentY + 65);
+                ctx.fillText('LE SCORE', w / 2, currentY + 75);
                 
                 // Outline/stroke
                 ctx.shadowBlur = 0;
                 ctx.strokeStyle = '#8B4513';
-                ctx.lineWidth = 3;
-                ctx.strokeText('LE SCORE', w / 2, currentY + 65);
+                ctx.lineWidth = 4;  // 3 → 4px
+                ctx.strokeText('LE SCORE', w / 2, currentY + 75);
                 
                 ctx.globalAlpha = 1;
             }
             
-            return startY + h;
+            return startY + h + 10;  // +10px padding
         },
         
         drawAnimatedChampion(ctx, startY, name, score, colors, progress) {
             const w = this.CONFIG.WIDTH;
-            const h = 90;
+            const h = 110;  // 90 → 110px
             const centerX = w / 2;
             const centerY = startY + h / 2;
             const eased = this.easeOutBounce(progress);
@@ -4164,47 +4164,47 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.scale(eased, eased);
             
             // Ombre portée 3D
-            ctx.shadowBlur = 25;
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 30;  // 25 → 30
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';  // 0.5 → 0.6
             ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 8;
+            ctx.shadowOffsetY = 10;  // 8 → 10
             
             // Fond avec dégradé gold premium
-            const boxGrad = ctx.createLinearGradient(0, -40, 0, 40);
+            const boxGrad = ctx.createLinearGradient(0, -45, 0, 45);
             boxGrad.addColorStop(0, '#FFD700');
             boxGrad.addColorStop(0.5, '#FFA500');
             boxGrad.addColorStop(1, '#FF8C00');
             ctx.fillStyle = boxGrad;
-            ctx.fillRect(-200, -40, 400, 80);
+            ctx.fillRect(-210, -45, 420, 90);  // Augmenté
             
             // Bordure dorée brillante
             ctx.shadowBlur = 0;
             ctx.strokeStyle = '#8B4513';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(-200, -40, 400, 80);
+            ctx.lineWidth = 5;  // 4 → 5
+            ctx.strokeRect(-210, -45, 420, 90);
             
             // Effet shine diagonal
-            const shineGrad = ctx.createLinearGradient(-200, -40, 200, 40);
+            const shineGrad = ctx.createLinearGradient(-210, -45, 210, 45);
             shineGrad.addColorStop(0, 'rgba(255,255,255,0)');
             shineGrad.addColorStop(0.4, 'rgba(255,255,255,0)');
             shineGrad.addColorStop(0.5, 'rgba(255,255,255,0.4)');
             shineGrad.addColorStop(0.6, 'rgba(255,255,255,0)');
             shineGrad.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = shineGrad;
-            ctx.fillRect(-200, -40, 400, 80);
+            ctx.fillRect(-210, -45, 420, 90);
             
             // Trophées avec glow
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
-            ctx.font = '35px Arial';
-            ctx.fillText('🏆', -170, 5);
-            ctx.fillText('🏆', 135, 5);
+            ctx.shadowBlur = 12;  // 10 → 12
+            ctx.shadowColor = 'rgba(255, 215, 0, 0.9)';
+            ctx.font = '40px Arial';  // 35 → 40
+            ctx.fillText('🏆', -180, 5);
+            ctx.fillText('🏆', 145, 5);
             ctx.shadowBlur = 0;
             
             // Nom du champion avec effet 3D
-            ctx.font = 'bold 30px Arial';
+            ctx.font = 'bold 35px Arial';  // 30 → 35
             // Ombre du texte
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';  // 0.3 → 0.4
             ctx.textAlign = 'center';
             ctx.fillText(name.toUpperCase(), 2, -3);
             // Texte principal
@@ -4212,21 +4212,21 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.fillText(name.toUpperCase(), 0, -5);
             
             // Score avec effet brillant
-            ctx.font = 'bold 24px Arial';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.fillText(`${score} pts`, 2, 27);
+            ctx.font = 'bold 28px Arial';  // 24 → 28
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fillText(`${score} pts`, 2, 30);
             ctx.fillStyle = '#ffffff';
-            ctx.fillText(`${score} pts`, 0, 25);
+            ctx.fillText(`${score} pts`, 0, 28);
             
             // Étoiles décoratives
             ctx.fillStyle = '#FFD700';
-            ctx.font = '18px Arial';
-            ctx.fillText('⭐', -90, -15);
-            ctx.fillText('⭐', 55, -15);
+            ctx.font = '22px Arial';  // 18 → 22
+            ctx.fillText('⭐', -100, -15);
+            ctx.fillText('⭐', 65, -15);
             
             ctx.restore();
             
-            return startY + h + 20;
+            return startY + h + 15;  // +15px padding
         },
         
         drawAnimatedTitle(ctx, startY, progress) {
@@ -4235,29 +4235,29 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.globalAlpha = progress;
             
             // Effet glow néon rouge
-            ctx.shadowBlur = 30;
-            ctx.shadowColor = 'rgba(220, 20, 60, 0.8)';
+            ctx.shadowBlur = 35;  // 30 → 35
+            ctx.shadowColor = 'rgba(220, 20, 60, 0.9)';
             
             // Texte avec dégradé
-            const textGrad = ctx.createLinearGradient(0, startY, 0, startY + 30);
+            const textGrad = ctx.createLinearGradient(0, startY, 0, startY + 35);
             textGrad.addColorStop(0, '#FF0000');
             textGrad.addColorStop(0.5, '#DC143C');
             textGrad.addColorStop(1, '#8B0000');
             
-            ctx.font = 'italic 900 30px Arial';
+            ctx.font = 'italic 900 34px Arial';  // 30 → 34px
             ctx.fillStyle = textGrad;
             ctx.textAlign = 'center';
-            ctx.fillText('ÉCRASE LA CONCURRENCE', w / 2, startY + 25);
+            ctx.fillText('ÉCRASE LA CONCURRENCE', w / 2, startY + 28);
             
             // Outline blanc pour le contraste
             ctx.shadowBlur = 0;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 1;
-            ctx.strokeText('ÉCRASE LA CONCURRENCE', w / 2, startY + 25);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';  // 0.3 → 0.4
+            ctx.lineWidth = 1.5;  // 1 → 1.5
+            ctx.strokeText('ÉCRASE LA CONCURRENCE', w / 2, startY + 28);
             
             ctx.globalAlpha = 1;
             
-            return startY + 45;
+            return startY + 55;  // 45 → 55 (+10px padding)
         },
         
         drawAnimatedNarrative(ctx, startY, narrative, progress) {
@@ -4267,33 +4267,33 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const visibleText = fullText.substring(0, visibleLength);
             
             // Fond avec dégradé subtil
-            const bgHeight = 80;
+            const bgHeight = 95;  // 80 → 95px
             const bgGrad = ctx.createLinearGradient(0, startY, 0, startY + bgHeight);
-            bgGrad.addColorStop(0, 'rgba(245, 245, 220, 0.3)');
-            bgGrad.addColorStop(1, 'rgba(255, 250, 240, 0.3)');
+            bgGrad.addColorStop(0, 'rgba(245, 245, 220, 0.5)');  // 0.3 → 0.5
+            bgGrad.addColorStop(1, 'rgba(255, 250, 240, 0.5)');
             ctx.fillStyle = bgGrad;
             ctx.fillRect(20, startY, w - 40, bgHeight);
             
             // Bordure dorée fine
-            ctx.strokeStyle = 'rgba(184, 134, 11, 0.3)';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(184, 134, 11, 0.5)';  // 0.3 → 0.5
+            ctx.lineWidth = 2.5;  // 2 → 2.5
             ctx.strokeRect(20, startY, w - 40, bgHeight);
             
             // Citation marks décoratives
-            ctx.font = 'bold 40px Georgia';
-            ctx.fillStyle = 'rgba(184, 134, 11, 0.2)';
+            ctx.font = 'bold 45px Georgia';  // 40 → 45
+            ctx.fillStyle = 'rgba(184, 134, 11, 0.3)';  // 0.2 → 0.3
             ctx.textAlign = 'left';
-            ctx.fillText('"', 30, startY + 35);
+            ctx.fillText('"', 30, startY + 40);
             ctx.textAlign = 'right';
-            ctx.fillText('"', w - 30, startY + 75);
+            ctx.fillText('"', w - 30, startY + 85);
             
             // Texte avec ombre légère
             ctx.shadowBlur = 2;
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';  // 0.1 → 0.15
             ctx.shadowOffsetY = 1;
             
-            ctx.font = 'italic 17px Georgia';
-            ctx.fillStyle = '#2c2c2c';
+            ctx.font = 'italic 18px Georgia';  // 17 → 18
+            ctx.fillStyle = '#1a1a1a';  // Plus foncé
             ctx.textAlign = 'center';
             
             const words = visibleText.split(' ');
@@ -4311,7 +4311,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             });
             if (line) lines.push(line.trim());
             
-            const lineHeight = 22;
+            const lineHeight = 24;  // 22 → 24
             const totalHeight = lines.length * lineHeight;
             const startLineY = startY + (bgHeight - totalHeight) / 2 + 15;
             
@@ -4321,29 +4321,29 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             ctx.shadowBlur = 0;
             
-            return startY + bgHeight + 20;
+            return startY + bgHeight + 25;  // 20 → 25 (+5px padding)
         },
         
         drawAnimatedTempsForts(ctx, startY, ai, gameState, colors, progress) {
             const w = this.CONFIG.WIDTH;
             
             // Header avec dégradé premium
-            const headerGrad = ctx.createLinearGradient(0, startY, 0, startY + 35);
+            const headerGrad = ctx.createLinearGradient(0, startY, 0, startY + 40);  // 35 → 40
             headerGrad.addColorStop(0, colors.primary);
             headerGrad.addColorStop(1, '#0f0f1e');
             ctx.fillStyle = headerGrad;
-            ctx.fillRect(15, startY, w - 30, 35);
+            ctx.fillRect(15, startY, w - 30, 40);
             
             // Glow sur header
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = 'rgba(255, 215, 0, 0.3)';
-            ctx.font = 'bold 18px Arial';
+            ctx.shadowBlur = 18;  // 15 → 18
+            ctx.shadowColor = 'rgba(255, 215, 0, 0.4)';  // 0.3 → 0.4
+            ctx.font = 'bold 20px Arial';  // 18 → 20
             ctx.fillStyle = '#FFD700';
             ctx.textAlign = 'center';
-            ctx.fillText('⭐ LES TEMPS FORTS ⭐', w / 2, startY + 23);
+            ctx.fillText('⭐ LES TEMPS FORTS ⭐', w / 2, startY + 26);
             ctx.shadowBlur = 0;
             
-            startY += 40;
+            startY += 45;  // 40 → 45
             
             const items = [
                 { icon: '🔥', label: 'MOMENT FEU', text: ai.bestRound.player, score: `${ai.bestRound.score} pts`, color: '#FF4500' },
@@ -4352,7 +4352,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ];
             
             const visibleItems = Math.floor(items.length * progress);
-            const itemHeight = 70;
+            const itemHeight = 85;  // 70 → 85px
             
             for (let i = 0; i < visibleItems; i++) {
                 const item = items[i];
@@ -4362,87 +4362,87 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.save();
                 const centerX = w / 2;
-                const centerY = itemY + 30;
+                const centerY = itemY + 35;  // 30 → 35
                 ctx.translate(centerX, centerY);
                 ctx.scale(scale, scale);
                 
                 // Ombre portée de la carte
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-                ctx.shadowOffsetY = 5;
+                ctx.shadowBlur = 22;  // 20 → 22
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';  // 0.3 → 0.35
+                ctx.shadowOffsetY = 6;  // 5 → 6
                 
                 // Fond de carte avec dégradé
-                const cardGrad = ctx.createLinearGradient(0, -25, 0, 25);
+                const cardGrad = ctx.createLinearGradient(0, -30, 0, 30);  // Augmenté
                 cardGrad.addColorStop(0, '#ffffff');
                 cardGrad.addColorStop(1, '#f5f5f5');
                 ctx.fillStyle = cardGrad;
-                ctx.fillRect(-230, -25, 460, 55);
+                ctx.fillRect(-230, -30, 460, 65);  // Carte plus haute: 55 → 65
                 
                 // Bordure colorée à gauche
                 ctx.fillStyle = item.color;
-                ctx.fillRect(-230, -25, 6, 55);
+                ctx.fillRect(-230, -30, 7, 65);  // 6 → 7px
                 
                 // Reset shadow
                 ctx.shadowBlur = 0;
                 
                 // Icône avec glow
-                ctx.shadowBlur = 8;
+                ctx.shadowBlur = 10;  // 8 → 10
                 ctx.shadowColor = item.color;
-                ctx.font = '28px Arial';
+                ctx.font = '32px Arial';  // 28 → 32
                 ctx.textAlign = 'left';
-                ctx.fillText(item.icon, -215, 5);
+                ctx.fillText(item.icon, -215, 8);  // 5 → 8
                 ctx.shadowBlur = 0;
                 
                 // Label
-                ctx.font = 'bold 15px Arial';
+                ctx.font = 'bold 17px Arial';  // 15 → 17
                 ctx.fillStyle = item.color;
-                ctx.fillText(item.label, -175, -5);
+                ctx.fillText(item.label, -172, -8);  // -175 → -172, -5 → -8
                 
                 // Nom
-                ctx.font = 'bold 14px Arial';
-                ctx.fillStyle = '#2c2c2c';
-                ctx.fillText(item.text, -175, 12);
+                ctx.font = 'bold 16px Arial';  // 14 → 16
+                ctx.fillStyle = '#1a1a1a';  // Plus foncé
+                ctx.fillText(item.text, -172, 12);
                 
                 // Score
-                ctx.font = 'bold 14px Arial';
+                ctx.font = 'bold 16px Arial';  // 14 → 16
                 ctx.fillStyle = item.color;
-                ctx.fillText(item.score, -175, 27);
+                ctx.fillText(item.score, -172, 30);  // 27 → 30
                 
                 // Badge à droite
                 ctx.fillStyle = item.color;
-                ctx.globalAlpha = 0.1;
+                ctx.globalAlpha = 0.12;  // 0.1 → 0.12
                 ctx.beginPath();
-                ctx.arc(200, 0, 20, 0, Math.PI * 2);
+                ctx.arc(205, 0, 22, 0, Math.PI * 2);  // 200, 20 → 205, 22
                 ctx.fill();
                 ctx.globalAlpha = 1;
                 
                 ctx.restore();
             }
             
-            return startY + (items.length * itemHeight) + 15;
+            return startY + (items.length * itemHeight) + 20;  // +20px padding
         },
         
         drawAnimatedStats(ctx, startY, ai, gameState, colors, progress) {
             const w = this.CONFIG.WIDTH;
             
             // Header avec dégradé
-            const headerGrad = ctx.createLinearGradient(0, startY, 0, startY + 35);
+            const headerGrad = ctx.createLinearGradient(0, startY, 0, startY + 40);  // 35 → 40
             headerGrad.addColorStop(0, colors.primary);
             headerGrad.addColorStop(1, '#0f0f1e');
             ctx.fillStyle = headerGrad;
-            ctx.fillRect(15, startY, w - 30, 35);
+            ctx.fillRect(15, startY, w - 30, 40);
             
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = 'rgba(100, 149, 237, 0.5)';
-            ctx.font = 'bold 18px Arial';
+            ctx.shadowBlur = 18;  // 15 → 18
+            ctx.shadowColor = 'rgba(100, 149, 237, 0.6)';  // 0.5 → 0.6
+            ctx.font = 'bold 20px Arial';  // 18 → 20
             ctx.fillStyle = '#6495ED';
             ctx.textAlign = 'center';
-            ctx.fillText('📊 LES STATS 📊', w / 2, startY + 23);
+            ctx.fillText('📊 LES STATS 📊', w / 2, startY + 26);
             ctx.shadowBlur = 0;
             
-            startY += 40;
+            startY += 45;  // 40 → 45
             
-            const frameHeight = 180;
+            const frameHeight = 250;  // 180 → 250px CRUCIAL !
             
             // Fond de la zone stats avec dégradé
             const bgGrad = ctx.createLinearGradient(0, startY, 0, startY + frameHeight);
@@ -4452,31 +4452,31 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.fillRect(15, startY, w - 30, frameHeight);
             
             // Bordure
-            ctx.strokeStyle = '#ddd';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ccc';  // Plus visible
+            ctx.lineWidth = 2.5;  // 2 → 2.5
             ctx.strokeRect(15, startY, w - 30, frameHeight);
             
-            let y = startY + 25;
+            let y = startY + 30;  // 25 → 30
             
             // Taux victoire avec barre animée
             if (ai.cast.precision && ai.cast.precision.length > 0) {
                 const topPlayer = ai.cast.precision[0];
                 
-                ctx.font = '15px Arial';
-                ctx.fillStyle = '#333';
+                ctx.font = '17px Arial';  // 15 → 17
+                ctx.fillStyle = '#1a1a1a';  // Plus foncé
                 ctx.textAlign = 'left';
                 ctx.fillText(`🎯 Taux de victoire : ${topPlayer.name}`, 30, y);
-                y += 25;
+                y += 28;  // 25 → 28
                 
                 const barWidth = w - 60;
                 const filledWidth = barWidth * (topPlayer.value / 100) * progress;
                 
                 // Barre background avec ombre intérieure
                 ctx.fillStyle = '#e8e8e8';
-                ctx.fillRect(30, y, barWidth, 20);
+                ctx.fillRect(30, y, barWidth, 24);  // 20 → 24 plus haute
                 ctx.strokeStyle = '#ccc';
                 ctx.lineWidth = 1;
-                ctx.strokeRect(30, y, barWidth, 20);
+                ctx.strokeRect(30, y, barWidth, 24);
                 
                 // Barre remplie avec dégradé animé
                 const barGradient = ctx.createLinearGradient(30, y, 30 + filledWidth, y);
@@ -4484,47 +4484,47 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 barGradient.addColorStop(0.5, '#45a049');
                 barGradient.addColorStop(1, '#66BB6A');
                 ctx.fillStyle = barGradient;
-                ctx.fillRect(30, y, filledWidth, 20);
+                ctx.fillRect(30, y, filledWidth, 24);
                 
                 // Effet de brillance sur la barre
-                const shineGrad = ctx.createLinearGradient(30, y, 30, y + 20);
+                const shineGrad = ctx.createLinearGradient(30, y, 30, y + 24);
                 shineGrad.addColorStop(0, 'rgba(255,255,255,0.3)');
                 shineGrad.addColorStop(0.5, 'rgba(255,255,255,0)');
                 shineGrad.addColorStop(1, 'rgba(0,0,0,0.1)');
                 ctx.fillStyle = shineGrad;
-                ctx.fillRect(30, y, filledWidth, 20);
+                ctx.fillRect(30, y, filledWidth, 24);
                 
                 // Pourcentage avec effet digital
                 const displayValue = Math.floor(topPlayer.value * progress);
-                ctx.font = 'bold 16px "Courier New", monospace';
+                ctx.font = 'bold 18px "Courier New", monospace';  // 16 → 18
                 ctx.fillStyle = '#fff';
                 ctx.textAlign = 'center';
-                ctx.shadowBlur = 3;
-                ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                ctx.fillText(`${displayValue}%`, w / 2, y + 15);
+                ctx.shadowBlur = 4;  // 3 → 4
+                ctx.shadowColor = 'rgba(0,0,0,0.6)';
+                ctx.fillText(`${displayValue}%`, w / 2, y + 17);
                 ctx.shadowBlur = 0;
                 
-                y += 35;
+                y += 40;  // 35 → 40
             }
             
             // Meilleure manche avec badge
             ctx.save();
-            ctx.font = '15px Arial';
-            ctx.fillStyle = '#333';
+            ctx.font = '17px Arial';  // 15 → 17
+            ctx.fillStyle = '#1a1a1a';
             ctx.textAlign = 'left';
             ctx.fillText(`🔥 Meilleure manche : ${ai.bestRound.player}`, 30, y);
-            y += 23;
+            y += 28;  // 23 → 28
             
             // Score avec effet compteur digital
             const displayBest = Math.floor(ai.bestRound.score * progress);
-            ctx.font = 'bold 28px "Courier New", monospace';
+            ctx.font = 'bold 32px "Courier New", monospace';  // 28 → 32
             
             // Glow effect
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = 12;  // 10 → 12
             ctx.shadowColor = colors.accent;
             
             // Dégradé sur le chiffre
-            const scoreGrad = ctx.createLinearGradient(0, y - 20, 0, y);
+            const scoreGrad = ctx.createLinearGradient(0, y - 22, 0, y);
             scoreGrad.addColorStop(0, colors.accent);
             scoreGrad.addColorStop(1, colors.primary);
             ctx.fillStyle = scoreGrad;
@@ -4532,14 +4532,15 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.shadowBlur = 0;
             ctx.restore();
             
-            y += 30;
+            y += 38;  // 30 → 38
             
             // Écart final avec icône
-            ctx.font = '15px Arial';
-            ctx.fillStyle = '#333';
+            ctx.font = '17px Arial';  // 15 → 17
+            ctx.fillStyle = '#1a1a1a';
+            ctx.textAlign = 'left';
             const displayGap = Math.floor(ai.finalGap * progress);
             ctx.fillText(`🎯 Écart final : ${displayGap} pts`, 30, y);
-            y += 25;
+            y += 30;  // 25 → 30
             
             // Manches avec badge
             const displayManches = Math.floor(gameState.history.length * progress);
@@ -4547,17 +4548,17 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             // Badge "Premium" dans le coin
             ctx.save();
-            ctx.translate(w - 50, startY + frameHeight - 25);
+            ctx.translate(w - 55, startY + frameHeight - 28);  // Ajusté
             ctx.rotate(-0.1);
-            ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
-            ctx.fillRect(-25, -10, 50, 20);
-            ctx.font = 'bold 10px Arial';
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.25)';  // 0.2 → 0.25
+            ctx.fillRect(-28, -12, 56, 24);  // Plus grand
+            ctx.font = 'bold 11px Arial';  // 10 → 11
             ctx.fillStyle = '#B8860B';
             ctx.textAlign = 'center';
-            ctx.fillText('PREMIUM', 0, 3);
+            ctx.fillText('PREMIUM', 0, 4);
             ctx.restore();
             
-            return startY + frameHeight + 15;
+            return startY + frameHeight + 30;  // +30px padding pour watermark
         },
         
         drawPaperTexture(ctx) {
@@ -4587,29 +4588,34 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const w = this.CONFIG.WIDTH;
             const h = this.CONFIG.HEIGHT;
             
-            // Badge premium en bas à droite
+            // Badge premium en bas centré
             ctx.save();
-            ctx.translate(w / 2, h - 25);
+            ctx.translate(w / 2, h - 35);  // 25 → 35 (plus haut pour sécurité)
             
-            // Fond du badge
-            const badgeGrad = ctx.createLinearGradient(-60, -10, 60, 10);
-            badgeGrad.addColorStop(0, 'rgba(30, 30, 46, 0.8)');
-            badgeGrad.addColorStop(1, 'rgba(15, 15, 30, 0.8)');
+            // Fond du badge avec ombre
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            
+            const badgeGrad = ctx.createLinearGradient(-70, -12, 70, 12);  // Plus large
+            badgeGrad.addColorStop(0, 'rgba(30, 30, 46, 0.9)');  // 0.8 → 0.9
+            badgeGrad.addColorStop(1, 'rgba(15, 15, 30, 0.9)');
             ctx.fillStyle = badgeGrad;
-            ctx.fillRect(-60, -10, 120, 20);
+            ctx.fillRect(-70, -12, 140, 24);  // Plus grand
+            
+            ctx.shadowBlur = 0;
             
             // Bordure dorée
-            ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(-60, -10, 120, 20);
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.7)';  // 0.5 → 0.7
+            ctx.lineWidth = 1.5;  // 1 → 1.5
+            ctx.strokeRect(-70, -12, 140, 24);
             
             // Texte avec glow
-            ctx.shadowBlur = 5;
-            ctx.shadowColor = 'rgba(255, 215, 0, 0.5)';
-            ctx.font = 'bold 11px Arial';
+            ctx.shadowBlur = 8;  // 5 → 8
+            ctx.shadowColor = 'rgba(255, 215, 0, 0.7)';
+            ctx.font = 'bold 13px Arial';  // 11 → 13
             ctx.fillStyle = '#FFD700';
             ctx.textAlign = 'center';
-            ctx.fillText('ScoreMaster™ PREMIUM', 0, 3);
+            ctx.fillText('ScoreMaster™ PREMIUM', 0, 4);
             
             ctx.restore();
         },
