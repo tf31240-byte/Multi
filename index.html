@@ -26,7 +26,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-<title>ScoreMaster ULTRA v4.4</title>
+<title>ScoreMaster FINAL v4.5</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gifshot@0.4.5/dist/gifshot.min.js"></script>
@@ -572,8 +572,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 </head>
 <body>
     <!-- Badge de version pour vérifier le bon fichier -->
-    <div style="position: fixed; top: 10px; right: 10px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 8px 15px; border-radius: 8px; z-index: 9999; font-weight: bold; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-        🚀 ULTRA v4.4
+    <div style="position: fixed; top: 10px; right: 10px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 8px 15px; border-radius: 8px; z-index: 9999; font-weight: bold; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+        ✅ FINAL v4.5
     </div>
     <div id="toast" class="toast"></div>
 
@@ -3935,9 +3935,9 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
     const RecapGifGenerator = {
         CONFIG: {
             WIDTH: 500,      // Optimisé mobile
-            HEIGHT: 1500,    // Augmenté pour plus d'espace
+            HEIGHT: 1400,    // Optimisé pour éviter espace vide
             FPS: 15,         // 15 fps fluide
-            DURATION: 3,     // 3 secondes
+            DURATION: 5,     // 5 secondes pour laisser lire
             QUALITY: 20      // Qualité optimale
         },
         
@@ -4362,57 +4362,56 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.save();
                 const centerX = w / 2;
-                const centerY = itemY + 35;  // 30 → 35
+                const centerY = itemY + 35;
                 ctx.translate(centerX, centerY);
                 ctx.scale(scale, scale);
                 
                 // Ombre portée de la carte
-                ctx.shadowBlur = 22;  // 20 → 22
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';  // 0.3 → 0.35
-                ctx.shadowOffsetY = 6;  // 5 → 6
+                ctx.shadowBlur = 20;  // Réduit de 22
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';  // Réduit de 0.35
+                ctx.shadowOffsetY = 5;  // Réduit de 6
                 
                 // Fond de carte avec dégradé
-                const cardGrad = ctx.createLinearGradient(0, -30, 0, 30);  // Augmenté
+                const cardGrad = ctx.createLinearGradient(0, -30, 0, 30);
                 cardGrad.addColorStop(0, '#ffffff');
                 cardGrad.addColorStop(1, '#f5f5f5');
                 ctx.fillStyle = cardGrad;
-                ctx.fillRect(-230, -30, 460, 65);  // Carte plus haute: 55 → 65
+                ctx.fillRect(-230, -30, 460, 65);
                 
                 // Bordure colorée à gauche
                 ctx.fillStyle = item.color;
-                ctx.fillRect(-230, -30, 7, 65);  // 6 → 7px
+                ctx.fillRect(-230, -30, 7, 65);
                 
-                // Reset shadow
+                // RESET COMPLET de tous les shadows
                 ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
                 
-                // Icône avec glow
-                ctx.shadowBlur = 10;  // 8 → 10
-                ctx.shadowColor = item.color;
-                ctx.font = '32px Arial';  // 28 → 32
+                // Icône SANS glow (pour éviter effet double)
+                ctx.font = '32px Arial';
                 ctx.textAlign = 'left';
-                ctx.fillText(item.icon, -215, 8);  // 5 → 8
-                ctx.shadowBlur = 0;
+                ctx.fillText(item.icon, -215, 8);
                 
-                // Label
-                ctx.font = 'bold 17px Arial';  // 15 → 17
+                // Label (SANS shadow)
+                ctx.font = 'bold 17px Arial';
                 ctx.fillStyle = item.color;
-                ctx.fillText(item.label, -172, -8);  // -175 → -172, -5 → -8
+                ctx.fillText(item.label, -172, -8);
                 
-                // Nom
-                ctx.font = 'bold 16px Arial';  // 14 → 16
-                ctx.fillStyle = '#1a1a1a';  // Plus foncé
+                // Nom (SANS shadow)
+                ctx.font = 'bold 16px Arial';
+                ctx.fillStyle = '#1a1a1a';
                 ctx.fillText(item.text, -172, 12);
                 
-                // Score
-                ctx.font = 'bold 16px Arial';  // 14 → 16
+                // Score (SANS shadow)
+                ctx.font = 'bold 16px Arial';
                 ctx.fillStyle = item.color;
-                ctx.fillText(item.score, -172, 30);  // 27 → 30
+                ctx.fillText(item.score, -172, 30);
                 
                 // Badge à droite
                 ctx.fillStyle = item.color;
-                ctx.globalAlpha = 0.12;  // 0.1 → 0.12
+                ctx.globalAlpha = 0.12;
                 ctx.beginPath();
-                ctx.arc(205, 0, 22, 0, Math.PI * 2);  // 200, 20 → 205, 22
+                ctx.arc(205, 0, 22, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.globalAlpha = 1;
                 
@@ -4509,30 +4508,25 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             // Meilleure manche avec badge
             ctx.save();
-            ctx.font = '17px Arial';  // 15 → 17
+            ctx.font = '17px Arial';
             ctx.fillStyle = '#1a1a1a';
             ctx.textAlign = 'left';
             ctx.fillText(`🔥 Meilleure manche : ${ai.bestRound.player}`, 30, y);
-            y += 28;  // 23 → 28
+            y += 28;
             
-            // Score avec effet compteur digital
+            // Score avec effet compteur digital (SANS glow pour éviter double)
             const displayBest = Math.floor(ai.bestRound.score * progress);
-            ctx.font = 'bold 32px "Courier New", monospace';  // 28 → 32
+            ctx.font = 'bold 32px "Courier New", monospace';
             
-            // Glow effect
-            ctx.shadowBlur = 12;  // 10 → 12
-            ctx.shadowColor = colors.accent;
-            
-            // Dégradé sur le chiffre
+            // Dégradé sur le chiffre (SANS shadowBlur)
             const scoreGrad = ctx.createLinearGradient(0, y - 22, 0, y);
             scoreGrad.addColorStop(0, colors.accent);
             scoreGrad.addColorStop(1, colors.primary);
             ctx.fillStyle = scoreGrad;
             ctx.fillText(`${displayBest} pts`, 30, y);
-            ctx.shadowBlur = 0;
             ctx.restore();
             
-            y += 38;  // 30 → 38
+            y += 38;
             
             // Écart final avec icône
             ctx.font = '17px Arial';  // 15 → 17
@@ -4546,19 +4540,9 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const displayManches = Math.floor(gameState.history.length * progress);
             ctx.fillText(`📈 Total manches : ${displayManches}`, 30, y);
             
-            // Badge "Premium" dans le coin
-            ctx.save();
-            ctx.translate(w - 55, startY + frameHeight - 28);  // Ajusté
-            ctx.rotate(-0.1);
-            ctx.fillStyle = 'rgba(255, 215, 0, 0.25)';  // 0.2 → 0.25
-            ctx.fillRect(-28, -12, 56, 24);  // Plus grand
-            ctx.font = 'bold 11px Arial';  // 10 → 11
-            ctx.fillStyle = '#B8860B';
-            ctx.textAlign = 'center';
-            ctx.fillText('PREMIUM', 0, 4);
-            ctx.restore();
+            // Badge stats supprimé (plus de "PREMIUM")
             
-            return startY + frameHeight + 30;  // +30px padding pour watermark
+            return startY + frameHeight + 30;
         },
         
         drawPaperTexture(ctx) {
@@ -4590,32 +4574,32 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             // Badge premium en bas centré
             ctx.save();
-            ctx.translate(w / 2, h - 35);  // 25 → 35 (plus haut pour sécurité)
+            ctx.translate(w / 2, h - 35);
             
             // Fond du badge avec ombre
             ctx.shadowBlur = 10;
             ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
             
-            const badgeGrad = ctx.createLinearGradient(-70, -12, 70, 12);  // Plus large
-            badgeGrad.addColorStop(0, 'rgba(30, 30, 46, 0.9)');  // 0.8 → 0.9
+            const badgeGrad = ctx.createLinearGradient(-55, -12, 55, 12);
+            badgeGrad.addColorStop(0, 'rgba(30, 30, 46, 0.9)');
             badgeGrad.addColorStop(1, 'rgba(15, 15, 30, 0.9)');
             ctx.fillStyle = badgeGrad;
-            ctx.fillRect(-70, -12, 140, 24);  // Plus grand
+            ctx.fillRect(-55, -12, 110, 24);
             
             ctx.shadowBlur = 0;
             
             // Bordure dorée
-            ctx.strokeStyle = 'rgba(255, 215, 0, 0.7)';  // 0.5 → 0.7
-            ctx.lineWidth = 1.5;  // 1 → 1.5
-            ctx.strokeRect(-70, -12, 140, 24);
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.7)';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(-55, -12, 110, 24);
             
             // Texte avec glow
-            ctx.shadowBlur = 8;  // 5 → 8
+            ctx.shadowBlur = 8;
             ctx.shadowColor = 'rgba(255, 215, 0, 0.7)';
-            ctx.font = 'bold 13px Arial';  // 11 → 13
+            ctx.font = 'bold 13px Arial';
             ctx.fillStyle = '#FFD700';
             ctx.textAlign = 'center';
-            ctx.fillText('ScoreMaster™ PREMIUM', 0, 4);
+            ctx.fillText('ScoreMaster™', 0, 4);
             
             ctx.restore();
         },
