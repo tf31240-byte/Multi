@@ -26,10 +26,10 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-<title>ScoreMaster DEBUG v4.2.1</title>
+<title>ScoreMaster GIFSHOT v4.2.2</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gifshot@0.4.5/dist/gifshot.min.js"></script>
 <style>
     /* --- VARIABLES & THEME --- */
     :root {
@@ -572,8 +572,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 </head>
 <body>
     <!-- Badge de version pour vérifier le bon fichier -->
-    <div style="position: fixed; top: 10px; right: 10px; background: #ff0000; color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999; font-weight: bold; font-size: 12px;">
-        DEBUG v4.2.1 FIX
+    <div style="position: fixed; top: 10px; right: 10px; background: #00ff00; color: black; padding: 5px 10px; border-radius: 5px; z-index: 9999; font-weight: bold; font-size: 12px;">
+        GIFSHOT v4.2.2
     </div>
     <div id="toast" class="toast"></div>
 
@@ -1921,15 +1921,15 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             } catch (e) { alert('ERREUR SoundFX: ' + e.message); }
             
             try {
-                this.debugLog('🔍 Vérification GIF.js...');
-                if (typeof GIF === 'undefined') {
-                    this.debugLog('❌ GIF.js non chargé !');
+                this.debugLog('🔍 Vérification gifshot...');
+                if (typeof gifshot === 'undefined') {
+                    this.debugLog('❌ gifshot non chargé !');
                     UI.showToast('❌ Bibliothèque GIF non chargée', 'error');
-                    alert('ERREUR: gif.js n\'est pas chargé. Vérifiez votre connexion internet.');
+                    alert('ERREUR: gifshot n\'est pas chargé. Vérifiez votre connexion internet.');
                     return;
                 }
-                this.debugLog('✅ GIF.js chargé OK');
-            } catch (e) { alert('ERREUR vérif GIF: ' + e.message); return; }
+                this.debugLog('✅ gifshot chargé OK');
+            } catch (e) { alert('ERREUR vérif gifshot: ' + e.message); return; }
             
             try {
                 this.debugLog('❓ Demande confirmation...');
@@ -3957,12 +3957,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             this.debugLog('=== DÉBUT generateAnimated() ===');
             
             try {
-                this.debugLog('1️⃣ Vérification GIF.js...');
-                if (typeof GIF === 'undefined') {
-                    this.debugLog('❌ GIF undefined!');
-                    throw new Error('Bibliothèque GIF.js non chargée');
+                this.debugLog('1️⃣ Vérification gifshot...');
+                if (typeof gifshot === 'undefined') {
+                    this.debugLog('❌ gifshot undefined!');
+                    throw new Error('Bibliothèque gifshot non chargée');
                 }
-                this.debugLog('✅ GIF.js OK');
+                this.debugLog('✅ gifshot OK');
                 
                 this.debugLog('2️⃣ Vérification gameState...');
                 if (!gameState.players || gameState.players.length === 0) {
@@ -3972,7 +3972,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 this.debugLog(`✅ ${gameState.players.length} joueurs`);
                 
                 this.debugLog('3️⃣ Toast initial...');
-                UI.showToast('🎬 GIF mobile : ~30 secondes...', 'info');
+                UI.showToast('🎬 GIF : génération...', 'info');
                 
                 this.debugLog('4️⃣ Analyse des données...');
                 const ai = RecapGenerator.analyzeGameData(gameState);
@@ -3982,68 +3982,72 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 const colors = RecapGenerator.GENRE_COLORS[ai.brain.genre];
                 this.debugLog(`✅ Genre: ${ai.brain.genre}`);
                 
-                this.debugLog('6️⃣ Création GIF encoder...');
-                this.debugLog(`   Config: ${this.CONFIG.WIDTH}x${this.CONFIG.HEIGHT}, ${this.CONFIG.FPS}fps, ${this.CONFIG.DURATION}s`);
-                
-                const gif = new GIF({
-                    workers: 0,
-                    quality: this.CONFIG.QUALITY,
-                    width: this.CONFIG.WIDTH,
-                    height: this.CONFIG.HEIGHT
-                });
-                this.debugLog('✅ GIF encoder créé');
-                
                 const totalFrames = this.CONFIG.FPS * this.CONFIG.DURATION;
-                this.debugLog(`7️⃣ Génération de ${totalFrames} frames...`);
+                this.debugLog(`6️⃣ Génération de ${totalFrames} frames...`);
                 
+                // Générer toutes les frames
+                const frames = [];
                 for (let frame = 0; frame < totalFrames; frame++) {
                     const canvas = this.drawAnimatedFrame(frame, totalFrames, ai, gameState, colors);
-                    gif.addFrame(canvas, { delay: 1000 / this.CONFIG.FPS });
+                    frames.push(canvas.toDataURL('image/png'));
                     
                     if (frame % 5 === 0) {
-                        const percent = Math.round((frame / totalFrames) * 50);
+                        const percent = Math.round((frame / totalFrames) * 100);
                         UI.showToast(`🎬 Frames: ${percent}%`, 'info');
                         this.debugLog(`   Frame ${frame}/${totalFrames} (${percent}%)`);
                     }
                 }
                 this.debugLog('✅ Toutes les frames générées');
                 
-                this.debugLog('8️⃣ Début encodage...');
-                UI.showToast('🎬 Encodage... (ça peut prendre 20s)', 'info');
+                this.debugLog('7️⃣ Création GIF avec gifshot...');
+                UI.showToast('🎬 Encodage GIF...', 'info');
                 
-                let lastProgress = 0;
-                gif.on('progress', (p) => {
-                    const percent = Math.round(p * 100);
-                    if (percent > lastProgress + 10) {
-                        lastProgress = percent;
-                        const displayPercent = 50 + Math.round(percent / 2);
-                        UI.showToast(`🎬 Encodage: ${displayPercent}%`, 'info');
-                        this.debugLog(`   Encodage: ${percent}% (affiché: ${displayPercent}%)`);
+                // gifshot.createGIF avec callback
+                gifshot.createGIF({
+                    images: frames,
+                    gifWidth: this.CONFIG.WIDTH,
+                    gifHeight: this.CONFIG.HEIGHT,
+                    interval: 1 / this.CONFIG.FPS,  // Délai en secondes
+                    numFrames: totalFrames,
+                    frameDuration: 1,
+                    sampleInterval: 10,
+                    progressCallback: (progress) => {
+                        const percent = Math.round(progress * 100);
+                        if (percent % 10 === 0) {
+                            UI.showToast(`🎬 Encodage: ${percent}%`, 'info');
+                            this.debugLog(`   Encodage: ${percent}%`);
+                        }
+                    }
+                }, (obj) => {
+                    if (!obj.error) {
+                        this.debugLog('8️⃣ GIF créé avec succès!');
+                        
+                        // Convertir data URL en blob
+                        fetch(obj.image)
+                            .then(res => res.blob())
+                            .then(blob => {
+                                this.debugLog(`   Taille: ${Math.round(blob.size / 1024)} Ko`);
+                                this.downloadGif(blob);
+                                UI.showToast('✅ GIF téléchargé !', 'success');
+                                this.debugLog('=== FIN SUCCESS ===');
+                            })
+                            .catch(err => {
+                                this.debugLog('❌ Erreur conversion blob: ' + err.message);
+                                UI.showToast('❌ Erreur téléchargement', 'error');
+                            });
+                    } else {
+                        this.debugLog('❌ Erreur gifshot: ' + obj.error);
+                        UI.showToast('❌ Erreur: ' + obj.error, 'error');
                     }
                 });
                 
-                gif.on('finished', (blob) => {
-                    this.debugLog('9️⃣ Encodage terminé!');
-                    this.debugLog(`   Taille blob: ${Math.round(blob.size / 1024)} Ko`);
-                    this.downloadGif(blob);
-                    UI.showToast('✅ GIF créé !', 'success');
-                    this.debugLog('=== FIN SUCCESS ===');
-                });
-                
-                gif.on('abort', () => {
-                    this.debugLog('❌ GIF ABORTÉ!');
-                    UI.showToast('❌ Génération annulée', 'error');
-                });
-                
-                this.debugLog('🚀 Lancement render()...');
-                gif.render();
-                this.debugLog('✅ render() appelé (attente encodage...)');
+                this.debugLog('✅ gifshot.createGIF() lancé');
                 
             } catch (error) {
                 this.debugLog('❌ ERREUR CATCH:');
                 this.debugLog(`   Message: ${error.message}`);
                 this.debugLog(`   Stack: ${error.stack}`);
-                console.error('[RecapGifGenerator] Erreur:', error);
+                window.console.error('[RecapGifGenerator] Erreur:', error);
                 UI.showToast('❌ Erreur: ' + error.message, 'error');
                 alert('ERREUR GIF:\n' + error.message + '\n\nOuvre la console F12 pour plus de détails');
             }
