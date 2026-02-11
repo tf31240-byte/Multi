@@ -790,6 +790,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             </button>
             <button class="btn-main" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; font-size:16px;" onclick="app.shareRecapGIF()">
                 🎬 GIF
+                <div style="font-size:10px; opacity:0.8; margin-top:2px;">~30s</div>
             </button>
         </div>
         <button class="btn-main" style="background:var(--primary); color:white; margin:0 0 12px;" onclick="app.restartWithSamePlayers()">🔄 REJOUER (mêmes joueurs)</button>
@@ -1883,20 +1884,53 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 UI.showToast('❌ Erreur PNG', 'error');
             }
         },
+        debugLog(msg) {
+            const console = document.getElementById('debug-console');
+            const log = document.getElementById('debug-log');
+            if (console && log) {
+                console.style.display = 'block';
+                const time = new Date().toLocaleTimeString();
+                log.innerHTML += `<div>[${time}] ${msg}</div>`;
+                log.scrollTop = log.scrollHeight;
+            }
+            console.log(msg);
+        },
         async shareRecapGIF() {
+            this.debugLog('🎬 shareRecapGIF() appelé');
+            
             if(!this.currentGame || !this.currentGame.finished) {
+                this.debugLog('❌ Partie non terminée');
                 UI.showToast('⚠️ Terminez d\'abord la partie', 'warning');
                 return;
             }
             
+            this.debugLog('✅ Partie terminée OK');
             SoundFX.click();
             
+            this.debugLog('🔍 Vérification GIF.js...');
             if (typeof GIF === 'undefined') {
+                this.debugLog('❌ GIF.js non chargé !');
                 UI.showToast('❌ Bibliothèque GIF non chargée', 'error');
+                alert('ERREUR: gif.js n\'est pas chargé. Vérifiez votre connexion internet.');
                 return;
             }
+            this.debugLog('✅ GIF.js chargé OK');
             
-            RecapGifGenerator.generateAnimated(this.currentGame.state);
+            this.debugLog('❓ Demande confirmation...');
+            if (!confirm('Le GIF prendra ~30 secondes à générer. Continuer ?')) {
+                this.debugLog('❌ Annulé par utilisateur');
+                return;
+            }
+            this.debugLog('✅ Confirmation OK');
+            
+            this.debugLog('🚀 Appel RecapGifGenerator.generateAnimated()');
+            try {
+                RecapGifGenerator.generateAnimated(this.currentGame.state);
+            } catch (error) {
+                this.debugLog('❌ ERREUR: ' + error.message);
+                this.debugLog('Stack: ' + error.stack);
+                UI.showToast('❌ Erreur: ' + error.message, 'error');
+            }
         },
         openModal(playerId) {
             SoundFX.click();
@@ -3874,65 +3908,124 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         }
     };
 
-    // ==================== RECAP GIF GENERATOR V4.2 ====================
-    // Génère un GIF animé du récap complet (sans podium)
-    // Animation : bandeau, champion, titre, narratif, graphique, temps forts, stats
+    // ==================== RECAP GIF GENERATOR MOBILE ====================
+    // Version optimisée pour mobile : SANS WEB WORKERS
+    // Plus lent mais fonctionne partout (même en file://)
     
     const RecapGifGenerator = {
         CONFIG: {
-            WIDTH: 600,
-            HEIGHT: 1400,
-            FPS: 30,
-            DURATION: 5,
-            QUALITY: 10,
-            WORKERS: 2
+            WIDTH: 500,      // Réduit pour mobile
+            HEIGHT: 1200,    // Réduit pour mobile
+            FPS: 15,         // Réduit pour vitesse (au lieu de 30)
+            DURATION: 3,     // Réduit pour vitesse (au lieu de 5)
+            QUALITY: 20      // Qualité moyenne (au lieu de 10)
+        },
+        
+        debugLog(msg) {
+            const debugConsole = document.getElementById('debug-console');
+            const debugLogDiv = document.getElementById('debug-log');
+            if (debugConsole && debugLogDiv) {
+                debugConsole.style.display = 'block';
+                const time = new Date().toLocaleTimeString();
+                debugLogDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
+                debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
+            }
+            console.log('[RecapGif] ' + msg);
         },
         
         async generateAnimated(gameState) {
+            this.debugLog('=== DÉBUT generateAnimated() ===');
+            
             try {
-                UI.showToast('🎬 Création du GIF animé...', 'info');
-                
+                this.debugLog('1️⃣ Vérification GIF.js...');
                 if (typeof GIF === 'undefined') {
+                    this.debugLog('❌ GIF undefined!');
                     throw new Error('Bibliothèque GIF.js non chargée');
                 }
+                this.debugLog('✅ GIF.js OK');
                 
+                this.debugLog('2️⃣ Vérification gameState...');
                 if (!gameState.players || gameState.players.length === 0) {
+                    this.debugLog('❌ Pas de joueurs!');
                     throw new Error('Aucun joueur trouvé');
                 }
+                this.debugLog(`✅ ${gameState.players.length} joueurs`);
                 
+                this.debugLog('3️⃣ Toast initial...');
+                UI.showToast('🎬 GIF mobile : ~30 secondes...', 'info');
+                
+                this.debugLog('4️⃣ Analyse des données...');
                 const ai = RecapGenerator.analyzeGameData(gameState);
+                this.debugLog('✅ Données analysées');
+                
+                this.debugLog('5️⃣ Récupération des couleurs...');
                 const colors = RecapGenerator.GENRE_COLORS[ai.brain.genre];
+                this.debugLog(`✅ Genre: ${ai.brain.genre}`);
+                
+                this.debugLog('6️⃣ Création GIF encoder...');
+                this.debugLog(`   Config: ${this.CONFIG.WIDTH}x${this.CONFIG.HEIGHT}, ${this.CONFIG.FPS}fps, ${this.CONFIG.DURATION}s`);
                 
                 const gif = new GIF({
-                    workers: this.CONFIG.WORKERS,
+                    workers: 0,
                     quality: this.CONFIG.QUALITY,
                     width: this.CONFIG.WIDTH,
-                    height: this.CONFIG.HEIGHT,
-                    workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
+                    height: this.CONFIG.HEIGHT
                 });
+                this.debugLog('✅ GIF encoder créé');
                 
                 const totalFrames = this.CONFIG.FPS * this.CONFIG.DURATION;
+                this.debugLog(`7️⃣ Génération de ${totalFrames} frames...`);
                 
                 for (let frame = 0; frame < totalFrames; frame++) {
                     const canvas = this.drawAnimatedFrame(frame, totalFrames, ai, gameState, colors);
                     gif.addFrame(canvas, { delay: 1000 / this.CONFIG.FPS });
                     
-                    if (frame % 15 === 0) {
-                        const percent = Math.round((frame / totalFrames) * 100);
-                        UI.showToast(`🎬 Génération... ${percent}%`, 'info');
+                    if (frame % 5 === 0) {
+                        const percent = Math.round((frame / totalFrames) * 50);
+                        UI.showToast(`🎬 Frames: ${percent}%`, 'info');
+                        this.debugLog(`   Frame ${frame}/${totalFrames} (${percent}%)`);
                     }
                 }
+                this.debugLog('✅ Toutes les frames générées');
                 
-                gif.on('finished', (blob) => {
-                    this.downloadGif(blob);
-                    UI.showToast('✅ GIF créé !', 'success');
+                this.debugLog('8️⃣ Début encodage...');
+                UI.showToast('🎬 Encodage... (ça peut prendre 20s)', 'info');
+                
+                let lastProgress = 0;
+                gif.on('progress', (p) => {
+                    const percent = Math.round(p * 100);
+                    if (percent > lastProgress + 10) {
+                        lastProgress = percent;
+                        const displayPercent = 50 + Math.round(percent / 2);
+                        UI.showToast(`🎬 Encodage: ${displayPercent}%`, 'info');
+                        this.debugLog(`   Encodage: ${percent}% (affiché: ${displayPercent}%)`);
+                    }
                 });
                 
+                gif.on('finished', (blob) => {
+                    this.debugLog('9️⃣ Encodage terminé!');
+                    this.debugLog(`   Taille blob: ${Math.round(blob.size / 1024)} Ko`);
+                    this.downloadGif(blob);
+                    UI.showToast('✅ GIF créé !', 'success');
+                    this.debugLog('=== FIN SUCCESS ===');
+                });
+                
+                gif.on('abort', () => {
+                    this.debugLog('❌ GIF ABORTÉ!');
+                    UI.showToast('❌ Génération annulée', 'error');
+                });
+                
+                this.debugLog('🚀 Lancement render()...');
                 gif.render();
+                this.debugLog('✅ render() appelé (attente encodage...)');
                 
             } catch (error) {
+                this.debugLog('❌ ERREUR CATCH:');
+                this.debugLog(`   Message: ${error.message}`);
+                this.debugLog(`   Stack: ${error.stack}`);
                 console.error('[RecapGifGenerator] Erreur:', error);
                 UI.showToast('❌ Erreur: ' + error.message, 'error');
+                alert('ERREUR GIF:\n' + error.message + '\n\nOuvre la console F12 pour plus de détails');
             }
         },
         
@@ -3944,21 +4037,23 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             const progress = frame / totalFrames;
             
+            // Fond
             ctx.fillStyle = '#F5F1E8';
             ctx.fillRect(0, 0, this.CONFIG.WIDTH, this.CONFIG.HEIGHT);
             this.drawPaperTexture(ctx);
             
             let y = 0;
             
-            y = this.drawAnimatedBanner(ctx, y, colors, this.getPhaseProgress(progress, 0, 0.2));
+            // Phases simplifiées (3 secondes au lieu de 5)
+            y = this.drawAnimatedBanner(ctx, y, colors, this.getPhaseProgress(progress, 0, 0.15));
             y = this.drawAnimatedChampion(ctx, y, ai.brain.winner, 
                 gameState.players.find(p => p.name === ai.brain.winner).total,
-                colors, this.getPhaseProgress(progress, 0.2, 0.4));
-            y = this.drawAnimatedTitle(ctx, y, this.getPhaseProgress(progress, 0.4, 0.6));
-            y = this.drawAnimatedNarrative(ctx, y, ai.narrative, this.getPhaseProgress(progress, 0.6, 0.8));
-            y = this.drawAnimatedGraph(ctx, y, ai, gameState, colors, this.getPhaseProgress(progress, 0.8, 2.0));
-            y = this.drawAnimatedTempsForts(ctx, y, ai, gameState, colors, this.getPhaseProgress(progress, 2.0, 3.5));
-            y = this.drawAnimatedStats(ctx, y, ai, gameState, colors, this.getPhaseProgress(progress, 3.5, 5.0));
+                colors, this.getPhaseProgress(progress, 0.15, 0.30));
+            y = this.drawAnimatedTitle(ctx, y, this.getPhaseProgress(progress, 0.30, 0.40));
+            y = this.drawAnimatedNarrative(ctx, y, ai.narrative, this.getPhaseProgress(progress, 0.40, 0.55));
+            // Pas de graphique (trop lourd pour mobile)
+            y = this.drawAnimatedTempsForts(ctx, y, ai, gameState, colors, this.getPhaseProgress(progress, 0.55, 0.80));
+            y = this.drawAnimatedStats(ctx, y, ai, gameState, colors, this.getPhaseProgress(progress, 0.80, 1.0));
             
             this.drawWatermark(ctx);
             
@@ -3973,7 +4068,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         
         drawAnimatedBanner(ctx, startY, colors, progress) {
             const w = this.CONFIG.WIDTH;
-            const h = 100;
+            const h = 80;
             const eased = this.easeOutCubic(progress);
             const currentY = startY - (h * (1 - eased));
             
@@ -3984,11 +4079,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             ctx.fillRect(0, currentY, w, h);
             
             if (progress > 0.5) {
-                ctx.font = 'italic 900 60px Georgia';
+                ctx.font = 'italic 900 50px Georgia';
                 ctx.fillStyle = '#FFFFFF';
                 ctx.textAlign = 'center';
                 ctx.globalAlpha = (progress - 0.5) * 2;
-                ctx.fillText('LE SCORE', w / 2, currentY + 65);
+                ctx.fillText('LE SCORE', w / 2, currentY + 55);
                 ctx.globalAlpha = 1;
             }
             
@@ -3997,42 +4092,41 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         
         drawAnimatedChampion(ctx, startY, name, score, colors, progress) {
             const w = this.CONFIG.WIDTH;
-            const h = 80;
+            const h = 70;
             const centerX = w / 2;
             const centerY = startY + h / 2;
             const eased = this.easeOutBounce(progress);
-            const scale = eased;
             
             ctx.save();
             ctx.translate(centerX, centerY);
-            ctx.scale(scale, scale);
+            ctx.scale(eased, eased);
             
             ctx.fillStyle = colors.accent;
-            ctx.fillRect(-200, -35, 400, 70);
+            ctx.fillRect(-180, -30, 360, 60);
             
-            ctx.font = 'bold 30px Arial';
+            ctx.font = 'bold 26px Arial';
             ctx.fillStyle = '#000';
             ctx.textAlign = 'center';
             ctx.fillText(`🏆 ${name.toUpperCase()} 🏆`, 0, -5);
-            ctx.font = 'bold 24px Arial';
-            ctx.fillText(`${score} pts`, 0, 25);
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText(`${score} pts`, 0, 20);
             
             ctx.restore();
             
-            return startY + h + 20;
+            return startY + h + 15;
         },
         
         drawAnimatedTitle(ctx, startY, progress) {
             const w = this.CONFIG.WIDTH;
             
             ctx.globalAlpha = progress;
-            ctx.font = 'italic 900 32px Arial';
+            ctx.font = 'italic 900 26px Arial';
             ctx.fillStyle = '#8B0000';
             ctx.textAlign = 'center';
-            ctx.fillText('ÉCRASE LA CONCURRENCE', w / 2, startY + 30);
+            ctx.fillText('ÉCRASE LA CONCURRENCE', w / 2, startY + 25);
             ctx.globalAlpha = 1;
             
-            return startY + 50;
+            return startY + 40;
         },
         
         drawAnimatedNarrative(ctx, startY, narrative, progress) {
@@ -4041,7 +4135,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const visibleLength = Math.floor(fullText.length * progress);
             const visibleText = fullText.substring(0, visibleLength);
             
-            ctx.font = 'italic 18px Georgia';
+            ctx.font = 'italic 16px Georgia';
             ctx.fillStyle = '#1A1A1A';
             ctx.textAlign = 'center';
             
@@ -4051,7 +4145,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             
             words.forEach(word => {
                 const test = line + word + ' ';
-                if (ctx.measureText(test).width > w - 40) {
+                if (ctx.measureText(test).width > w - 30) {
                     lines.push(line.trim());
                     line = word + ' ';
                 } else {
@@ -4061,99 +4155,41 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             if (line) lines.push(line.trim());
             
             lines.forEach((l, idx) => {
-                ctx.fillText(l, w / 2, startY + 25 + (idx * 22));
+                ctx.fillText(l, w / 2, startY + 20 + (idx * 20));
             });
             
-            return startY + 25 + (lines.length * 22) + 20;
-        },
-        
-        drawAnimatedGraph(ctx, startY, ai, gameState, colors, progress) {
-            const w = this.CONFIG.WIDTH;
-            const h = 300;
-            const padding = 30;
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(20, startY, w - 40, h);
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(20, startY, w - 40, h);
-            
-            ctx.font = 'bold 20px Arial';
-            ctx.fillStyle = colors.primary;
-            ctx.textAlign = 'center';
-            ctx.fillText('📈 ÉVOLUTION DES SCORES', w / 2, startY + 25);
-            
-            const gx = 20 + padding;
-            const gy = startY + 45;
-            const gw = w - 40 - padding * 2;
-            const gh = h - 70;
-            
-            const curves = ai.brain.curves;
-            const maxScore = Math.max(...curves.flat());
-            const minScore = Math.min(...curves.flat(), 0);
-            const nbRounds = gameState.history.length;
-            
-            curves.forEach((curve, playerIdx) => {
-                const player = gameState.players[playerIdx];
-                ctx.strokeStyle = player.color;
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                
-                ctx.moveTo(gx, gy + gh);
-                
-                const visiblePoints = Math.floor(curve.length * progress);
-                
-                for (let i = 0; i < visiblePoints; i++) {
-                    const px = gx + ((gw / nbRounds) * (i + 1));
-                    const py = gy + gh - ((curve[i] - minScore) / (maxScore - minScore || 1)) * gh;
-                    ctx.lineTo(px, py);
-                }
-                
-                ctx.stroke();
-                
-                for (let i = 0; i < visiblePoints; i++) {
-                    const px = gx + ((gw / nbRounds) * (i + 1));
-                    const py = gy + gh - ((curve[i] - minScore) / (maxScore - minScore || 1)) * gh;
-                    
-                    ctx.fillStyle = player.color;
-                    ctx.beginPath();
-                    ctx.arc(px, py, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            });
-            
-            return startY + h + 20;
+            return startY + 20 + (lines.length * 20) + 15;
         },
         
         drawAnimatedTempsForts(ctx, startY, ai, gameState, colors, progress) {
             const w = this.CONFIG.WIDTH;
             
             ctx.fillStyle = colors.primary;
-            ctx.fillRect(20, startY, w - 40, 35);
-            ctx.font = 'bold 18px Arial';
+            ctx.fillRect(15, startY, w - 30, 30);
+            ctx.font = 'bold 16px Arial';
             ctx.fillStyle = '#FFFFFF';
             ctx.textAlign = 'center';
-            ctx.fillText('⭐ LES TEMPS FORTS', w / 2, startY + 23);
+            ctx.fillText('⭐ LES TEMPS FORTS', w / 2, startY + 20);
             
-            startY += 45;
+            startY += 35;
             
             const items = [
-                { icon: '🔥', label: 'LE MOMENT FEU', text: `${ai.bestRound.player} a explosé`, score: `${ai.bestRound.score} pts (M${ai.bestRound.round})` },
-                { icon: '🎯', label: 'EXPLOIT #2', text: `${ai.secondBestRound.player} en feu`, score: `${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})` },
-                { icon: '⚡', label: 'LA SÉRIE', text: ai.bestStreak.count > 1 ? `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires` : `${gameState.history.length} manches jouées`, score: ai.bestStreak.count > 1 ? 'Mode auto' : 'Match équilibré' }
+                { icon: '🔥', label: 'MOMENT FEU', text: ai.bestRound.player, score: `${ai.bestRound.score} pts` },
+                { icon: '🎯', label: 'EXPLOIT #2', text: ai.secondBestRound.player, score: `${ai.secondBestRound.score} pts` },
+                { icon: '⚡', label: 'SÉRIE', text: ai.bestStreak.count > 1 ? `${ai.bestStreak.player}` : `${gameState.history.length} manches`, score: ai.bestStreak.count > 1 ? `${ai.bestStreak.count} victoires` : 'Match équilibré' }
             ];
             
             const visibleItems = Math.floor(items.length * progress);
-            const itemHeight = 70;
-            const frameHeight = 30 + (visibleItems * itemHeight);
+            const itemHeight = 60;
+            const frameHeight = 25 + (visibleItems * itemHeight);
             
             ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(20, startY, w - 40, frameHeight);
+            ctx.fillRect(15, startY, w - 30, frameHeight);
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
-            ctx.strokeRect(20, startY, w - 40, frameHeight);
+            ctx.strokeRect(15, startY, w - 30, frameHeight);
             
-            let itemY = startY + 15;
+            let itemY = startY + 12;
             for (let i = 0; i < visibleItems; i++) {
                 const item = items[i];
                 const itemProgress = Math.max(0, Math.min(1, (progress * items.length) - i));
@@ -4161,112 +4197,116 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 
                 ctx.save();
                 const centerX = w / 2;
-                const centerY = itemY + 25;
+                const centerY = itemY + 20;
                 ctx.translate(centerX, centerY);
                 ctx.scale(scale, scale);
                 
-                ctx.font = '24px Arial';
+                ctx.font = '20px Arial';
                 ctx.textAlign = 'left';
-                ctx.fillText(item.icon, -260, -10);
-                
-                ctx.font = 'bold 16px Arial';
-                ctx.fillStyle = '#FF6600';
-                ctx.fillText(item.label, -230, -10);
-                
-                ctx.font = '14px Arial';
-                ctx.fillStyle = '#333';
-                ctx.fillText(item.text, -260, 8);
+                ctx.fillText(item.icon, -220, -8);
                 
                 ctx.font = 'bold 14px Arial';
                 ctx.fillStyle = '#FF6600';
-                ctx.fillText(`▶ ${item.score}`, -260, 26);
+                ctx.fillText(item.label, -195, -8);
+                
+                ctx.font = '13px Arial';
+                ctx.fillStyle = '#333';
+                ctx.fillText(item.text, -220, 8);
+                
+                ctx.font = 'bold 13px Arial';
+                ctx.fillStyle = '#FF6600';
+                ctx.fillText(item.score, -220, 23);
                 
                 ctx.restore();
                 
                 itemY += itemHeight;
             }
             
-            return startY + frameHeight + 20;
+            return startY + frameHeight + 15;
         },
         
         drawAnimatedStats(ctx, startY, ai, gameState, colors, progress) {
             const w = this.CONFIG.WIDTH;
             
             ctx.fillStyle = colors.primary;
-            ctx.fillRect(20, startY, w - 40, 35);
-            ctx.font = 'bold 18px Arial';
+            ctx.fillRect(15, startY, w - 30, 30);
+            ctx.font = 'bold 16px Arial';
             ctx.fillStyle = '#FFFFFF';
             ctx.textAlign = 'center';
-            ctx.fillText('📊 LES STATS', w / 2, startY + 23);
+            ctx.fillText('📊 LES STATS', w / 2, startY + 20);
             
-            startY += 45;
+            startY += 35;
             
-            const frameHeight = 180;
+            const frameHeight = 150;
             ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(20, startY, w - 40, frameHeight);
+            ctx.fillRect(15, startY, w - 30, frameHeight);
             ctx.strokeStyle = '#CCCCCC';
             ctx.lineWidth = 2;
-            ctx.strokeRect(20, startY, w - 40, frameHeight);
+            ctx.strokeRect(15, startY, w - 30, frameHeight);
             
-            let y = startY + 25;
+            let y = startY + 20;
             
+            // Taux victoire
             if (ai.cast.precision && ai.cast.precision.length > 0) {
                 const topPlayer = ai.cast.precision[0];
                 
-                ctx.font = '16px Arial';
+                ctx.font = '14px Arial';
                 ctx.fillStyle = '#333';
                 ctx.textAlign = 'left';
-                ctx.fillText(`🎯 Taux victoire : ${topPlayer.name}`, 40, y);
-                y += 22;
+                ctx.fillText(`🎯 Taux victoire : ${topPlayer.name}`, 30, y);
+                y += 20;
                 
-                const barWidth = w - 80;
+                const barWidth = w - 60;
                 const filledWidth = barWidth * (topPlayer.value / 100) * progress;
                 
                 ctx.fillStyle = '#E0E0E0';
-                ctx.fillRect(40, y, barWidth, 18);
+                ctx.fillRect(30, y, barWidth, 15);
                 
-                const barGradient = ctx.createLinearGradient(40, y, 40 + filledWidth, y);
+                const barGradient = ctx.createLinearGradient(30, y, 30 + filledWidth, y);
                 barGradient.addColorStop(0, colors.primary);
                 barGradient.addColorStop(1, colors.primary + 'AA');
                 ctx.fillStyle = barGradient;
-                ctx.fillRect(40, y, filledWidth, 18);
+                ctx.fillRect(30, y, filledWidth, 15);
                 
                 const displayValue = Math.floor(topPlayer.value * progress);
-                ctx.font = 'bold 13px Arial';
+                ctx.font = 'bold 12px Arial';
                 ctx.fillStyle = '#000';
                 ctx.textAlign = 'center';
-                ctx.fillText(`${displayValue}%`, w / 2, y + 13);
+                ctx.fillText(`${displayValue}%`, w / 2, y + 11);
                 
-                y += 30;
+                y += 25;
             }
             
-            ctx.font = '16px Arial';
+            // Meilleure manche
+            ctx.font = '14px Arial';
             ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
-            ctx.fillText(`🔧 Meilleure : ${ai.bestRound.player}`, 40, y);
-            y += 22;
+            ctx.fillText(`🔥 Meilleure : ${ai.bestRound.player}`, 30, y);
+            y += 18;
             
             const displayBest = Math.floor(ai.bestRound.score * progress);
-            ctx.font = 'bold 17px Arial';
+            ctx.font = 'bold 16px Arial';
             ctx.fillStyle = colors.accent;
-            ctx.fillText(`${displayBest} pts`, 40, y);
-            y += 30;
-            
-            ctx.font = '16px Arial';
-            ctx.fillStyle = '#333';
-            const displayGap = Math.floor(ai.finalGap * progress);
-            ctx.fillText(`🎯 Écart final : ${displayGap} pts`, 40, y);
+            ctx.fillText(`${displayBest} pts`, 30, y);
             y += 25;
             
-            const displayManches = Math.floor(gameState.history.length * progress);
-            ctx.fillText(`📈 Manches : ${displayManches}`, 40, y);
+            // Écart final
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#333';
+            const displayGap = Math.floor(ai.finalGap * progress);
+            ctx.fillText(`🎯 Écart final : ${displayGap} pts`, 30, y);
+            y += 20;
             
-            return startY + frameHeight + 20;
+            // Manches
+            const displayManches = Math.floor(gameState.history.length * progress);
+            ctx.fillText(`📈 Manches : ${displayManches}`, 30, y);
+            
+            return startY + frameHeight + 15;
         },
         
         drawPaperTexture(ctx) {
             ctx.fillStyle = 'rgba(139, 119, 101, 0.02)';
-            for (let i = 0; i < 500; i++) {
+            for (let i = 0; i < 300; i++) {
                 ctx.fillRect(
                     Math.random() * this.CONFIG.WIDTH,
                     Math.random() * this.CONFIG.HEIGHT,
@@ -4276,10 +4316,10 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         },
         
         drawWatermark(ctx) {
-            ctx.font = 'bold 14px Arial';
+            ctx.font = 'bold 12px Arial';
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.textAlign = 'center';
-            ctx.fillText('ScoreMaster™', this.CONFIG.WIDTH / 2, this.CONFIG.HEIGHT - 20);
+            ctx.fillText('ScoreMaster™', this.CONFIG.WIDTH / 2, this.CONFIG.HEIGHT - 15);
         },
         
         easeOutCubic(t) {
@@ -4320,6 +4360,14 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         PWA.init();
     }
 </script>
+<!-- Console de débogage -->
+<div id="debug-console" style="position: fixed; bottom: 0; left: 0; right: 0; max-height: 200px; background: #000; color: #0f0; font-family: monospace; font-size: 11px; padding: 10px; overflow-y: auto; z-index: 10000; display: none; border-top: 2px solid #0f0;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <strong>🔧 DEBUG CONSOLE</strong>
+        <button onclick="document.getElementById('debug-console').style.display='none'" style="background: #f00; color: #fff; border: none; padding: 2px 8px; cursor: pointer;">✕</button>
+    </div>
+    <div id="debug-log"></div>
+</div>
 ```
 
 </body>
