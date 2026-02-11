@@ -26,7 +26,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-<title>ScoreMaster PWA v13</title>
+<title>ScoreMaster DEBUG v4.2.1</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
@@ -571,6 +571,10 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 
 </head>
 <body>
+    <!-- Badge de version pour vérifier le bon fichier -->
+    <div style="position: fixed; top: 10px; right: 10px; background: #ff0000; color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999; font-weight: bold; font-size: 12px;">
+        DEBUG v4.2.1 FIX
+    </div>
     <div id="toast" class="toast"></div>
 
 ```
@@ -1885,51 +1889,67 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             }
         },
         debugLog(msg) {
-            const console = document.getElementById('debug-console');
-            const log = document.getElementById('debug-log');
-            if (console && log) {
-                console.style.display = 'block';
+            const debugConsole = document.getElementById('debug-console');
+            const debugLogDiv = document.getElementById('debug-log');
+            if (debugConsole && debugLogDiv) {
+                debugConsole.style.display = 'block';
                 const time = new Date().toLocaleTimeString();
-                log.innerHTML += `<div>[${time}] ${msg}</div>`;
-                log.scrollTop = log.scrollHeight;
+                debugLogDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
+                debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
             }
-            console.log(msg);
+            window.console.log('[App] ' + msg);
         },
         async shareRecapGIF() {
-            this.debugLog('🎬 shareRecapGIF() appelé');
-            
-            if(!this.currentGame || !this.currentGame.finished) {
-                this.debugLog('❌ Partie non terminée');
-                UI.showToast('⚠️ Terminez d\'abord la partie', 'warning');
-                return;
-            }
-            
-            this.debugLog('✅ Partie terminée OK');
-            SoundFX.click();
-            
-            this.debugLog('🔍 Vérification GIF.js...');
-            if (typeof GIF === 'undefined') {
-                this.debugLog('❌ GIF.js non chargé !');
-                UI.showToast('❌ Bibliothèque GIF non chargée', 'error');
-                alert('ERREUR: gif.js n\'est pas chargé. Vérifiez votre connexion internet.');
-                return;
-            }
-            this.debugLog('✅ GIF.js chargé OK');
-            
-            this.debugLog('❓ Demande confirmation...');
-            if (!confirm('Le GIF prendra ~30 secondes à générer. Continuer ?')) {
-                this.debugLog('❌ Annulé par utilisateur');
-                return;
-            }
-            this.debugLog('✅ Confirmation OK');
-            
-            this.debugLog('🚀 Appel RecapGifGenerator.generateAnimated()');
             try {
+                this.debugLog('🎬 shareRecapGIF() appelé');
+            } catch (e) { alert('ERREUR ligne 1: ' + e.message); return; }
+            
+            try {
+                this.debugLog('🔍 Vérif currentGame...');
+                if(!this.currentGame || !this.currentGame.finished) {
+                    this.debugLog('❌ Partie non terminée');
+                    UI.showToast('⚠️ Terminez d\'abord la partie', 'warning');
+                    return;
+                }
+                this.debugLog('✅ Partie terminée OK');
+            } catch (e) { alert('ERREUR vérif partie: ' + e.message); return; }
+            
+            try {
+                this.debugLog('🔍 Appel SoundFX.click()...');
+                SoundFX.click();
+                this.debugLog('✅ SoundFX OK');
+            } catch (e) { alert('ERREUR SoundFX: ' + e.message); }
+            
+            try {
+                this.debugLog('🔍 Vérification GIF.js...');
+                if (typeof GIF === 'undefined') {
+                    this.debugLog('❌ GIF.js non chargé !');
+                    UI.showToast('❌ Bibliothèque GIF non chargée', 'error');
+                    alert('ERREUR: gif.js n\'est pas chargé. Vérifiez votre connexion internet.');
+                    return;
+                }
+                this.debugLog('✅ GIF.js chargé OK');
+            } catch (e) { alert('ERREUR vérif GIF: ' + e.message); return; }
+            
+            try {
+                this.debugLog('❓ Demande confirmation...');
+                const userConfirmed = confirm('Le GIF prendra ~30 secondes à générer. Continuer ?');
+                if (!userConfirmed) {
+                    this.debugLog('❌ Annulé par utilisateur');
+                    return;
+                }
+                this.debugLog('✅ Confirmation OK');
+            } catch (e) { alert('ERREUR confirmation: ' + e.message); return; }
+            
+            try {
+                this.debugLog('🚀 Appel RecapGifGenerator.generateAnimated()');
                 RecapGifGenerator.generateAnimated(this.currentGame.state);
+                this.debugLog('✅ Appel lancé');
             } catch (error) {
-                this.debugLog('❌ ERREUR: ' + error.message);
+                this.debugLog('❌ ERREUR generateAnimated: ' + error.message);
                 this.debugLog('Stack: ' + error.stack);
                 UI.showToast('❌ Erreur: ' + error.message, 'error');
+                alert('ERREUR generateAnimated:\n' + error.message + '\n\nStack:\n' + error.stack);
             }
         },
         openModal(playerId) {
@@ -3930,7 +3950,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 debugLogDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
                 debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
             }
-            console.log('[RecapGif] ' + msg);
+            window.console.log('[RecapGif] ' + msg);
         },
         
         async generateAnimated(gameState) {
