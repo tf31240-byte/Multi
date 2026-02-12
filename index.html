@@ -26,7 +26,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-<title>ScoreMaster FIX v4.7</title>
+<title>ScoreMaster</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gifshot@0.4.5/dist/gifshot.min.js"></script>
@@ -571,10 +571,6 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 
 </head>
 <body>
-    <!-- Badge de version pour vérifier le bon fichier -->
-    <div style="position: fixed; top: 10px; right: 10px; background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%); color: white; padding: 8px 15px; border-radius: 8px; z-index: 9999; font-weight: bold; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-        🔴 FIX v4.7
-    </div>
     <div id="toast" class="toast"></div>
 
 ```
@@ -2376,18 +2372,22 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         },
         
         StoryBrain: {
-            analyze(history, players) {
+            analyze(history, players, victoryCondition = 'highest') {
                 const totals = {};
                 players.forEach((p, i) => totals[i] = 0);
                 const leaders = [];
                 const curves = players.map(() => []);
+                const isLowest = victoryCondition === 'lowest';
                 
                 history.forEach(r => {
                     players.forEach((p, i) => {
                         totals[i] += r[p.id] || 0;
                         curves[i].push(totals[i]);
                     });
-                    const sorted = players.map((p, i) => ({ i, t: totals[i] })).sort((a, b) => b.t - a.t);
+                    // Tri selon victoryCondition
+                    const sorted = players.map((p, i) => ({ i, t: totals[i] })).sort((a, b) => {
+                        return isLowest ? a.t - b.t : b.t - a.t;
+                    });
                     leaders.push(sorted[0].i);
                 });
                 
@@ -2399,8 +2399,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 const last = leaders[leaders.length - 1];
                 const first = leaders[0];
                 const finals = curves.map(c => c[c.length - 1]);
-                const sortedF = finals.map((t, i) => ({ i, t })).sort((a, b) => b.t - a.t);
-                const gap = sortedF[0].t - sortedF[1].t;
+                // Tri final selon victoryCondition
+                const sortedF = finals.map((t, i) => ({ i, t })).sort((a, b) => {
+                    return isLowest ? a.t - b.t : b.t - a.t;
+                });
+                const gap = Math.abs(sortedF[0].t - sortedF[1].t);
                 
                 let genre;
                 if (changes >= 3) genre = "CHAOS";
@@ -2413,25 +2416,39 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         },
         
         PlayerCasting: {
-            analyze(history, players) {
+            analyze(history, players, victoryCondition = 'highest') {
+                const isLowest = victoryCondition === 'lowest';
                 const stats = players.map(p => ({ name: p.name, color: p.color, total: 0, best: -999, worst: 999, wins: 0 }));
+                
                 history.forEach(r => {
                     const scores = players.map((p, i) => ({ i, score: r[p.id] || 0 }));
-                    const maxScore = Math.max(...scores.map(s => s.score));
+                    // En mode lowest, chercher le min, sinon le max
+                    const winningScore = isLowest 
+                        ? Math.min(...scores.map(s => s.score))
+                        : Math.max(...scores.map(s => s.score));
                     
                     players.forEach((p, i) => {
                         const score = r[p.id] || 0;
                         stats[i].total += score;
                         stats[i].best = Math.max(stats[i].best, score);
                         stats[i].worst = Math.min(stats[i].worst, score);
-                        if (score === maxScore && score > 0) stats[i].wins++;
+                        // Compter les victoires selon le bon critère
+                        if (score === winningScore && (isLowest ? score >= 0 : score > 0)) {
+                            stats[i].wins++;
+                        }
                     });
                 });
-                const sorted = [...stats].sort((a, b) => b.total - a.total);
+                
+                // Trier selon victoryCondition
+                const sorted = [...stats].sort((a, b) => {
+                    return isLowest ? a.total - b.total : b.total - a.total;
+                });
+                
                 const precision = sorted.map(s => ({
                     name: s.name,
                     value: history.length > 0 ? Math.round((s.wins / history.length) * 100) : 0
                 }));
+                
                 return { hero: sorted[0].name, boulet: sorted[sorted.length - 1].name, stats: sorted, precision };
             }
         },
@@ -2531,8 +2548,9 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         
         // Analyse optimisée : UNE SEULE passe sur l'historique
         analyzeGameData(gameState) {
-            const brain = this.StoryBrain.analyze(gameState.history, gameState.players);
-            const cast = this.PlayerCasting.analyze(gameState.history, gameState.players);
+            const victoryCondition = gameState.victoryCondition || 'highest';
+            const brain = this.StoryBrain.analyze(gameState.history, gameState.players, victoryCondition);
+            const cast = this.PlayerCasting.analyze(gameState.history, gameState.players, victoryCondition);
             const narrative = this.NarrativeEngine.build(brain, cast);
             
             // Map des joueurs pour éviter find() répété
@@ -2548,6 +2566,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 streaks.set(p.id, { current: 0, max: 0 });
             });
             
+            const isLowest = victoryCondition === 'lowest';
+            
             // UNE SEULE BOUCLE pour tout calculer
             gameState.history.forEach((round, idx) => {
                 const roundScores = Object.entries(round).map(([id, score]) => ({
@@ -2555,13 +2575,16 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                     score
                 }));
                 
-                const maxScore = Math.max(...roundScores.map(s => s.score));
-                const winner = roundScores.find(s => s.score === maxScore);
+                // Trouver le gagnant de la manche selon victoryCondition
+                const winningScore = isLowest
+                    ? Math.min(...roundScores.map(s => s.score))
+                    : Math.max(...roundScores.map(s => s.score));
+                const winner = roundScores.find(s => s.score === winningScore);
                 
                 // Mettre à jour les streaks
                 roundScores.forEach(({ id, score }) => {
                     const streak = streaks.get(id);
-                    if (id === winner.id && score > 0) {
+                    if (id === winner.id && (isLowest ? score >= 0 : score > 0)) {
                         streak.current++;
                         streak.max = Math.max(streak.max, streak.current);
                     } else {
@@ -2593,8 +2616,11 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 }
             });
             
-            const sorted = [...gameState.players].sort((a,b) => b.total - a.total);
-            const finalGap = sorted[0].total - sorted[1].total;
+            // Trier selon victoryCondition pour calculer l'écart
+            const sorted = [...gameState.players].sort((a,b) => {
+                return isLowest ? a.total - b.total : b.total - a.total;
+            });
+            const finalGap = Math.abs(sorted[0].total - sorted[1].total);
             
             return {
                 brain,
