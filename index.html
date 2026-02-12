@@ -26,7 +26,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-<title>ScoreMaster FINAL v4.5</title>
+<title>ScoreMaster PNG v4.6</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gifshot@0.4.5/dist/gifshot.min.js"></script>
@@ -572,8 +572,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 </head>
 <body>
     <!-- Badge de version pour vérifier le bon fichier -->
-    <div style="position: fixed; top: 10px; right: 10px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 8px 15px; border-radius: 8px; z-index: 9999; font-weight: bold; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-        ✅ FINAL v4.5
+    <div style="position: fixed; top: 10px; right: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 15px; border-radius: 8px; z-index: 9999; font-weight: bold; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+        🎨 PNG v4.6
     </div>
     <div id="toast" class="toast"></div>
 
@@ -3627,44 +3627,44 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const precision = ai.cast.precision;
             
             // Préparer toutes les données SANS DESSINER
-            ctx.font = '18px Arial';
+            ctx.font = '19px Arial';  // Correspond à la police utilisée
             const data = {
                 precisionLines: [],
                 topPlayer: null,
-                bestLines: this.wrapText(ctx, `🔧 Meilleure : ${ai.bestRound.player}`, w - 40),
+                bestLines: this.wrapText(ctx, `🔥 Meilleure : ${ai.bestRound.player}`, w - 50),
                 worstLines: [],
                 streakLines: [],
-                ecartLines: this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 40),
-                manchesLines: this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 40)
+                ecartLines: this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 50),
+                manchesLines: this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 50)
             };
             
             if (precision && precision.length > 0) {
                 data.topPlayer = precision[0];
-                data.precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${data.topPlayer.name}`, w - 40);
+                data.precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${data.topPlayer.name}`, w - 50);
             }
             
             if (ai.worstRound.score < 0) {
-                data.worstLines = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 40);
+                data.worstLines = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 50);
             }
             
             if (ai.bestStreak.count > 1) {
-                data.streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 40);
+                data.streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 50);
             }
             
-            // Calculer la hauteur totale
+            // Calculer la hauteur totale (avec nouveaux espacements)
             let height = sp.SECTION_PADDING;
             if (data.topPlayer) {
-                height += data.precisionLines.length * 20 + 4 + 26 + 18;
+                height += data.precisionLines.length * 22 + 8 + 30 + 20;  // Nouvelle taille de barre
             }
-            height += data.bestLines.length * 20 + 4 + 24 + 18;
+            height += data.bestLines.length * 22 + 8 + 28 + 20;  // Nouveaux espacements
             if (data.worstLines.length > 0) {
-                height += data.worstLines.length * 20 + 4 + 24 + 18;
+                height += data.worstLines.length * 22 + 8 + 28 + 20;
             }
             if (data.streakLines.length > 0) {
-                height += data.streakLines.length * 20 + 4 + 24 + 18;
+                height += data.streakLines.length * 22 + 8 + 28 + 20;
             }
-            height += data.ecartLines.length * 20 + 22 + 18;
-            height += data.manchesLines.length * 20 + sp.SECTION_PADDING;
+            height += data.ecartLines.length * 22 + 26 + 20;
+            height += data.manchesLines.length * 22 + sp.SECTION_PADDING;
             
             return { data, height };
         },
@@ -3675,150 +3675,206 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             // ÉTAPE 1 : Mesurer SANS DESSINER
             const { data, height } = this.measureStatsContent(ctx, w, ai, gameState);
             
-            // ÉTAPE 2 : Dessiner le bandeau
+            const startY = y;  // IMPORTANT : Sauvegarder le Y de départ
+            
+            // ÉTAPE 2 : Dessiner le header avec dégradé amélioré
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, colors.primary);
-            gradient.addColorStop(1, colors.accent);
+            gradient.addColorStop(0.5, colors.accent);
+            gradient.addColorStop(1, colors.primary);
             ctx.fillStyle = gradient;
             
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetY = 3;
-            ctx.fillRect(x, y, w, 45);
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 4;
+            ctx.fillRect(x, y, w, 50);  // Header plus haut
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
             
-            ctx.font = 'bold 24px Arial';
+            // Bordure dorée sur header
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, w, 50);
+            
+            ctx.font = 'bold 26px Arial';  // Police plus grande
             ctx.fillStyle = '#FFFFFF';
             ctx.textAlign = 'center';
-            ctx.fillText('📊 LES STATS', x + w / 2, y + 30);
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 3;
+            ctx.fillText('📊 LES STATS', x + w / 2, y + 33);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
             
-            y += 45 + sp.SECTION_HEADER;
+            y += 50 + sp.SECTION_HEADER;
             const contentY = y;
             
-            // ÉTAPE 3 : Dessiner le cadre blanc
+            // ÉTAPE 3 : Dessiner le cadre blanc avec ombre portée
             ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 5;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetY = 8;
             ctx.fillRect(x, contentY, w, height);
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
             
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 2;
+            // Bordure subtile
+            ctx.strokeStyle = '#DDDDDD';
+            ctx.lineWidth = 3;
             ctx.strokeRect(x, contentY, w, height);
             
-            // ÉTAPE 4 : Dessiner le contenu
-            y = contentY + sp.SECTION_PADDING;
+            // ÉTAPE 4 : Dessiner le contenu (AVEC Y CORRECT)
+            y = contentY + sp.SECTION_PADDING;  // RESET Y au début du contenu
             
             ctx.textAlign = 'left';
             
+            // Taux de victoire
             if (data.topPlayer) {
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
+                ctx.font = '19px Arial';  // Police plus grande
+                ctx.fillStyle = '#2c2c2c';  // Couleur plus foncée
                 data.precisionLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
+                    ctx.fillText(line, x + 25, y + (idx * 22));  // Meilleur espacement
                 });
-                y += data.precisionLines.length * 20 + 4;
+                y += data.precisionLines.length * 22 + 8;
                 
-                this.drawStatBar(ctx, x + 20, y, w - 40, data.topPlayer.value, 100, colors.primary);
-                y += 26;
+                // Barre améliorée
+                this.drawStatBar(ctx, x + 25, y, w - 50, data.topPlayer.value, 100, colors.primary);
+                y += 30;
                 
-                ctx.strokeStyle = '#EEEEEE';
+                // Séparateur stylé
+                const sepGrad = ctx.createLinearGradient(x + 25, y, x + w - 25, y);
+                sepGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                sepGrad.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+                sepGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.strokeStyle = sepGrad;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(x + 20, y);
-                ctx.lineTo(x + w - 20, y);
+                ctx.moveTo(x + 25, y);
+                ctx.lineTo(x + w - 25, y);
                 ctx.stroke();
-                y += 18;
+                y += 20;
             }
             
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#333';
+            // Meilleure manche
+            ctx.font = '19px Arial';
+            ctx.fillStyle = '#2c2c2c';
             data.bestLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
+                ctx.fillText(line, x + 25, y + (idx * 22));
             });
-            y += data.bestLines.length * 20 + 4;
+            y += data.bestLines.length * 22 + 8;
             
-            ctx.font = 'bold 19px Arial';
+            ctx.font = 'bold 24px Arial';  // Score plus gros
             ctx.fillStyle = colors.accent;
-            ctx.fillText(`${ai.bestRound.score} pts`, x + 20, y);
-            y += 24;
+            ctx.shadowColor = 'rgba(255, 100, 0, 0.3)';
+            ctx.shadowBlur = 5;
+            ctx.fillText(`${ai.bestRound.score} pts`, x + 25, y);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            y += 28;
             
-            ctx.strokeStyle = '#EEEEEE';
+            // Séparateur
+            const sepGrad2 = ctx.createLinearGradient(x + 25, y, x + w - 25, y);
+            sepGrad2.addColorStop(0, 'rgba(0,0,0,0)');
+            sepGrad2.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+            sepGrad2.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.strokeStyle = sepGrad2;
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
+            ctx.moveTo(x + 25, y);
+            ctx.lineTo(x + w - 25, y);
             ctx.stroke();
-            y += 18;
+            y += 20;
             
+            // Pire manche (si négatif)
             if (data.worstLines.length > 0) {
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
+                ctx.font = '19px Arial';
+                ctx.fillStyle = '#2c2c2c';
                 data.worstLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
+                    ctx.fillText(line, x + 25, y + (idx * 22));
                 });
-                y += data.worstLines.length * 20 + 4;
+                y += data.worstLines.length * 22 + 8;
                 
-                ctx.font = 'bold 19px Arial';
+                ctx.font = 'bold 24px Arial';
                 ctx.fillStyle = '#F44336';
-                ctx.fillText(`${ai.worstRound.score} pts`, x + 20, y);
-                y += 24;
+                ctx.shadowColor = 'rgba(244, 67, 54, 0.3)';
+                ctx.shadowBlur = 5;
+                ctx.fillText(`${ai.worstRound.score} pts`, x + 25, y);
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                y += 28;
                 
-                ctx.strokeStyle = '#EEEEEE';
+                const sepGrad3 = ctx.createLinearGradient(x + 25, y, x + w - 25, y);
+                sepGrad3.addColorStop(0, 'rgba(0,0,0,0)');
+                sepGrad3.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+                sepGrad3.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.strokeStyle = sepGrad3;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(x + 20, y);
-                ctx.lineTo(x + w - 20, y);
+                ctx.moveTo(x + 25, y);
+                ctx.lineTo(x + w - 25, y);
                 ctx.stroke();
-                y += 18;
+                y += 20;
             }
             
+            // Série
             if (data.streakLines.length > 0) {
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
+                ctx.font = '19px Arial';
+                ctx.fillStyle = '#2c2c2c';
                 data.streakLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
+                    ctx.fillText(line, x + 25, y + (idx * 22));
                 });
-                y += data.streakLines.length * 20 + 4;
+                y += data.streakLines.length * 22 + 8;
                 
-                ctx.font = 'bold 19px Arial';
+                ctx.font = 'bold 24px Arial';
                 ctx.fillStyle = colors.secondary;
-                ctx.fillText(`${ai.bestStreak.count} victoires`, x + 20, y);
-                y += 24;
+                ctx.shadowColor = `${colors.secondary}40`;
+                ctx.shadowBlur = 5;
+                ctx.fillText(`${ai.bestStreak.count} victoires`, x + 25, y);
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                y += 28;
                 
-                ctx.strokeStyle = '#EEEEEE';
+                const sepGrad4 = ctx.createLinearGradient(x + 25, y, x + w - 25, y);
+                sepGrad4.addColorStop(0, 'rgba(0,0,0,0)');
+                sepGrad4.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+                sepGrad4.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.strokeStyle = sepGrad4;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(x + 20, y);
-                ctx.lineTo(x + w - 20, y);
+                ctx.moveTo(x + 25, y);
+                ctx.lineTo(x + w - 25, y);
                 ctx.stroke();
-                y += 18;
+                y += 20;
             }
             
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#333';
+            // Écart final
+            ctx.font = '19px Arial';
+            ctx.fillStyle = '#2c2c2c';
             data.ecartLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
+                ctx.fillText(line, x + 25, y + (idx * 22));
             });
-            y += data.ecartLines.length * 20 + 22;
+            y += data.ecartLines.length * 22 + 26;
             
-            ctx.strokeStyle = '#EEEEEE';
+            // Dernier séparateur
+            const sepGrad5 = ctx.createLinearGradient(x + 25, y, x + w - 25, y);
+            sepGrad5.addColorStop(0, 'rgba(0,0,0,0)');
+            sepGrad5.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+            sepGrad5.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.strokeStyle = sepGrad5;
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
+            ctx.moveTo(x + 25, y);
+            ctx.lineTo(x + w - 25, y);
             ctx.stroke();
-            y += 18;
+            y += 20;
             
+            // Manches
             data.manchesLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
+                ctx.fillText(line, x + 25, y + (idx * 22));
             });
             
+            // Retourner la position APRÈS le contenu complet
             return contentY + height;
         },
         
@@ -3854,24 +3910,48 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         },
         
         drawStatBar(ctx, x, y, w, value, maxValue, color) {
-            ctx.fillStyle = '#E0E0E0';
-            ctx.fillRect(x, y, w, 22);
+            // Background de la barre avec dégradé subtil
+            const bgGrad = ctx.createLinearGradient(x, y, x, y + 26);
+            bgGrad.addColorStop(0, '#F0F0F0');
+            bgGrad.addColorStop(1, '#E0E0E0');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(x, y, w, 26);  // Barre plus haute
             
+            // Barre de progression avec dégradé coloré
             const barWidth = (value / maxValue) * w;
-            const gradient = ctx.createLinearGradient(x, y, x + barWidth, y);
-            gradient.addColorStop(0, color);
-            gradient.addColorStop(1, color + 'AA');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(x, y, barWidth, 22);
+            if (barWidth > 0) {
+                const gradient = ctx.createLinearGradient(x, y, x + barWidth, y);
+                gradient.addColorStop(0, color);
+                gradient.addColorStop(0.5, color + 'DD');
+                gradient.addColorStop(1, color + 'AA');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y, barWidth, 26);
+                
+                // Effet de brillance sur la barre
+                const shineGrad = ctx.createLinearGradient(x, y, x, y + 26);
+                shineGrad.addColorStop(0, 'rgba(255,255,255,0.4)');
+                shineGrad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+                shineGrad.addColorStop(1, 'rgba(0,0,0,0.1)');
+                ctx.fillStyle = shineGrad;
+                ctx.fillRect(x, y, barWidth, 26);
+            }
             
-            ctx.strokeStyle = '#999';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x, y, w, 22);
+            // Bordure avec ombre interne
+            ctx.strokeStyle = '#CCC';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, w, 26);
             
-            ctx.font = 'bold 15px Arial';
+            // Pourcentage avec ombre
+            ctx.font = 'bold 17px Arial';  // Police plus grande
             ctx.fillStyle = '#000';
             ctx.textAlign = 'center';
-            ctx.fillText(`${value}%`, x + w/2, y + 16);
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+            ctx.shadowBlur = 3;
+            ctx.shadowOffsetY = 1;
+            ctx.fillText(`${value}%`, x + w/2, y + 18);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
         },
         
         wrapText(ctx, text, maxWidth) {
