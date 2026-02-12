@@ -26,7 +26,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-<title>ScoreMaster PNG v4.6</title>
+<title>ScoreMaster FIX v4.7</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gifshot@0.4.5/dist/gifshot.min.js"></script>
@@ -572,8 +572,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
 </head>
 <body>
     <!-- Badge de version pour vérifier le bon fichier -->
-    <div style="position: fixed; top: 10px; right: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 15px; border-radius: 8px; z-index: 9999; font-weight: bold; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-        🎨 PNG v4.6
+    <div style="position: fixed; top: 10px; right: 10px; background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%); color: white; padding: 8px 15px; border-radius: 8px; z-index: 9999; font-weight: bold; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+        🔴 FIX v4.7
     </div>
     <div id="toast" class="toast"></div>
 
@@ -3672,210 +3672,218 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         drawStatsClean(ctx, x, y, w, ai, gameState, colors) {
             const sp = this.SPACING;
             
-            // ÉTAPE 1 : Mesurer SANS DESSINER
+            // Mesurer le contenu
             const { data, height } = this.measureStatsContent(ctx, w, ai, gameState);
             
-            const startY = y;  // IMPORTANT : Sauvegarder le Y de départ
-            
-            // ÉTAPE 2 : Dessiner le header avec dégradé amélioré
-            const gradient = ctx.createLinearGradient(x, y, x + w, y);
-            gradient.addColorStop(0, colors.primary);
-            gradient.addColorStop(0.5, colors.accent);
-            gradient.addColorStop(1, colors.primary);
-            ctx.fillStyle = gradient;
+            // ═══════════════════════════════════════════
+            // HEADER
+            // ═══════════════════════════════════════════
+            const headerGrad = ctx.createLinearGradient(x, y, x + w, y);
+            headerGrad.addColorStop(0, colors.primary);
+            headerGrad.addColorStop(0.5, colors.accent);
+            headerGrad.addColorStop(1, colors.primary);
+            ctx.fillStyle = headerGrad;
             
             ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
             ctx.shadowBlur = 12;
             ctx.shadowOffsetY = 4;
-            ctx.fillRect(x, y, w, 50);  // Header plus haut
-            ctx.shadowColor = 'transparent';
+            ctx.fillRect(x, y, w, 50);
+            
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
             
-            // Bordure dorée sur header
             ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, w, 50);
             
-            ctx.font = 'bold 26px Arial';  // Police plus grande
+            // Titre header (CENTER pour cette ligne seulement)
+            ctx.font = 'bold 26px Arial';
             ctx.fillStyle = '#FFFFFF';
             ctx.textAlign = 'center';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
             ctx.shadowBlur = 3;
             ctx.fillText('📊 LES STATS', x + w / 2, y + 33);
-            ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
             
             y += 50 + sp.SECTION_HEADER;
             const contentY = y;
             
-            // ÉTAPE 3 : Dessiner le cadre blanc avec ombre portée
+            // ═══════════════════════════════════════════
+            // CADRE BLANC
+            // ═══════════════════════════════════════════
             ctx.fillStyle = '#FFFFFF';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
             ctx.shadowBlur = 20;
             ctx.shadowOffsetY = 8;
             ctx.fillRect(x, contentY, w, height);
-            ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
+            ctx.shadowColor = 'transparent';
             
-            // Bordure subtile
             ctx.strokeStyle = '#DDDDDD';
             ctx.lineWidth = 3;
             ctx.strokeRect(x, contentY, w, height);
             
-            // ÉTAPE 4 : Dessiner le contenu (AVEC Y CORRECT)
-            y = contentY + sp.SECTION_PADDING;  // RESET Y au début du contenu
+            // ═══════════════════════════════════════════
+            // CONTENU - POSITION DE DÉPART
+            // ═══════════════════════════════════════════
+            let currentY = contentY + sp.SECTION_PADDING;
+            const baseX = x + 25;  // Position X de base pour TOUT le texte
             
-            ctx.textAlign = 'left';
-            
-            // Taux de victoire
+            // ═══════════════════════════════════════════
+            // SECTION 1 : TAUX DE VICTOIRE
+            // ═══════════════════════════════════════════
             if (data.topPlayer) {
-                ctx.font = '19px Arial';  // Police plus grande
-                ctx.fillStyle = '#2c2c2c';  // Couleur plus foncée
-                data.precisionLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 25, y + (idx * 22));  // Meilleur espacement
-                });
-                y += data.precisionLines.length * 22 + 8;
+                // Dessiner chaque ligne individuellement
+                ctx.font = '19px Arial';
+                ctx.fillStyle = '#2c2c2c';
                 
-                // Barre améliorée
-                this.drawStatBar(ctx, x + 25, y, w - 50, data.topPlayer.value, 100, colors.primary);
-                y += 30;
+                for (let i = 0; i < data.precisionLines.length; i++) {
+                    ctx.textAlign = 'left';  // FORCÉ avant chaque ligne
+                    ctx.fillText(data.precisionLines[i], baseX, currentY);
+                    currentY += 22;
+                }
+                currentY += 8;
                 
-                // Séparateur stylé
-                const sepGrad = ctx.createLinearGradient(x + 25, y, x + w - 25, y);
-                sepGrad.addColorStop(0, 'rgba(0,0,0,0)');
-                sepGrad.addColorStop(0.5, 'rgba(0,0,0,0.15)');
-                sepGrad.addColorStop(1, 'rgba(0,0,0,0)');
-                ctx.strokeStyle = sepGrad;
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x + 25, y);
-                ctx.lineTo(x + w - 25, y);
-                ctx.stroke();
-                y += 20;
+                // Barre de progression
+                this.drawStatBar(ctx, baseX, currentY, w - 50, data.topPlayer.value, 100, colors.primary);
+                currentY += 30;
+                
+                // Séparateur
+                this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
+                currentY += 20;
             }
             
-            // Meilleure manche
+            // ═══════════════════════════════════════════
+            // SECTION 2 : MEILLEURE MANCHE
+            // ═══════════════════════════════════════════
             ctx.font = '19px Arial';
             ctx.fillStyle = '#2c2c2c';
-            data.bestLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 25, y + (idx * 22));
-            });
-            y += data.bestLines.length * 22 + 8;
             
-            ctx.font = 'bold 24px Arial';  // Score plus gros
+            for (let i = 0; i < data.bestLines.length; i++) {
+                ctx.textAlign = 'left';  // FORCÉ avant chaque ligne
+                ctx.fillText(data.bestLines[i], baseX, currentY);
+                currentY += 22;
+            }
+            currentY += 8;
+            
+            // Score
+            ctx.textAlign = 'left';  // FORCÉ
+            ctx.font = 'bold 24px Arial';
             ctx.fillStyle = colors.accent;
             ctx.shadowColor = 'rgba(255, 100, 0, 0.3)';
             ctx.shadowBlur = 5;
-            ctx.fillText(`${ai.bestRound.score} pts`, x + 25, y);
-            ctx.shadowColor = 'transparent';
+            ctx.fillText(`${ai.bestRound.score} pts`, baseX, currentY);
             ctx.shadowBlur = 0;
-            y += 28;
+            ctx.shadowColor = 'transparent';
+            currentY += 28;
             
             // Séparateur
-            const sepGrad2 = ctx.createLinearGradient(x + 25, y, x + w - 25, y);
-            sepGrad2.addColorStop(0, 'rgba(0,0,0,0)');
-            sepGrad2.addColorStop(0.5, 'rgba(0,0,0,0.15)');
-            sepGrad2.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.strokeStyle = sepGrad2;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 25, y);
-            ctx.lineTo(x + w - 25, y);
-            ctx.stroke();
-            y += 20;
+            this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
+            currentY += 20;
             
-            // Pire manche (si négatif)
+            // ═══════════════════════════════════════════
+            // SECTION 3 : PIRE MANCHE (si existe)
+            // ═══════════════════════════════════════════
             if (data.worstLines.length > 0) {
                 ctx.font = '19px Arial';
                 ctx.fillStyle = '#2c2c2c';
-                data.worstLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 25, y + (idx * 22));
-                });
-                y += data.worstLines.length * 22 + 8;
                 
+                for (let i = 0; i < data.worstLines.length; i++) {
+                    ctx.textAlign = 'left';
+                    ctx.fillText(data.worstLines[i], baseX, currentY);
+                    currentY += 22;
+                }
+                currentY += 8;
+                
+                ctx.textAlign = 'left';
                 ctx.font = 'bold 24px Arial';
                 ctx.fillStyle = '#F44336';
                 ctx.shadowColor = 'rgba(244, 67, 54, 0.3)';
                 ctx.shadowBlur = 5;
-                ctx.fillText(`${ai.worstRound.score} pts`, x + 25, y);
-                ctx.shadowColor = 'transparent';
+                ctx.fillText(`${ai.worstRound.score} pts`, baseX, currentY);
                 ctx.shadowBlur = 0;
-                y += 28;
+                ctx.shadowColor = 'transparent';
+                currentY += 28;
                 
-                const sepGrad3 = ctx.createLinearGradient(x + 25, y, x + w - 25, y);
-                sepGrad3.addColorStop(0, 'rgba(0,0,0,0)');
-                sepGrad3.addColorStop(0.5, 'rgba(0,0,0,0.15)');
-                sepGrad3.addColorStop(1, 'rgba(0,0,0,0)');
-                ctx.strokeStyle = sepGrad3;
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x + 25, y);
-                ctx.lineTo(x + w - 25, y);
-                ctx.stroke();
-                y += 20;
+                this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
+                currentY += 20;
             }
             
-            // Série
+            // ═══════════════════════════════════════════
+            // SECTION 4 : SÉRIE (si existe)
+            // ═══════════════════════════════════════════
             if (data.streakLines.length > 0) {
                 ctx.font = '19px Arial';
                 ctx.fillStyle = '#2c2c2c';
-                data.streakLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 25, y + (idx * 22));
-                });
-                y += data.streakLines.length * 22 + 8;
                 
+                for (let i = 0; i < data.streakLines.length; i++) {
+                    ctx.textAlign = 'left';
+                    ctx.fillText(data.streakLines[i], baseX, currentY);
+                    currentY += 22;
+                }
+                currentY += 8;
+                
+                ctx.textAlign = 'left';
                 ctx.font = 'bold 24px Arial';
                 ctx.fillStyle = colors.secondary;
                 ctx.shadowColor = `${colors.secondary}40`;
                 ctx.shadowBlur = 5;
-                ctx.fillText(`${ai.bestStreak.count} victoires`, x + 25, y);
-                ctx.shadowColor = 'transparent';
+                ctx.fillText(`${ai.bestStreak.count} victoires`, baseX, currentY);
                 ctx.shadowBlur = 0;
-                y += 28;
+                ctx.shadowColor = 'transparent';
+                currentY += 28;
                 
-                const sepGrad4 = ctx.createLinearGradient(x + 25, y, x + w - 25, y);
-                sepGrad4.addColorStop(0, 'rgba(0,0,0,0)');
-                sepGrad4.addColorStop(0.5, 'rgba(0,0,0,0.15)');
-                sepGrad4.addColorStop(1, 'rgba(0,0,0,0)');
-                ctx.strokeStyle = sepGrad4;
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x + 25, y);
-                ctx.lineTo(x + w - 25, y);
-                ctx.stroke();
-                y += 20;
+                this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
+                currentY += 20;
             }
             
-            // Écart final
+            // ═══════════════════════════════════════════
+            // SECTION 5 : ÉCART FINAL
+            // ═══════════════════════════════════════════
             ctx.font = '19px Arial';
             ctx.fillStyle = '#2c2c2c';
-            data.ecartLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 25, y + (idx * 22));
-            });
-            y += data.ecartLines.length * 22 + 26;
             
-            // Dernier séparateur
-            const sepGrad5 = ctx.createLinearGradient(x + 25, y, x + w - 25, y);
-            sepGrad5.addColorStop(0, 'rgba(0,0,0,0)');
-            sepGrad5.addColorStop(0.5, 'rgba(0,0,0,0.15)');
-            sepGrad5.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.strokeStyle = sepGrad5;
+            for (let i = 0; i < data.ecartLines.length; i++) {
+                ctx.textAlign = 'left';
+                ctx.fillText(data.ecartLines[i], baseX, currentY);
+                currentY += 22;
+            }
+            currentY += 26;
+            
+            // Séparateur
+            this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
+            currentY += 20;
+            
+            // ═══════════════════════════════════════════
+            // SECTION 6 : MANCHES
+            // ═══════════════════════════════════════════
+            ctx.font = '19px Arial';
+            ctx.fillStyle = '#2c2c2c';
+            
+            for (let i = 0; i < data.manchesLines.length; i++) {
+                ctx.textAlign = 'left';
+                ctx.fillText(data.manchesLines[i], baseX, currentY);
+                currentY += 22;
+            }
+            
+            // Retourner position finale
+            return contentY + height;
+        },
+        
+        // Fonction helper pour dessiner les séparateurs
+        drawSeparator(ctx, x1, x2, y) {
+            const grad = ctx.createLinearGradient(x1, y, x2, y);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.strokeStyle = grad;
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(x + 25, y);
-            ctx.lineTo(x + w - 25, y);
+            ctx.moveTo(x1, y);
+            ctx.lineTo(x2, y);
             ctx.stroke();
-            y += 20;
-            
-            // Manches
-            data.manchesLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 25, y + (idx * 22));
-            });
-            
-            // Retourner la position APRÈS le contenu complet
-            return contentY + height;
         },
         
         drawFlame(ctx, x, y, size) {
