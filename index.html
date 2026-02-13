@@ -276,22 +276,9 @@
 ```
 
 /* — OVERLAY FOND MODE ZEN — */
-.zen-overlay {
-position: fixed;
-inset: 0;
-background: var(–bg);
-z-index: 50;
-opacity: 0;
-pointer-events: none;
-transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* Overlay zen SUPPRIMÉ - pas nécessaire */
 
 ```
-    .focus-mode .zen-overlay {
-        opacity: 1;
-        pointer-events: auto;
-    }
-
     .focus-mode #dock {
         opacity: 1 !important;
         pointer-events: auto !important;
@@ -1741,17 +1728,14 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         toggleFocusMode() {
             SoundFX.click();
             this.focusMode = !this.focusMode;
-            const root = document.body; 
-            const overlay = document.getElementById('zen-overlay');
+            const root = document.body;
 
             if(this.focusMode) { 
                 root.classList.add('focus-mode');
-                if(overlay) overlay.classList.add('active');
                 if(navigator.vibrate) navigator.vibrate(20);
             }
             else { 
                 root.classList.remove('focus-mode');
-                if(overlay) overlay.classList.remove('active');
             }
         },
         showStats() { UI.showStats(); },
