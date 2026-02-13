@@ -12,6 +12,7 @@
     <meta name="description" content="Gestionnaire de scores pour belote, coinche et jeux de cartes avec statistiques avancées">
     <meta name="keywords" content="belote, coinche, score, cartes, jeu, statistiques">
 
+```
 <!-- PWA Manifest -->
 <link rel="manifest" href="manifest.json">
 
@@ -855,10 +856,12 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
     const GameState = {
         create(mode, playerCount) {
             const colors = ['#007AFF', '#FF2D55', '#34C759', '#FF9500', '#AF52DE', '#5AC8FA', '#FFCC00', '#5856D6', '#FF3B30', '#30B0C7', '#8E8E93', '#4CD964'];
+            // CORRECTION BUG #6 : Force minimum 2 joueurs, maximum 12
+            const validPlayerCount = Math.max(2, Math.min(playerCount, 12));
             return {
                 mode,
                 victoryCondition: 'highest',
-                players: Array.from({length: Math.min(playerCount, 12)}, (_, i) => ({
+                players: Array.from({length: validPlayerCount}, (_, i) => ({
                     id: i + 1, 
                     name: mode === 'belote' ? (i === 0 ? 'NOUS' : 'EUX') : `J${i + 1}`, 
                     color: colors[i] || '#000000',
@@ -1739,18 +1742,15 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             SoundFX.click();
             this.focusMode = !this.focusMode;
             const root = document.body; 
-            const dockEl = document.getElementById('dock');
             const overlay = document.getElementById('zen-overlay');
 
             if(this.focusMode) { 
                 root.classList.add('focus-mode');
-                dockEl.classList.remove('hidden');
                 if(overlay) overlay.classList.add('active');
                 if(navigator.vibrate) navigator.vibrate(20);
             }
             else { 
                 root.classList.remove('focus-mode');
-                dockEl.classList.remove('hidden'); 
                 if(overlay) overlay.classList.remove('active');
             }
         },
@@ -1800,10 +1800,20 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             SoundFX.click();
             const game = Storage.loadGames().find(g => g.id === id);
             if(game) {
-                this.savedPlayers[game.mode] = game.state.players.map(p => ({ name: p.name, color: p.color }));
-                localStorage.setItem('sm_saved_players', JSON.stringify(this.savedPlayers));
+                // CORRECTION BUG #3 : Protection localStorage
+                try {
+                    this.savedPlayers[game.mode] = game.state.players.map(p => ({ name: p.name, color: p.color }));
+                    localStorage.setItem('sm_saved_players', JSON.stringify(this.savedPlayers));
+                    localStorage.setItem(Storage.CURRENT_KEY, id);
+                } catch(e) {
+                    if (e.name === 'QuotaExceededError') {
+                        UI.showToast('⚠️ Mémoire pleine ! Supprimez des parties.', 'error');
+                    } else {
+                        console.error('localStorage error:', e);
+                    }
+                }
+                
                 this.currentGame = game;
-                localStorage.setItem(Storage.CURRENT_KEY, id); 
                 this.showGame();
             } else {
                 UI.showToast('⚠️ Partie introuvable', 'error');
@@ -1848,14 +1858,21 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             if(this.currentGame.state.history.length === 0) { UI.showToast('⚠️ Aucune manche jouée', 'warning'); return; }
             this.currentGame.finished = true;
             Storage.saveGame(this.currentGame);
-            this.savedPlayers[this.currentGame.mode] = this.currentGame.state.players.map(p => ({ name: p.name, color: p.color }));
-            localStorage.setItem('sm_saved_players', JSON.stringify(this.savedPlayers));
+            
+            // CORRECTION BUG #3 : Protection localStorage
+            try {
+                this.savedPlayers[this.currentGame.mode] = this.currentGame.state.players.map(p => ({ name: p.name, color: p.color }));
+                localStorage.setItem('sm_saved_players', JSON.stringify(this.savedPlayers));
+            } catch(e) {
+                console.error('localStorage error:', e);
+            }
+            
             const winner = [...this.currentGame.state.players].sort((a,b) => b.total - a.total)[0];
             UI.showVictory(winner, winner.total, this.currentGame.state);
         },
         async shareRecapPNG() {
             if(!this.currentGame || !this.currentGame.finished) {
-                UI.showToast('⚠️ Terminez d\'abord la partie', 'warning');
+                UI.showToast("⚠️ Terminez d'abord la partie", 'warning');
                 return;
             }
             
@@ -1903,7 +1920,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 this.debugLog('🔍 Vérif currentGame...');
                 if(!this.currentGame || !this.currentGame.finished) {
                     this.debugLog('❌ Partie non terminée');
-                    UI.showToast('⚠️ Terminez d\'abord la partie', 'warning');
+                    UI.showToast("⚠️ Terminez d'abord la partie", 'warning');
                     return;
                 }
                 this.debugLog('✅ Partie terminée OK');
@@ -1920,7 +1937,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 if (typeof gifshot === 'undefined') {
                     this.debugLog('❌ gifshot non chargé !');
                     UI.showToast('❌ Bibliothèque GIF non chargée', 'error');
-                    alert('ERREUR: gifshot n\'est pas chargé. Vérifiez votre connexion internet.');
+                    alert("ERREUR: gifshot n'est pas chargé. Vérifiez votre connexion internet.");
                     return;
                 }
                 this.debugLog('✅ gifshot chargé OK');
@@ -2062,8 +2079,16 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             } else {
                 roundNumber = state.history.length + 1;
                 GameState.addRound(state, state.temp);
+                
+                // CORRECTION BUG #5 : Protection findIndex = -1
                 const currentIdx = state.players.findIndex(p => p.id === state.dealerId);
-                state.dealerId = state.players[(currentIdx + 1) % state.players.length].id;
+                if (currentIdx === -1) {
+                    console.warn('Dealer not found, resetting to first player');
+                    state.dealerId = state.players[0].id;
+                } else {
+                    state.dealerId = state.players[(currentIdx + 1) % state.players.length].id;
+                }
+                
                 UI.showToast(`✅ Manche ${roundNumber} enregistrée`, 'success');
             }
             if(this.currentGame.mode === 'standard') {
@@ -2110,13 +2135,20 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             }
             
             if(gameEnded && winner) {
-                this.savedPlayers[this.currentGame.mode] = state.players.map(p => ({ name: p.name, color: p.color }));
-                localStorage.setItem('sm_saved_players', JSON.stringify(this.savedPlayers));
+                // CORRECTION BUG #3 : Protection localStorage
+                try {
+                    this.savedPlayers[this.currentGame.mode] = state.players.map(p => ({ name: p.name, color: p.color }));
+                    localStorage.setItem('sm_saved_players', JSON.stringify(this.savedPlayers));
+                } catch(e) {
+                    console.error('localStorage error:', e);
+                }
+                
                 this.currentGame.finished = true;
-                Storage.saveGame(this.currentGame);
+                // CORRECTION BUG #4 : Une seule sauvegarde ici (la double sauvegarde est enlevée plus bas)
                 setTimeout(() => { UI.showVictory(winner, winner.total, state); }, 500);
             }
             
+            // Une seule sauvegarde pour tous les cas
             if(!Storage.saveGame(this.currentGame)) {
                 UI.showToast('⚠️ Erreur de sauvegarde (Mémoire pleine)', 'error');
             }
@@ -2145,6 +2177,21 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
         delRound(idx) {
             UI.confirm('Supprimer cette manche ?', () => {
                 GameState.deleteRound(this.currentGame.state, idx);
+                
+                // CORRECTION BUG #1 : Reset editIdx si nécessaire
+                if (this.editIdx !== null) {
+                    if (this.editIdx === idx) {
+                        // On supprime la manche en cours d'édition
+                        this.editIdx = null;
+                        this.currentGame.state.temp = {};
+                        document.getElementById('save-btn').textContent = `ENREGISTRER MANCHE ${this.currentGame.state.history.length + 1}`;
+                        document.getElementById('save-btn').classList.remove('editing');
+                    } else if (this.editIdx > idx) {
+                        // La manche éditée est après celle supprimée, décaler l'index
+                        this.editIdx--;
+                    }
+                }
+                
                 UI.showToast('✅ Manche supprimée', 'success');
                 this.render();
             });
@@ -2402,7 +2449,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
                 const sortedF = finals.map((t, i) => ({ i, t })).sort((a, b) => {
                     return isLowest ? a.t - b.t : b.t - a.t;
                 });
-                const gap = Math.abs(sortedF[0].t - sortedF[1].t);
+                // CORRECTION BUG #2 : Protection contre 1 seul joueur
+                const gap = sortedF.length > 1 ? Math.abs(sortedF[0].t - sortedF[1].t) : 0;
                 
                 let genre;
                 if (changes >= 3) genre = "CHAOS";
@@ -2619,7 +2667,8 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
             const sorted = [...gameState.players].sort((a,b) => {
                 return isLowest ? a.total - b.total : b.total - a.total;
             });
-            const finalGap = Math.abs(sorted[0].total - sorted[1].total);
+            // CORRECTION BUG #2 : Protection contre 1 seul joueur
+            const finalGap = sorted.length > 1 ? Math.abs(sorted[0].total - sorted[1].total) : sorted[0].total;
             
             return {
                 brain,
@@ -4763,7 +4812,7 @@ font-size: 32px; font-weight: 900; color: white; box-shadow: 0 -2px 8px rgba(0,0
     </div>
     <div id="debug-log"></div>
 </div>
-
+```
 
 </body>
 </html>
