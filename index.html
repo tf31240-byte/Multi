@@ -1247,8 +1247,13 @@ transition: all 0.3s ease;
         },
         
         // Nettoyer les données corrompues
-        sanitizeGame(game) {
+        sanitizeGame(game, forceRebuild = false) {
             if (!game) return null;
+            
+            // Si déjà sanitisé et pas de force, éviter le recalcul
+            if (game._sanitized && !forceRebuild) {
+                return game;
+            }
             
             const sanitized = {
                 id: game.id || Date.now().toString(),
@@ -1295,6 +1300,9 @@ transition: all 0.3s ease;
             
             // Recalculer les totaux depuis l'historique pour garantir la cohérence
             GameState.rebuildTotals(sanitized.state);
+            
+            // Marquer comme sanitisé
+            sanitized._sanitized = true;
             
             return sanitized;
         },
@@ -2110,6 +2118,7 @@ transition: all 0.3s ease;
     const app = {
         currentGame: null, activePlayerId: null, editIdx: null, chart: null, savedPlayers: {}, focusMode: false,
         recentPlayers: [], // Les 8 derniers noms de joueurs utilisés
+        lastRanks: {}, // Pour le suivi des animations de rang
 
         // Noms par défaut à ne pas suggérer
         defaultNames: ['NOUS', 'EUX', 'J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'J7', 'J8', 'J9', 'J10', 'J11', 'J12'],
@@ -3375,16 +3384,22 @@ transition: all 0.3s ease;
                         
                         this.downloadGif(blob);
                         updateProgress(100, 'Terminé !');
+                        // Nettoyer les particules après génération
+                        this.particles = [];
                         setTimeout(() => {
                             UI.hideLoading();
                             UI.showToast('✅ GIF téléchargé !', 'success');
                         }, 300);
                     } else {
+                        // Nettoyer en cas d'erreur aussi
+                        this.particles = [];
                         UI.hideLoading();
                         UI.showToast('❌ Erreur: ' + obj.error, 'error');
                     }
                 });
             } catch (error) {
+                // Nettoyer en cas d'exception
+                this.particles = [];
                 UI.hideLoading();
                 UI.showToast('❌ Erreur: ' + error.message, 'error');
             }
@@ -3410,14 +3425,26 @@ transition: all 0.3s ease;
         calculateHeight(ai) {
             // Bannière: 100 + 10
             let height = 110;
-            // Champion: 120 + 15
-            height += 135;
-            // Narrative: 100 + 15
-            height += 115;
-            // Temps forts: header(40) + offset(50) + 3*(65+8) + 15
-            height += 324;
-            // Stats: header(40) + offset(55) + card(165) + 10
-            height += 270;
+            
+            // Classement: header(40) + podium + autres joueurs
+            const playerCount = ai.sortedPlayers?.length || 2;
+            height += 40; // header
+            
+            if (playerCount >= 3) {
+                height += 185; // podium complet (155 base + 30 au-dessus)
+                // Autres joueurs après le top 3
+                const othersCount = Math.max(0, playerCount - 3);
+                height += othersCount * 43; // 38 + 5 de gap
+            } else {
+                // Moins de 3 joueurs: affichage simple
+                height += playerCount * 48;
+            }
+            height += 15; // marge
+            
+            // Temps forts: header(40) + offset(50) + 3*(70+8) + 15
+            height += 339;
+            // Stats: header(40) + offset(55) + card(175) + 10
+            height += 280;
             // Watermark: 40
             height += 40;
             return height;
@@ -3432,7 +3459,7 @@ transition: all 0.3s ease;
             // === FOND ===
             this.drawBackground(ctx, w, h, time, animated);
             
-            // === PARTUCULES (si animé) ===
+            // === PARTICULES (si animé) ===
             if (animated) {
                 this.drawParticles(ctx, time);
             }
@@ -3443,11 +3470,8 @@ transition: all 0.3s ease;
             // Bannière
             y = this.drawBanner(ctx, y, ai, time, animated);
             
-            // Carte champion
-            y = this.drawChampion(ctx, y, ai, time, animated);
-            
-            // Narrative
-            y = this.drawNarrative(ctx, y, ai, time, animated);
+            // Classement complet (NOUVEAU)
+            y = this.drawRanking(ctx, y, ai, time, animated);
             
             // Temps forts
             y = this.drawHighlights(ctx, y, ai, time, animated);
@@ -3572,128 +3596,178 @@ transition: all 0.3s ease;
             return startY + h + 10;
         },
         
-        // === CHAMPION ===
-        drawChampion(ctx, startY, ai, time, animated) {
+        // === CLASSEMENT COMPLET AVEC PODIUM ===
+        drawRanking(ctx, startY, ai, time, animated) {
             const w = this.CONFIG.WIDTH;
-            const h = 120;
             const p = this.CONFIG.PADDING;
             const colors = ai.colors;
+            const players = ai.sortedPlayers || [];
             
-            // Halo pulsant (si animé)
-            if (animated) {
-                const haloSize = 180 + Math.sin(time * 2) * 15;
-                const haloGrad = ctx.createRadialGradient(
-                    w/2, startY + h/2, 0,
-                    w/2, startY + h/2, haloSize
-                );
-                haloGrad.addColorStop(0, 'rgba(255, 215, 0, 0.3)');
-                haloGrad.addColorStop(1, 'rgba(255, 215, 0, 0)');
-                ctx.fillStyle = haloGrad;
-                ctx.fillRect(0, startY, w, h);
+            // Header "CLASSEMENT"
+            ctx.fillStyle = colors.gradient[0];
+            this.roundRect(ctx, p, startY, w - p*2, 40, 12);
+            ctx.fill();
+            
+            ctx.font = 'bold 18px Arial';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.fillText('🏆 CLASSEMENT 🏆', w/2, startY + 26);
+            
+            const contentY = startY + 50;
+            const cardW = w - p*2;
+            
+            // === PODIUM pour le TOP 3 ===
+            const top3 = players.slice(0, 3);
+            const hasPodium = top3.length >= 3;
+            
+            if (hasPodium) {
+                // Ordre d'affichage: 2ème (gauche), 1er (centre), 3ème (droite)
+                const order = [1, 0, 2]; // indices: 2ème, 1er, 3ème
+                const podiumHeights = [60, 85, 40]; // hauteurs des barres
+                const podiumColors = [
+                    ['#C0C0C0', '#A8A8A8'], // Argent
+                    ['#FFD700', '#FFA500'], // Or
+                    ['#CD7F32', '#8B4513']  // Bronze
+                ];
+                const rankEmojis = ['🥈', '🥇', '🥉'];
+                
+                const podiumWidth = 95;
+                const gap = 10;
+                const totalPodiumW = podiumWidth * 3 + gap * 2;
+                const podiumStartX = p + (cardW - totalPodiumW) / 2;
+                const podiumBaseY = contentY + 155; // Base du podium
+                
+                order.forEach((playerIdx, displayIdx) => {
+                    const player = top3[playerIdx];
+                    if (!player) return;
+                    
+                    const barH = podiumHeights[displayIdx];
+                    const x = podiumStartX + displayIdx * (podiumWidth + gap);
+                    const centerX = x + podiumWidth / 2;
+                    
+                    // Flottement (si animé)
+                    const floatY = animated ? Math.sin(time * 2 + displayIdx) * 2 : 0;
+                    
+                    // === BARRE DU PODIUM (en bas) ===
+                    const barY = podiumBaseY - barH + floatY;
+                    const barGrad = ctx.createLinearGradient(x, barY, x, podiumBaseY);
+                    barGrad.addColorStop(0, podiumColors[displayIdx][0]);
+                    barGrad.addColorStop(1, podiumColors[displayIdx][1]);
+                    
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                    ctx.shadowOffsetY = -3;
+                    ctx.fillStyle = barGrad;
+                    this.roundRect(ctx, x, barY, podiumWidth, barH, [10, 10, 0, 0]);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
+                    
+                    // Médaille sur la barre
+                    ctx.font = '22px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(rankEmojis[displayIdx], centerX, barY + 25);
+                    
+                    // === SECTION AU-DESSUS DE LA BARRE ===
+                    const aboveBarY = barY + floatY;
+                    
+                    // SCORE (juste au-dessus de la barre)
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillStyle = '#1a1a1a';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${player.total} pts`, centerX, aboveBarY - 8);
+                    
+                    // NOM (au-dessus du score)
+                    ctx.font = 'bold 13px Arial';
+                    ctx.fillStyle = '#333';
+                    const name = player.name.toUpperCase();
+                    // Tronquer si trop long
+                    const maxNameW = podiumWidth - 10;
+                    let displayName = name;
+                    while (ctx.measureText(displayName).width > maxNameW && displayName.length > 2) {
+                        displayName = displayName.slice(0, -1);
+                    }
+                    ctx.fillText(displayName, centerX, aboveBarY - 28);
+                    
+                    // AVATAR (cercle avec initiale)
+                    const avatarR = displayIdx === 1 ? 22 : 18; // Plus grand pour le 1er
+                    const avatarY = aboveBarY - 58;
+                    
+                    const avatarGrad = ctx.createRadialGradient(centerX, avatarY, 0, centerX, avatarY, avatarR);
+                    avatarGrad.addColorStop(0, podiumColors[displayIdx][0]);
+                    avatarGrad.addColorStop(1, podiumColors[displayIdx][1]);
+                    
+                    ctx.shadowBlur = 6;
+                    ctx.shadowColor = 'rgba(0,0,0,0.25)';
+                    ctx.fillStyle = avatarGrad;
+                    ctx.beginPath();
+                    ctx.arc(centerX, avatarY, avatarR, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    
+                    // Initiale dans l'avatar
+                    ctx.font = `bold ${avatarR}px Arial`;
+                    ctx.fillStyle = displayIdx === 1 ? '#1a1a1a' : '#FFFFFF';
+                    ctx.fillText(player.name.charAt(0), centerX, avatarY + avatarR * 0.35);
+                    
+                    // Couronne pour le 1er
+                    if (displayIdx === 1) {
+                        ctx.font = '18px Arial';
+                        ctx.fillText('👑', centerX, avatarY - avatarR - 5);
+                    }
+                });
             }
             
-            // Carte du champion
-            const cardX = p;
-            const cardY = startY + 10;
-            const cardW = w - p * 2;
-            const cardH = h - 20;
-            
-            // Ombre
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = 'rgba(0,0,0,0.15)';
-            ctx.shadowOffsetY = 5;
-            
-            // Fond carte avec dégradé doré
-            const cardGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY);
-            cardGrad.addColorStop(0, '#FFD700');
-            cardGrad.addColorStop(0.5, '#FFC107');
-            cardGrad.addColorStop(1, '#FFB300');
-            ctx.fillStyle = cardGrad;
-            this.roundRect(ctx, cardX, cardY, cardW, cardH, 16);
-            ctx.fill();
-            
-            ctx.shadowBlur = 0;
-            
-            // Bordure brillante
-            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-            ctx.lineWidth = 2;
-            this.roundRect(ctx, cardX, cardY, cardW, cardH, 16);
-            ctx.stroke();
-            
-            // Trophées
-            const trophyY = cardY + cardH/2 + 5 + (animated ? Math.sin(time * 3) * 3 : 0);
-            ctx.font = '36px Arial';
-            ctx.fillText('🏆', cardX + 25, trophyY);
-            ctx.fillText('🏆', cardX + cardW - 45, trophyY);
-            
-            // Nom
-            ctx.font = 'bold 32px Arial';
-            ctx.fillStyle = '#1a1a1a';
-            ctx.textAlign = 'center';
-            ctx.fillText(ai.winner.toUpperCase(), w/2, cardY + 50);
-            
-            // Score
-            ctx.font = 'bold 24px Arial';
-            ctx.fillStyle = '#4a4a4a';
-            ctx.fillText(`${ai.winnerScore} pts`, w/2, cardY + 80);
-            
-            // Médaille
-            ctx.font = '24px Arial';
-            ctx.fillText('🥇', w/2, cardY + 25);
-            
-            ctx.textAlign = 'left';
-            return startY + h + 15;
-        },
-        
-        // === NARRATIVE ===
-        drawNarrative(ctx, startY, ai, time, animated) {
-            const w = this.CONFIG.WIDTH;
-            const h = 100;
-            const p = this.CONFIG.PADDING;
-            
-            // Fond carte
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = 'rgba(0,0,0,0.08)';
-            ctx.fillStyle = '#FFFFFF';
-            this.roundRect(ctx, p, startY, w - p*2, h, 12);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            
-            // Bordure gauche colorée
-            ctx.fillStyle = ai.colors.primary;
-            ctx.fillRect(p, startY, 5, h);
-            
-            // Guillemets
-            ctx.font = 'bold 40px Georgia';
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            ctx.fillText('"', p + 15, startY + 35);
-            
-            // Texte narrative
-            ctx.font = 'italic 15px Georgia';
-            ctx.fillStyle = '#333';
-            ctx.textAlign = 'center';
-            
-            const words = ai.narrative.split(' ');
-            let lines = [];
-            let line = '';
-            words.forEach(word => {
-                if (ctx.measureText(line + word + ' ').width < w - 60) {
-                    line += word + ' ';
-                } else {
-                    lines.push(line.trim());
-                    line = word + ' ';
-                }
-            });
-            if (line) lines.push(line.trim());
-            
-            const lineH = 22;
-            const startY_text = startY + (h - lines.length * lineH) / 2 + 15;
-            lines.forEach((l, i) => {
-                ctx.fillText(l, w/2, startY_text + i * lineH);
-            });
+            // === Liste des autres joueurs (si plus de 3) ===
+            const others = players.slice(3);
+            if (others.length > 0) {
+                const listY = contentY + (hasPodium ? 170 : 0);
+                const itemH = 38;
+                
+                others.forEach((player, i) => {
+                    const itemY = listY + i * (itemH + 5);
+                    
+                    // Ombre
+                    ctx.shadowBlur = 5;
+                    ctx.shadowColor = 'rgba(0,0,0,0.1)';
+                    ctx.shadowOffsetY = 2;
+                    
+                    // Fond carte
+                    ctx.fillStyle = '#FFFFFF';
+                    this.roundRect(ctx, p, itemY, cardW, itemH, 10);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
+                    
+                    // Barre colorée gauche
+                    ctx.fillStyle = colors.primary;
+                    this.roundRect(ctx, p, itemY, 5, itemH, [10, 0, 0, 10]);
+                    ctx.fill();
+                    
+                    // Rang
+                    ctx.font = 'bold 18px Arial';
+                    ctx.fillStyle = '#888';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${i + 4}`, p + 28, itemY + 25);
+                    
+                    // Nom
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillStyle = '#333';
+                    ctx.fillText(player.name.toUpperCase(), w/2, itemY + 25);
+                    
+                    // Score
+                    ctx.font = 'bold 17px Arial';
+                    ctx.fillStyle = colors.primary;
+                    ctx.textAlign = 'right';
+                    ctx.fillText(`${player.total} pts`, p + cardW - 15, itemY + 25);
+                });
+                
+                ctx.textAlign = 'left';
+                return listY + others.length * (itemH + 5) + 15;
+            }
             
             ctx.textAlign = 'left';
-            return startY + h + 15;
+            return contentY + (hasPodium ? 185 : 15);
         },
         
         // === TEMPS FORTS ===
@@ -3717,9 +3791,10 @@ transition: all 0.3s ease;
                 { icon: '⚡', label: 'SÉRIE', value: ai.bestStreak.count > 1 ? ai.bestStreak.player : `${ai.totalManches} manches`, sub: ai.bestStreak.count > 1 ? `${ai.bestStreak.count} victoires` : 'Match équilibré', color: '#F59E0B' }
             ];
             
-            const itemH = 65;
+            const itemH = 70;
             const contentY = startY + 50;
             const cardW = w - p*2;
+            const barW = 6; // Largeur de la barre colorée
             
             items.forEach((item, i) => {
                 const itemY = contentY + i * (itemH + 8);
@@ -3744,50 +3819,37 @@ transition: all 0.3s ease;
                 const borderAlpha = animated ? 0.7 + Math.sin(time * 4 + i) * 0.3 : 1;
                 ctx.globalAlpha = borderAlpha;
                 ctx.fillStyle = item.color;
-                this.roundRect(ctx, cardX, itemY + floatY, 6, itemH, [12, 0, 0, 12]);
+                this.roundRect(ctx, cardX, itemY + floatY, barW, itemH, [12, 0, 0, 12]);
                 ctx.fill();
                 ctx.globalAlpha = 1;
                 
-                // Contenu centré horizontalement dans la carte
-                // Disposition: [icône] [espace] [texte: label, value, sub]
-                const contentStartY = itemY + floatY + 8;
+                // === CONTENU CENTRÉ ===
+                // Zone disponible pour le contenu (après la barre)
+                const contentAreaX = cardX + barW + 15;
+                const contentAreaW = cardW - barW - 30;
+                const centerX = contentAreaX + contentAreaW / 2;
+                const baseY = itemY + floatY;
                 
-                // Mesurer le texte pour un meilleur centrage
-                ctx.font = 'bold 16px Arial';
-                const valueWidth = ctx.measureText(item.value).width;
-                ctx.font = 'bold 11px Arial';
-                const labelWidth = ctx.measureText(item.label).width;
-                const maxTextWidth = Math.max(valueWidth, labelWidth);
+                ctx.textAlign = 'center';
                 
-                // Position de l'icône et du texte centrés
-                const iconWidth = 26;
-                const gap = 20;
-                const totalGroupWidth = iconWidth + gap + maxTextWidth + 40;
-                const groupStartX = cardX + (cardW - totalGroupWidth) / 2;
+                // Icône centrée en haut
+                ctx.font = '24px Arial';
+                ctx.fillText(item.icon, centerX, baseY + 22);
                 
-                // Icône
-                ctx.font = '26px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillText(item.icon, groupStartX, contentStartY + 30);
-                
-                // Texte à droite de l'icône
-                const textStartX = groupStartX + iconWidth + gap;
-                
-                // Label
-                ctx.font = 'bold 11px Arial';
+                // Label centré sous l'icône
+                ctx.font = 'bold 10px Arial';
                 ctx.fillStyle = item.color;
-                ctx.textAlign = 'left';
-                ctx.fillText(item.label, textStartX, contentStartY + 15);
+                ctx.fillText(item.label, centerX, baseY + 38);
                 
-                // Valeur (nom du joueur)
+                // Valeur (nom du joueur) centrée
                 ctx.font = 'bold 16px Arial';
                 ctx.fillStyle = '#1a1a1a';
-                ctx.fillText(item.value, textStartX, contentStartY + 35);
+                ctx.fillText(item.value, centerX, baseY + 54);
                 
-                // Sub (score)
+                // Sub (score) centré
                 ctx.font = 'bold 13px Arial';
                 ctx.fillStyle = item.color;
-                ctx.fillText(item.sub, textStartX, contentStartY + 52);
+                ctx.fillText(item.sub, centerX, baseY + 68);
             });
             
             ctx.textAlign = 'left';
@@ -3817,7 +3879,7 @@ transition: all 0.3s ease;
             ctx.shadowBlur = 8;
             ctx.shadowColor = 'rgba(0,0,0,0.08)';
             ctx.fillStyle = '#FFFFFF';
-            this.roundRect(ctx, p, contentY, cardW, 150, 12);
+            this.roundRect(ctx, p, contentY, cardW, 160, 12);
             ctx.fill();
             ctx.shadowBlur = 0;
             
@@ -3897,8 +3959,25 @@ transition: all 0.3s ease;
             ctx.fillStyle = '#444';
             ctx.fillText(`📈 ${ai.totalManches} manches jouées`, w/2, statsY + 55);
             
+            // Narrative en bas (phrase d'ambiance)
+            if (ai.narrative) {
+                ctx.font = 'italic 12px Georgia';
+                ctx.fillStyle = colors.primary;
+                ctx.textAlign = 'center';
+                // Tronquer si trop long
+                const maxW = cardW - 30;
+                let text = ai.narrative;
+                if (ctx.measureText(text).width > maxW) {
+                    while (ctx.measureText(text + '...').width > maxW && text.length > 10) {
+                        text = text.slice(0, -1);
+                    }
+                    text += '...';
+                }
+                ctx.fillText(`"${text}"`, w/2, statsY + 80);
+            }
+            
             ctx.textAlign = 'left';
-            return contentY + 165;
+            return contentY + 175;
         },
         
         // === WATERMARK ===
