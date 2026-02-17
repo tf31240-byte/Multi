@@ -453,29 +453,29 @@
         pointer-events: auto !important;
         transform: translateX(-50%) !important;
         z-index: 200;
-        animation: dockSlideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s backwards;
+        animation: dockSlideUp 1s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s backwards;
     }
     
     /* Transition douce pour les cartes en mode Zen */
     .p-card {
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     
     .focus-mode .p-card {
-        transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     
     /* Transition pour le bouton focus */
     .btn-focus {
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     
     .focus-mode .btn-focus {
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     @keyframes dockSlideUp {
-        0% { opacity: 0; transform: translateX(-50%) translateY(50px); }
+        0% { opacity: 0; transform: translateX(-50%) translateY(80px); }
         100% { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
 
@@ -524,14 +524,14 @@ gap: 15px;
 z-index: 100;
 transform: none !important;
 opacity: 1 !important;
-animation: simpleFadeIn 0.3s ease-out backwards;
+animation: zenGridFadeIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 overflow-y: auto;
 -webkit-overflow-scrolling: touch;
 }
 
-@keyframes simpleFadeIn {
-from { opacity: 0; }
-to { opacity: 1; }
+@keyframes zenGridFadeIn {
+0% { opacity: 0; transform: scale(0.95); }
+100% { opacity: 1; transform: scale(1); }
 }
 
 .focus-mode .p-card {
@@ -549,7 +549,25 @@ animation: none !important;
 transition: none !important;
 }
 
-.focus-mode .p-card:nth-child(n) { animation-delay: 0s; }
+@keyframes zenCardFadeIn {
+0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Animation UNIQUEMENT à l'ouverture du mode zen */
+.focus-mode .players-grid .p-card {
+animation: zenCardFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.focus-mode .players-grid .p-card:nth-child(1) { animation-delay: 0.05s; }
+.focus-mode .players-grid .p-card:nth-child(2) { animation-delay: 0.1s; }
+.focus-mode .players-grid .p-card:nth-child(3) { animation-delay: 0.15s; }
+.focus-mode .players-grid .p-card:nth-child(4) { animation-delay: 0.2s; }
+.focus-mode .players-grid .p-card:nth-child(5) { animation-delay: 0.25s; }
+.focus-mode .players-grid .p-card:nth-child(6) { animation-delay: 0.3s; }
+
+/* Désactiver toutes les animations après l'ouverture */
+.focus-mode .p-card.rank-change { animation: none !important; }
+.focus-mode .p-card.score-bump { animation: none !important; }
 
 .focus-mode .rank-change { animation: none !important; }
 
@@ -558,8 +576,13 @@ font-size: 68px !important;
 letter-spacing: -3px;
 }
 
+/* Pas d'animation sur le score en mode zen */
 .focus-mode .p-score:active {
-animation: scoreClick 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+animation: none !important;
+}
+
+.focus-mode .p-score.score-bump {
+animation: none !important;
 }
 
 @keyframes scoreClick {
