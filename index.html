@@ -986,20 +986,68 @@ transition: all 0.3s ease;
 </div>
 
 <script>
-    // ==================== SOUND ENGINE AMÉLIORÉ ====================
+    // ==================== UTILITAIRES ====================
+    // Debounce utility pour optimiser les écritures
+    const debounce = (fn, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => fn.apply(this, args), delay);
+        };
+    };
+    
+    // Batch storage writes
+    const StorageBatcher = {
+        pending: new Map(),
+        flushTimeout: null,
+        FLUSH_DELAY: 100, // 100ms de délai pour batcher
+        
+        set(key, value) {
+            this.pending.set(key, value);
+            this.scheduleFlush();
+        },
+        
+        scheduleFlush() {
+            if (this.flushTimeout) return;
+            this.flushTimeout = setTimeout(() => this.flush(), this.FLUSH_DELAY);
+        },
+        
+        flush() {
+            this.flushTimeout = null;
+            if (!Storage.storageAvailable) return;
+            
+            try {
+                this.pending.forEach((value, key) => {
+                    localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+                });
+                this.pending.clear();
+            } catch (e) {
+                console.error('[StorageBatcher] Erreur flush:', e);
+            }
+        },
+        
+        // Flush immédiat pour les actions critiques
+        flushNow() {
+            if (this.flushTimeout) {
+                clearTimeout(this.flushTimeout);
+                this.flushTimeout = null;
+            }
+            this.flush();
+        }
+    };
+
+    // ==================== SOUND ENGINE ====================
     const SoundFX = {
         ctx: null, 
         enabled: true,
         audioAvailable: false,
         
         init() {
-            // Vérifier si l'API Audio est disponible
             try {
                 if (window.AudioContext || window.webkitAudioContext) {
                     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
                     this.audioAvailable = true;
                     if (this.ctx.state === 'suspended') {
-                        // Tenter de résumer sur interaction utilisateur
                         document.addEventListener('click', () => {
                             if (this.ctx && this.ctx.state === 'suspended') {
                                 this.ctx.resume().catch(() => {});
@@ -1083,7 +1131,7 @@ transition: all 0.3s ease;
     const GameState = {
         create(mode, playerCount) {
             const colors = ['#007AFF', '#FF2D55', '#34C759', '#FF9500', '#AF52DE', '#5AC8FA', '#FFCC00', '#5856D6', '#FF3B30', '#30B0C7', '#8E8E93', '#4CD964'];
-            // CORRECTION BUG #6 : Force minimum 2 joueurs, maximum 12
+            // Force minimum 2 joueurs, maximum 12
             const validPlayerCount = Math.max(2, Math.min(playerCount, 12));
             return {
                 mode,
@@ -1368,15 +1416,20 @@ transition: all 0.3s ease;
         }
     };
 
-    // ==================== STATS ENGINE ====================
+    // ==================== STATS ENGINE OPTIMISÉ ====================
     const StatsEngine = {
         calculateStats(mode = 'all') {
             const games = Storage.loadGames().filter(g =>
                 g.finished && (mode === 'all' || g.mode === mode)
             );
 
-            const stats = {};
+            // Trier les jeux par date une seule fois
+            games.sort((a, b) => new Date(a.date || a.timestamp) - new Date(b.date || b.timestamp));
 
+            const stats = {};
+            const streaks = {};
+
+            // UNE SEULE BOUCLE PRINCIPALE
             games.forEach(game => {
                 const isLowest = game.victoryCondition === 'lowest';
                 const sortedPlayers = [...game.state.players].sort((a,b) => isLowest ? a.total - b.total : b.total - a.total);
@@ -1384,87 +1437,63 @@ transition: all 0.3s ease;
 
                 game.state.players.forEach(p => {
                     const key = p.name.toUpperCase();
+                    
+                    // Initialiser les stats si nécessaire
                     if(!stats[key]) {
                         stats[key] = { 
-                            wins: 0, 
-                            played: 0, 
-                            totalScoreSum: 0, 
-                            highestScore: 0, 
-                            highestRound: 0,
-                            lowestRound: Infinity,
-                            roundScores: [],
-                            totalRounds: 0,
-                            gameScores: [],
-                            currentStreak: 0,
-                            bestStreak: 0
+                            wins: 0, played: 0, totalScoreSum: 0, highestScore: 0,
+                            highestRound: 0, lowestRound: Infinity, roundScores: [],
+                            totalRounds: 0, gameScores: []
                         };
+                        streaks[key] = { current: 0, best: 0, counting: true };
                     }
 
+                    // Stats de base
                     stats[key].played++;
                     stats[key].totalScoreSum += p.total;
                     stats[key].highestScore = Math.max(stats[key].highestScore, p.total);
                     stats[key].gameScores.push(p.total);
 
-                    // Collecter tous les scores de manches
-                    game.state.history.forEach(round => {
+                    // Scores de manches en une seule passe
+                    for (const round of game.state.history) {
                         const roundScore = round[p.id] || 0;
                         stats[key].roundScores.push(roundScore);
                         stats[key].totalRounds++;
-                        stats[key].highestRound = Math.max(stats[key].highestRound, roundScore);
-                        if(roundScore > 0) {
-                            stats[key].lowestRound = Math.min(stats[key].lowestRound, roundScore);
+                        if (roundScore > stats[key].highestRound) stats[key].highestRound = roundScore;
+                        if (roundScore > 0 && roundScore < stats[key].lowestRound) stats[key].lowestRound = roundScore;
+                    }
+
+                    // Victoire
+                    if(winner && p.id === winner.id) {
+                        stats[key].wins++;
+                        if (streaks[key].counting) {
+                            streaks[key].current++;
+                            streaks[key].best = Math.max(streaks[key].best, streaks[key].current);
                         }
-                    });
-                });
-
-                if(winner && stats[winner.name.toUpperCase()]) {
-                    stats[winner.name.toUpperCase()].wins++;
-                }
-            });
-
-            // Calculer les séries de victoires
-            const sortedGames = games.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            const streaks = {};
-            
-            sortedGames.forEach(game => {
-                const isLowest = game.victoryCondition === 'lowest';
-                const sortedPlayers = [...game.state.players].sort((a,b) => isLowest ? a.total - b.total : b.total - a.total);
-                const winner = sortedPlayers[0];
-                
-                game.state.players.forEach(p => {
-                    const key = p.name.toUpperCase();
-                    if(!streaks[key]) streaks[key] = { current: 0, best: 0, counting: true };
-                    
-                    if(p.id === winner.id && streaks[key].counting) {
-                        streaks[key].current++;
-                        streaks[key].best = Math.max(streaks[key].best, streaks[key].current);
                     } else {
                         streaks[key].counting = false;
                     }
                 });
             });
 
+            // Calcul final optimisé
             return Object.entries(stats).map(([name, data]) => {
-                // Calculer la moyenne par manche
-                const avgPerRound = data.totalRounds > 0 ? Math.round(data.roundScores.reduce((a,b)=>a+b,0) / data.totalRounds) : 0;
-                
-                // Calculer la régularité (écart-type)
-                const mean = avgPerRound;
-                const variance = data.roundScores.length > 0 
-                    ? data.roundScores.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / data.roundScores.length 
+                const avgPerRound = data.totalRounds > 0 
+                    ? Math.round(data.roundScores.reduce((a,b)=>a+b,0) / data.totalRounds) 
                     : 0;
-                const stdDev = Math.sqrt(variance);
                 
-                // Convertir l'écart-type en score de régularité (0-5 étoiles)
-                const maxStdDev = 50;
-                const regularityScore = Math.max(0, Math.min(5, 5 - Math.floor((stdDev / maxStdDev) * 5)));
+                // Écart-type simplifié
+                const variance = data.roundScores.length > 0 
+                    ? data.roundScores.reduce((acc, val) => acc + (val - avgPerRound) ** 2, 0) / data.roundScores.length 
+                    : 0;
+                const regularityScore = Math.max(0, Math.min(5, 5 - Math.floor((Math.sqrt(variance) / 50) * 5)));
                 
-                // Calculer la forme récente (5 dernières parties)
+                // Forme récente
                 const recentGames = data.gameScores.slice(-5);
                 const olderGames = data.gameScores.slice(0, -5);
-                const recentAvg = recentGames.length > 0 ? recentGames.reduce((a,b)=>a+b,0) / recentGames.length : 0;
-                const olderAvg = olderGames.length > 0 ? olderGames.reduce((a,b)=>a+b,0) / olderGames.length : recentAvg;
-                const formPercent = olderAvg > 0 ? Math.round(((recentAvg - olderAvg) / olderAvg) * 100) : 0;
+                const recentAvg = recentGames.length ? recentGames.reduce((a,b)=>a+b,0) / recentGames.length : 0;
+                const olderAvg = olderGames.length ? olderGames.reduce((a,b)=>a+b,0) / olderGames.length : recentAvg;
+                const formPercent = olderAvg !== 0 ? Math.round(((recentAvg - olderAvg) / olderAvg) * 100) : 0;
                 
                 return {
                     name,
@@ -1479,8 +1508,7 @@ transition: all 0.3s ease;
                     formPercent,
                     formTrend: formPercent > 0 ? '↗️' : formPercent < 0 ? '↘️' : '➡️'
                 };
-            })
-            .sort((a,b)=>b.winRate - a.winRate);
+            }).sort((a,b)=>b.winRate - a.winRate);
         },
         getRecordScores(mode = 'all') {
             const stats = this.calculateStats(mode);
@@ -1855,9 +1883,8 @@ transition: all 0.3s ease;
         renderChart(state, editIdx) {
             const ctx = document.getElementById('chart');
             if(!ctx || typeof Chart === 'undefined') return;
-            if(app.chart) app.chart.destroy();
             
-            // Collecter toutes les valeurs pour déterminer les limites
+            // Préparer les données
             let allValues = [0];
             const datasets = state.players.map(p => {
                 let cumul = 0;
@@ -1878,39 +1905,47 @@ transition: all 0.3s ease;
                 };
             });
             
-            // Calculer les limites min/max pour gérer les scores négatifs
+            // Calculer les limites min/max
             const minValue = Math.min(...allValues);
             const maxValue = Math.max(...allValues);
             const padding = Math.max(Math.abs(maxValue - minValue) * 0.1, 10);
-            
-            // Déterminer si on a des scores négatifs
             const hasNegativeScores = minValue < 0;
             const yMin = hasNegativeScores ? Math.floor((minValue - padding) / 50) * 50 : 0;
-            const yMax = Math.ceil((maxValue + padding) / 50) * 50;
+            const yMax = Math.max(Math.ceil((maxValue + padding) / 50) * 50, 50);
             
             const labels = ['0', ...state.history.map((_, i) => 'M' + (i + 1))];
             if(Object.keys(state.temp).length > 0 && editIdx === null) labels.push('...');
             
-            app.chart = new Chart(ctx, {
-                type: 'line',
-                data: { labels, datasets },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, titleFont: { size: 14, weight: 'bold' }, bodyFont: { size: 13 } } },
-                    scales: { 
-                        x: { grid: { display: false }, ticks: { font: { size: 10, weight: '700' }, color: '#86868B' } }, 
-                        y: { 
-                            min: yMin,
-                            max: yMax,
-                            beginAtZero: !hasNegativeScores, 
-                            grid: { color: 'rgba(128,128,128,0.08)' }, 
-                            ticks: { font: { size: 10, weight: '600' }, color: '#86868B' } 
-                        } 
-                    },
-                    animation: { duration: 400 }
-                }
-            });
+            // OPTIMISATION: Utiliser update() si le chart existe déjà
+            if (app.chart) {
+                app.chart.data.labels = labels;
+                app.chart.data.datasets = datasets;
+                app.chart.options.scales.y.min = yMin;
+                app.chart.options.scales.y.max = yMax;
+                app.chart.update('none'); // 'none' = pas d'animation pour performance
+            } else {
+                // Créer le chart seulement s'il n'existe pas
+                app.chart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels, datasets },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, titleFont: { size: 14, weight: 'bold' }, bodyFont: { size: 13 } } },
+                        scales: { 
+                            x: { grid: { display: false }, ticks: { font: { size: 10, weight: '700' }, color: '#86868B' } }, 
+                            y: { 
+                                min: yMin,
+                                max: yMax,
+                                beginAtZero: !hasNegativeScores, 
+                                grid: { color: 'rgba(128,128,128,0.08)' }, 
+                                ticks: { font: { size: 10, weight: '600' }, color: '#86868B' } 
+                            } 
+                        },
+                        animation: { duration: 400 }
+                    }
+                });
+            }
         },
         switchVictoryTab(tab) {
             SoundFX.click();
@@ -2185,7 +2220,21 @@ transition: all 0.3s ease;
         selectPlayerCount(count) {
             const victoryCondition = document.querySelector('input[name="victory-condition"]:checked')?.value || 'highest';
             const endType = document.querySelector('input[name="end-condition"]:checked')?.value || 'free';
-            const scoreTarget = endType === 'score' ? parseInt(document.getElementById('score-target').value) || 100 : null;
+            
+            let scoreTarget = null;
+            if (endType === 'score') {
+                const inputValue = parseInt(document.getElementById('score-target').value);
+                // Validation: score entre 10 et 9999
+                if (isNaN(inputValue) || inputValue < 10) {
+                    UI.showToast('⚠️ Score minimum : 10 points', 'warning');
+                    return;
+                }
+                if (inputValue > 9999) {
+                    UI.showToast('⚠️ Score maximum : 9999 points', 'warning');
+                    return;
+                }
+                scoreTarget = inputValue;
+            }
             
             document.getElementById('modal-player-count').classList.remove('active');
             document.getElementById('extra-players').classList.add('hidden');
@@ -2307,7 +2356,6 @@ transition: all 0.3s ease;
             SoundFX.click();
             const game = Storage.loadGames().find(g => g.id === id);
             if(game) {
-                // CORRECTION BUG #3 : Protection localStorage
                 try {
                     const playerCount = game.state.players.length;
                     const savedKey = `${game.mode}_${playerCount}`;
@@ -2370,7 +2418,6 @@ transition: all 0.3s ease;
             this.currentGame.finished = true;
             Storage.saveGame(this.currentGame);
             
-            // CORRECTION BUG #3 : Protection localStorage
             try {
                 const playerCount = this.currentGame.state.players.length;
                 const savedKey = `${this.currentGame.mode}_${playerCount}`;
@@ -2431,75 +2478,33 @@ transition: all 0.3s ease;
                 UI.showToast('❌ Erreur PNG', 'error');
             }
         },
-        debugLog(msg) {
-            const debugConsole = document.getElementById('debug-console');
-            const debugLogDiv = document.getElementById('debug-log');
-            if (debugConsole && debugLogDiv) {
-                debugConsole.style.display = 'block';
-                const time = new Date().toLocaleTimeString();
-                debugLogDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
-                debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
-            }
-            window.console.log('[App] ' + msg);
-        },
         async shareRecapGIF() {
-            try {
-                this.debugLog('🎬 shareRecapGIF() appelé');
-            } catch (e) { alert('ERREUR ligne 1: ' + e.message); return; }
+            if(!this.currentGame || !this.currentGame.finished) {
+                UI.showToast("⚠️ Terminez d'abord la partie", 'warning');
+                return;
+            }
+            
+            SoundFX.click();
+            
+            if (typeof gifshot === 'undefined') {
+                UI.showToast('❌ Bibliothèque GIF non chargée', 'error');
+                return;
+            }
+            
+            const userConfirmed = confirm('Le GIF prendra ~20 secondes à générer. Continuer ?');
+            if (!userConfirmed) return;
+            
+            UI.showLoading('🎬 Génération du GIF...');
+            UI.updateLoadingProgress(0, 'Initialisation...');
             
             try {
-                this.debugLog('🔍 Vérif currentGame...');
-                if(!this.currentGame || !this.currentGame.finished) {
-                    this.debugLog('❌ Partie non terminée');
-                    UI.showToast("⚠️ Terminez d'abord la partie", 'warning');
-                    return;
-                }
-                this.debugLog('✅ Partie terminée OK');
-            } catch (e) { alert('ERREUR vérif partie: ' + e.message); return; }
-            
-            try {
-                this.debugLog('🔍 Appel SoundFX.click()...');
-                SoundFX.click();
-                this.debugLog('✅ SoundFX OK');
-            } catch (e) { alert('ERREUR SoundFX: ' + e.message); }
-            
-            try {
-                this.debugLog('🔍 Vérification gifshot...');
-                if (typeof gifshot === 'undefined') {
-                    this.debugLog('❌ gifshot non chargé !');
-                    UI.showToast('❌ Bibliothèque GIF non chargée', 'error');
-                    alert("ERREUR: gifshot n'est pas chargé. Vérifiez votre connexion internet.");
-                    return;
-                }
-                this.debugLog('✅ gifshot chargé OK');
-            } catch (e) { alert('ERREUR vérif gifshot: ' + e.message); return; }
-            
-            try {
-                this.debugLog('❓ Demande confirmation...');
-                const userConfirmed = confirm('Le GIF prendra ~30 secondes à générer. Continuer ?');
-                if (!userConfirmed) {
-                    this.debugLog('❌ Annulé par utilisateur');
-                    return;
-                }
-                this.debugLog('✅ Confirmation OK');
-            } catch (e) { alert('ERREUR confirmation: ' + e.message); return; }
-            
-            try {
-                this.debugLog('🚀 Appel RecapGifGenerator.generateAnimated()');
-                // Afficher l'indicateur de chargement
-                UI.showLoading('🎬 Génération du GIF...');
-                UI.updateLoadingProgress(0, 'Initialisation...');
-                
                 RecapGifGenerator.generateAnimated(this.currentGame.state, (progress, message) => {
                     UI.updateLoadingProgress(progress, message);
                 });
-                this.debugLog('✅ Appel lancé');
             } catch (error) {
-                this.debugLog('❌ ERREUR generateAnimated: ' + error.message);
-                this.debugLog('Stack: ' + error.stack);
+                console.error('[ScoreMaster] Erreur GIF:', error);
                 UI.hideLoading();
                 UI.showToast('❌ Erreur: ' + error.message, 'error');
-                alert('ERREUR generateAnimated:\n' + error.message + '\n\nStack:\n' + error.stack);
             }
         },
         openModal(playerId) {
@@ -2717,7 +2722,7 @@ transition: all 0.3s ease;
                 roundNumber = state.history.length + 1;
                 GameState.addRound(state, state.temp);
                 
-                // CORRECTION BUG #5 : Protection findIndex = -1
+                // Protection findIndex = -1
                 const currentIdx = state.players.findIndex(p => p.id === state.dealerId);
                 if (currentIdx === -1) {
                     console.warn('Dealer not found, resetting to first player');
@@ -2773,7 +2778,6 @@ transition: all 0.3s ease;
             }
             
             if(gameEnded && winner) {
-                // CORRECTION BUG #3 : Protection localStorage
                 try {
                     const playerCount = state.players.length;
                     const savedKey = `${this.currentGame.mode}_${playerCount}`;
@@ -2784,7 +2788,6 @@ transition: all 0.3s ease;
                 }
                 
                 this.currentGame.finished = true;
-                // CORRECTION BUG #4 : Une seule sauvegarde ici (la double sauvegarde est enlevée plus bas)
                 setTimeout(() => { UI.showVictory(winner, winner.total, state); }, 500);
             }
             
@@ -2818,7 +2821,7 @@ transition: all 0.3s ease;
             UI.confirm('Supprimer cette manche ?', () => {
                 GameState.deleteRound(this.currentGame.state, idx);
                 
-                // CORRECTION BUG #1 : Reset editIdx si nécessaire
+                // Reset editIdx si nécessaire
                 if (this.editIdx !== null) {
                     if (this.editIdx === idx) {
                         // On supprime la manche en cours d'édition
@@ -3098,7 +3101,7 @@ transition: all 0.3s ease;
                 const sortedF = finals.map((t, i) => ({ i, t })).sort((a, b) => {
                     return isLowest ? a.t - b.t : b.t - a.t;
                 });
-                // CORRECTION BUG #2 : Protection contre 1 seul joueur
+                // Protection contre 1 seul joueur
                 const gap = sortedF.length > 1 ? Math.abs(sortedF[0].t - sortedF[1].t) : 0;
                 
                 let genre;
@@ -3216,27 +3219,27 @@ transition: all 0.3s ease;
         
         async generate(gameState) {
             try {
-                UI.showToast('🎨 Génération récap V4.0...', 'info');
-                
                 const canvas = document.createElement('canvas');
                 canvas.width = 1080;
                 
-                // Analyse des données (UNE SEULE FOIS)
+                // Analyse des données
                 const ai = this.analyzeGameData(gameState);
                 
-                // Calcul de la hauteur (SANS dessiner)
+                // Mesurer tout le contenu en une seule passe
                 const ctx = canvas.getContext('2d');
-                const height = this.calculateTotalHeight(ctx, ai, gameState);
+                const measuredContent = this.measureAllContent(ctx, 465, ai, gameState);
+                
+                // Calcul de la hauteur
+                const height = this.calculateTotalHeight(ctx, ai, gameState, measuredContent);
                 canvas.height = height;
                 
-                // Dessin (UNE SEULE FOIS)
-                this.draw(ctx, ai, gameState);
+                // Dessin avec données pré-mesurées
+                this.draw(ctx, ai, gameState, measuredContent);
                 
-                UI.showToast('✅ Récap V4.0 généré !', 'success');
                 return canvas;
                 
             } catch(error) {
-                console.error('[RecapGenerator V4.0] Erreur:', error);
+                console.error('[RecapGenerator] Erreur:', error);
                 UI.showToast('❌ Erreur génération: ' + error.message, 'error');
                 return null;
             }
@@ -3316,7 +3319,7 @@ transition: all 0.3s ease;
             const sorted = [...gameState.players].sort((a,b) => {
                 return isLowest ? a.total - b.total : b.total - a.total;
             });
-            // CORRECTION BUG #2 : Protection contre 1 seul joueur
+            // Protection contre 1 seul joueur
             const finalGap = sorted.length > 1 ? Math.abs(sorted[0].total - sorted[1].total) : sorted[0].total;
             
             return {
@@ -3331,73 +3334,11 @@ transition: all 0.3s ease;
             };
         },
         
-        // Calculer la hauteur totale SANS dessiner
-        calculateTotalHeight(ctx, ai, gameState) {
-            const width = 1080;
-            const sp = this.SPACING;
-            let y = 50;
-            
-            // Bandeau
-            y += 4 + 130 + 4 + 140 + 35;
-            y += sp.AFTER_BANNER;
-            
-            // Confetti
-            y += 20;
-            y += sp.BEFORE_CHAMPION;
-            
-            // Champion
-            y += 100;
-            y += sp.AFTER_CHAMPION;
-            
-            // Titre
-            y += 65;
-            
-            // Narratif (estimation)
-            const words = ai.narrative.split(' ');
-            const estimatedLines = Math.ceil(words.length / 10);
-            y += estimatedLines * 30 + 35;
-            
-            // Ligne
-            y += 30;
-            
-            // Graphique
-            y += 360;
-            
-            // Double ligne
-            y += 40;
-            
-            const leftCol = 55;
-            const colWidth = 465;
-            const rightCol = leftCol + colWidth + 30;
-            
-            // Podium (fixe)
-            const podiumHeight = 45 + sp.SECTION_HEADER + 320;
-            
-            // Réactions (mesurer)
-            const { height: reactionsHeight } = this.measureReactionsContent(ctx, colWidth, ai);
-            const reactionsTotal = 45 + sp.SECTION_HEADER + reactionsHeight;
-            
-            const yLeft = podiumHeight + sp.BETWEEN_SECTIONS + reactionsTotal;
-            
-            // Temps forts (mesurer)
-            const { height: tempsFortsHeight } = this.measureTempsFortsContent(ctx, colWidth, ai, gameState);
-            const tempsFortsTotal = 45 + sp.SECTION_HEADER + tempsFortsHeight;
-            
-            // Stats (mesurer)
-            const { height: statsHeight } = this.measureStatsContent(ctx, colWidth, ai, gameState);
-            const statsTotal = 45 + sp.SECTION_HEADER + statsHeight;
-            
-            const yRight = tempsFortsTotal + sp.BETWEEN_SECTIONS + statsTotal;
-            
-            const finalY = y + Math.max(yLeft, yRight) + 60;
-            
-            return finalY + 80;
-        },
-        
-        // Mesurer les réactions
-        measureReactionsContent(ctx, w, ai) {
+        // OPTIMISATION: Mesurer tout le contenu en une seule passe
+        measureAllContent(ctx, w, ai, gameState) {
             const sp = this.SPACING;
             
+            // === RÉACTIONS ===
             const winnerQuote = this.NarrativeEngine.getWinnerQuote();
             const loserQuote = this.NarrativeEngine.getLoserQuote();
             
@@ -3405,20 +3346,9 @@ transition: all 0.3s ease;
             const winnerLines = this.wrapText(ctx, `"${winnerQuote}"`, w - 40);
             const loserLines = this.wrapText(ctx, `"${loserQuote}"`, w - 40);
             
-            let height = sp.SECTION_PADDING;
-            height += 24;  // Titre gagnant
-            height += winnerLines.length * 22 + 20;
-            height += 20;  // Séparateur
-            height += 24;  // Titre perdant
-            height += loserLines.length * 22 + sp.SECTION_PADDING;
+            const reactionsHeight = sp.SECTION_PADDING + 24 + winnerLines.length * 22 + 20 + 20 + 24 + loserLines.length * 22 + sp.SECTION_PADDING;
             
-            return { height, winnerLines, loserLines, winnerQuote, loserQuote };
-        },
-        
-        // Mesurer les temps forts
-        measureTempsFortsContent(ctx, w, ai, gameState) {
-            const sp = this.SPACING;
-            
+            // === TEMPS FORTS ===
             ctx.font = '18px Arial';
             const feuLines = this.wrapText(ctx, `${ai.bestRound.player} a explosé`, w - 40);
             ctx.font = 'bold 20px Arial';
@@ -3451,35 +3381,96 @@ transition: all 0.3s ease;
                 manchesLines = this.wrapText(ctx, `▶ ${gameState.history.length} manches`, w - 40);
             }
             
-            let height = sp.SECTION_PADDING;
-            height += 24 + feuLines.length * 20 + 4 + mancheLines.length * 20 + sp.ITEM_SPACING;
-            height += sp.ITEM_SPACING;
-            
+            let tempsFortsHeight = sp.SECTION_PADDING + 24 + feuLines.length * 20 + 4 + mancheLines.length * 20 + sp.ITEM_SPACING + sp.ITEM_SPACING;
             if (ai.worstRound.score < 0) {
-                height += 24 + dramaLines.length * 20 + 4 + dramaScoreLines.length * 20 + sp.ITEM_SPACING;
+                tempsFortsHeight += 24 + dramaLines.length * 20 + 4 + dramaScoreLines.length * 20 + sp.ITEM_SPACING;
             } else {
-                height += 24 + exploitLines.length * 20 + 4 + exploitScoreLines.length * 20 + sp.ITEM_SPACING;
+                tempsFortsHeight += 24 + exploitLines.length * 20 + 4 + exploitScoreLines.length * 20 + sp.ITEM_SPACING;
             }
-            
-            height += sp.ITEM_SPACING;
-            
+            tempsFortsHeight += sp.ITEM_SPACING;
             if (ai.bestStreak.count > 1) {
-                height += 24 + serieLines.length * 20 + 4 + autoLines.length * 20 + sp.SECTION_PADDING;
+                tempsFortsHeight += 24 + serieLines.length * 20 + 4 + autoLines.length * 20 + sp.SECTION_PADDING;
             } else {
-                height += 24 + 24 + manchesLines.length * 20 + sp.SECTION_PADDING;
+                tempsFortsHeight += 24 + 24 + manchesLines.length * 20 + sp.SECTION_PADDING;
             }
+            
+            // === STATS ===
+            const precision = ai.cast.precision;
+            ctx.font = '19px Arial';
+            const bestLines = this.wrapText(ctx, `🔥 Meilleure : ${ai.bestRound.player}`, w - 50);
+            const ecartLines = this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 50);
+            const manchesStatsLines = this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 50);
+            
+            let worstLines = [];
+            let streakLines = [];
+            if (ai.worstRound.score < 0) {
+                worstLines = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 50);
+            }
+            if (ai.bestStreak.count > 1) {
+                streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 50);
+            }
+            
+            let statsHeight = sp.SECTION_PADDING;
+            if (precision && precision.length > 0) {
+                const precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${precision[0].name}`, w - 50);
+                statsHeight += precisionLines.length * 22 + 8 + 30 + 20;
+            }
+            statsHeight += bestLines.length * 22 + 8 + 28 + 20;
+            if (worstLines.length > 0) statsHeight += worstLines.length * 22 + 8 + 28 + 20;
+            if (streakLines.length > 0) statsHeight += streakLines.length * 22 + 8 + 28 + 20;
+            statsHeight += ecartLines.length * 22 + 26 + 20 + manchesStatsLines.length * 22 + sp.SECTION_PADDING;
             
             return {
-                height,
-                feuLines, mancheLines,
-                dramaLines, dramaScoreLines,
-                exploitLines, exploitScoreLines,
-                serieLines, autoLines,
-                manchesLines
+                reactions: { height: reactionsHeight, winnerLines, loserLines, winnerQuote, loserQuote },
+                tempsForts: { 
+                    height: tempsFortsHeight, feuLines, mancheLines,
+                    dramaLines, dramaScoreLines, exploitLines, exploitScoreLines,
+                    serieLines, autoLines, manchesLines
+                },
+                stats: { 
+                    height: statsHeight, precision, bestLines, worstLines, 
+                    streakLines, ecartLines, manchesStatsLines
+                }
             };
         },
         
-        async draw(ctx, ai, gameState) {
+        // Calculer la hauteur totale SANS dessiner
+        calculateTotalHeight(ctx, ai, gameState, measuredContent) {
+            const sp = this.SPACING;
+            let y = 50;
+            
+            // Bandeau
+            y += 4 + 130 + 4 + 140 + 35;
+            y += sp.AFTER_BANNER;
+            
+            // Confetti + Champion
+            y += 20 + sp.BEFORE_CHAMPION + 100 + sp.AFTER_CHAMPION;
+            
+            // Titre
+            y += 65;
+            
+            // Narratif (estimation)
+            const words = ai.narrative.split(' ');
+            y += Math.ceil(words.length / 10) * 30 + 35;
+            
+            // Ligne + Graphique + Double ligne
+            y += 30 + 360 + 40;
+            
+            const colWidth = 465;
+            
+            // Podium (fixe)
+            const podiumHeight = 45 + sp.SECTION_HEADER + 320;
+            const reactionsTotal = 45 + sp.SECTION_HEADER + measuredContent.reactions.height;
+            const yLeft = podiumHeight + sp.BETWEEN_SECTIONS + reactionsTotal;
+            
+            const tempsFortsTotal = 45 + sp.SECTION_HEADER + measuredContent.tempsForts.height;
+            const statsTotal = 45 + sp.SECTION_HEADER + measuredContent.stats.height;
+            const yRight = tempsFortsTotal + sp.BETWEEN_SECTIONS + statsTotal;
+            
+            return y + Math.max(yLeft, yRight) + 140;
+        },
+        
+        async draw(ctx, ai, gameState, measuredContent) {
             const width = 1080;
             const colors = this.GENRE_COLORS[ai.brain.genre];
             const sp = this.SPACING;
@@ -3562,11 +3553,11 @@ transition: all 0.3s ease;
             
             yLeft = this.drawPodium3DImproved(ctx, leftCol, yLeft, colWidth, gameState.players, colors, gameState.victoryCondition);
             yLeft += sp.BETWEEN_SECTIONS;
-            yLeft = this.drawReactionsClean(ctx, leftCol, yLeft, colWidth, ai, colors);
+            yLeft = this.drawReactionsClean(ctx, leftCol, yLeft, colWidth, ai, colors, measuredContent.reactions);
             
-            yRight = this.drawTempsFortsClean(ctx, rightCol, yRight, colWidth, ai, colors, gameState);
+            yRight = this.drawTempsFortsClean(ctx, rightCol, yRight, colWidth, ai, colors, gameState, measuredContent.tempsForts);
             yRight += sp.BETWEEN_SECTIONS;
-            yRight = this.drawStatsClean(ctx, rightCol, yRight, colWidth, ai, gameState, colors);
+            yRight = this.drawStatsClean(ctx, rightCol, yRight, colWidth, ai, gameState, colors, measuredContent.stats);
             
             const finalY = Math.max(yLeft, yRight) + 60;
             
@@ -3762,7 +3753,7 @@ transition: all 0.3s ease;
             const curves = ai.brain.curves;
             const maxScore = Math.max(...curves.flat());
             const minScore = Math.min(...curves.flat(), 0);
-            const nbRounds = gameState.history.length;
+            const nbRounds = gameState.history.length || 1; // Protection contre division par 0
             
             const winGradient = ctx.createLinearGradient(0, gy, 0, gy + gh/3);
             winGradient.addColorStop(0, 'rgba(76, 175, 80, 0.15)');
@@ -4035,27 +4026,15 @@ transition: all 0.3s ease;
             return podiumY + podiumHeight;
         },
         
-        // ========== NOUVELLES FONCTIONS CLEAN (calcul puis dessin) ==========
+        // ========== FONCTIONS DE DESSIN OPTIMISÉES (utilisent données pré-mesurées) ==========
         
-        drawReactionsClean(ctx, x, y, w, ai, colors) {
+        drawReactionsClean(ctx, x, y, w, ai, colors, measuredData) {
             const sp = this.SPACING;
             
-            // ÉTAPE 1 : Calculer la hauteur SANS dessiner
-            const winnerQuote = this.NarrativeEngine.getWinnerQuote();
-            const loserQuote = this.NarrativeEngine.getLoserQuote();
+            // Utiliser les données pré-mesurées
+            const { height: calcH, winnerLines, loserLines, winnerQuote, loserQuote } = measuredData;
             
-            ctx.font = 'italic 17px Georgia';
-            const winnerLines = this.wrapText(ctx, `"${winnerQuote}"`, w - 40);
-            const loserLines = this.wrapText(ctx, `"${loserQuote}"`, w - 40);
-            
-            let calcH = sp.SECTION_PADDING;
-            calcH += 24; // Titre gagnant
-            calcH += winnerLines.length * 22 + 20;
-            calcH += 20; // Séparateur
-            calcH += 24; // Titre perdant
-            calcH += loserLines.length * 22 + sp.SECTION_PADDING;
-            
-            // ÉTAPE 2 : Dessiner le bandeau
+            // Dessiner le bandeau
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, colors.accent);
             gradient.addColorStop(1, colors.primary);
@@ -4077,7 +4056,7 @@ transition: all 0.3s ease;
             y += 45 + sp.SECTION_HEADER;
             const contentY = y;
             
-            // ÉTAPE 3 : Dessiner le cadre blanc
+            // Dessiner le cadre blanc
             ctx.fillStyle = '#FFFFFF';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
             ctx.shadowBlur = 15;
@@ -4091,7 +4070,7 @@ transition: all 0.3s ease;
             ctx.lineWidth = 2;
             ctx.strokeRect(x, contentY, w, calcH);
             
-            // ÉTAPE 4 : Dessiner le contenu (UNE SEULE FOIS !)
+            // Dessiner le contenu
             y = contentY + sp.SECTION_PADDING;
             
             ctx.font = 'bold 19px Arial';
@@ -4129,61 +4108,17 @@ transition: all 0.3s ease;
             return contentY + calcH;
         },
         
-        drawTempsFortsClean(ctx, x, y, w, ai, colors, gameState) {
+        drawTempsFortsClean(ctx, x, y, w, ai, colors, gameState, measuredData) {
             const sp = this.SPACING;
             
-            // ÉTAPE 1 : Calculer la hauteur SANS dessiner
-            ctx.font = '18px Arial';
-            const feuLines = this.wrapText(ctx, `${ai.bestRound.player} a explosé`, w - 40);
-            ctx.font = 'bold 20px Arial';
-            const mancheLines = this.wrapText(ctx, `▶ ${ai.bestRound.score} pts (M${ai.bestRound.round})`, w - 40);
+            // Utiliser les données pré-mesurées
+            const { 
+                height: calcH, feuLines, mancheLines,
+                dramaLines, dramaScoreLines, exploitLines, exploitScoreLines,
+                serieLines, autoLines, manchesLines
+            } = measuredData;
             
-            let dramaLines = [], dramaScoreLines = [];
-            let exploitLines = [], exploitScoreLines = [];
-            let serieLines = [], autoLines = [];
-            let manchesLines = [];
-            
-            if (ai.worstRound.score < 0) {
-                ctx.font = '18px Arial';
-                dramaLines = this.wrapText(ctx, `${ai.worstRound.player} catastrophique`, w - 40);
-                ctx.font = 'bold 20px Arial';
-                dramaScoreLines = this.wrapText(ctx, `▶ ${ai.worstRound.score} pts (M${ai.worstRound.round})`, w - 40);
-            } else {
-                ctx.font = '18px Arial';
-                exploitLines = this.wrapText(ctx, `${ai.secondBestRound.player} en feu`, w - 40);
-                ctx.font = 'bold 20px Arial';
-                exploitScoreLines = this.wrapText(ctx, `▶ ${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})`, w - 40);
-            }
-            
-            if (ai.bestStreak.count > 1) {
-                ctx.font = '18px Arial';
-                serieLines = this.wrapText(ctx, `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires`, w - 40);
-                ctx.font = 'bold 20px Arial';
-                autoLines = this.wrapText(ctx, '▶ Mode auto', w - 40);
-            } else {
-                ctx.font = 'bold 20px Arial';
-                manchesLines = this.wrapText(ctx, `▶ ${gameState.history.length} manches`, w - 40);
-            }
-            
-            let calcH = sp.SECTION_PADDING;
-            calcH += 24 + feuLines.length * 20 + 4 + mancheLines.length * 20 + sp.ITEM_SPACING;
-            calcH += sp.ITEM_SPACING;
-            
-            if (ai.worstRound.score < 0) {
-                calcH += 24 + dramaLines.length * 20 + 4 + dramaScoreLines.length * 20 + sp.ITEM_SPACING;
-            } else {
-                calcH += 24 + exploitLines.length * 20 + 4 + exploitScoreLines.length * 20 + sp.ITEM_SPACING;
-            }
-            
-            calcH += sp.ITEM_SPACING;
-            
-            if (ai.bestStreak.count > 1) {
-                calcH += 24 + serieLines.length * 20 + 4 + autoLines.length * 20 + sp.SECTION_PADDING;
-            } else {
-                calcH += 24 + 24 + manchesLines.length * 20 + sp.SECTION_PADDING;
-            }
-            
-            // ÉTAPE 2 : Dessiner le bandeau
+            // Dessiner le bandeau
             const gradient = ctx.createLinearGradient(x, y, x + w, y);
             gradient.addColorStop(0, colors.primary);
             gradient.addColorStop(1, colors.accent);
@@ -4345,63 +4280,14 @@ transition: all 0.3s ease;
             return contentY + calcH;
         },
         
-        // Fonction ULTRA-SAFE : Mesurer d'abord, dessiner ensuite
-        measureStatsContent(ctx, w, ai, gameState) {
-            const sp = this.SPACING;
-            const precision = ai.cast.precision;
-            
-            // Préparer toutes les données SANS DESSINER
-            ctx.font = '19px Arial';  // Correspond à la police utilisée
-            const data = {
-                precisionLines: [],
-                topPlayer: null,
-                bestLines: this.wrapText(ctx, `🔥 Meilleure : ${ai.bestRound.player}`, w - 50),
-                worstLines: [],
-                streakLines: [],
-                ecartLines: this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 50),
-                manchesLines: this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 50)
-            };
-            
-            if (precision && precision.length > 0) {
-                data.topPlayer = precision[0];
-                data.precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${data.topPlayer.name}`, w - 50);
-            }
-            
-            if (ai.worstRound.score < 0) {
-                data.worstLines = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 50);
-            }
-            
-            if (ai.bestStreak.count > 1) {
-                data.streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 50);
-            }
-            
-            // Calculer la hauteur totale (avec nouveaux espacements)
-            let height = sp.SECTION_PADDING;
-            if (data.topPlayer) {
-                height += data.precisionLines.length * 22 + 8 + 30 + 20;  // Nouvelle taille de barre
-            }
-            height += data.bestLines.length * 22 + 8 + 28 + 20;  // Nouveaux espacements
-            if (data.worstLines.length > 0) {
-                height += data.worstLines.length * 22 + 8 + 28 + 20;
-            }
-            if (data.streakLines.length > 0) {
-                height += data.streakLines.length * 22 + 8 + 28 + 20;
-            }
-            height += data.ecartLines.length * 22 + 26 + 20;
-            height += data.manchesLines.length * 22 + sp.SECTION_PADDING;
-            
-            return { data, height };
-        },
-        
-        drawStatsClean(ctx, x, y, w, ai, gameState, colors) {
+        drawStatsClean(ctx, x, y, w, ai, gameState, colors, measuredData) {
             const sp = this.SPACING;
             
-            // Mesurer le contenu
-            const { data, height } = this.measureStatsContent(ctx, w, ai, gameState);
+            // Utiliser les données pré-mesurées
+            const { height, precision, bestLines, worstLines, streakLines, ecartLines, manchesStatsLines } = measuredData;
+            const topPlayer = precision && precision.length > 0 ? precision[0] : null;
             
-            // ═══════════════════════════════════════════
-            // HEADER
-            // ═══════════════════════════════════════════
+            // Header
             const headerGrad = ctx.createLinearGradient(x, y, x + w, y);
             headerGrad.addColorStop(0, colors.primary);
             headerGrad.addColorStop(0.5, colors.accent);
@@ -4420,7 +4306,6 @@ transition: all 0.3s ease;
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, w, 50);
             
-            // Titre header (CENTER pour cette ligne seulement)
             ctx.font = 'bold 26px Arial';
             ctx.fillStyle = '#FFFFFF';
             ctx.textAlign = 'center';
@@ -4455,45 +4340,33 @@ transition: all 0.3s ease;
             let currentY = contentY + sp.SECTION_PADDING;
             const baseX = x + 25;  // Position X de base pour TOUT le texte
             
-            // ═══════════════════════════════════════════
             // SECTION 1 : TAUX DE VICTOIRE
-            // ═══════════════════════════════════════════
-            if (data.topPlayer) {
-                // Dessiner chaque ligne individuellement
+            if (topPlayer) {
                 ctx.font = '19px Arial';
                 ctx.fillStyle = '#2c2c2c';
-                
-                for (let i = 0; i < data.precisionLines.length; i++) {
-                    ctx.textAlign = 'left';  // FORCÉ avant chaque ligne
-                    ctx.fillText(data.precisionLines[i], baseX, currentY);
-                    currentY += 22;
-                }
-                currentY += 8;
-                
-                // Barre de progression
-                this.drawStatBar(ctx, baseX, currentY, w - 50, data.topPlayer.value, 100, colors.primary);
+                ctx.textAlign = 'left';
+                ctx.fillText(`🎯 Taux victoire : ${topPlayer.name}`, baseX, currentY);
                 currentY += 30;
                 
-                // Séparateur
+                this.drawStatBar(ctx, baseX, currentY, w - 50, topPlayer.value, 100, colors.primary);
+                currentY += 30;
+                
                 this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
                 currentY += 20;
             }
             
-            // ═══════════════════════════════════════════
             // SECTION 2 : MEILLEURE MANCHE
-            // ═══════════════════════════════════════════
             ctx.font = '19px Arial';
             ctx.fillStyle = '#2c2c2c';
             
-            for (let i = 0; i < data.bestLines.length; i++) {
-                ctx.textAlign = 'left';  // FORCÉ avant chaque ligne
-                ctx.fillText(data.bestLines[i], baseX, currentY);
+            for (let i = 0; i < bestLines.length; i++) {
+                ctx.textAlign = 'left';
+                ctx.fillText(bestLines[i], baseX, currentY);
                 currentY += 22;
             }
             currentY += 8;
             
-            // Score
-            ctx.textAlign = 'left';  // FORCÉ
+            ctx.textAlign = 'left';
             ctx.font = 'bold 24px Arial';
             ctx.fillStyle = colors.accent;
             ctx.shadowColor = 'rgba(255, 100, 0, 0.3)';
@@ -4503,20 +4376,17 @@ transition: all 0.3s ease;
             ctx.shadowColor = 'transparent';
             currentY += 28;
             
-            // Séparateur
             this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
             currentY += 20;
             
-            // ═══════════════════════════════════════════
             // SECTION 3 : PIRE MANCHE (si existe)
-            // ═══════════════════════════════════════════
-            if (data.worstLines.length > 0) {
+            if (worstLines.length > 0) {
                 ctx.font = '19px Arial';
                 ctx.fillStyle = '#2c2c2c';
                 
-                for (let i = 0; i < data.worstLines.length; i++) {
+                for (let i = 0; i < worstLines.length; i++) {
                     ctx.textAlign = 'left';
-                    ctx.fillText(data.worstLines[i], baseX, currentY);
+                    ctx.fillText(worstLines[i], baseX, currentY);
                     currentY += 22;
                 }
                 currentY += 8;
@@ -4535,16 +4405,14 @@ transition: all 0.3s ease;
                 currentY += 20;
             }
             
-            // ═══════════════════════════════════════════
             // SECTION 4 : SÉRIE (si existe)
-            // ═══════════════════════════════════════════
-            if (data.streakLines.length > 0) {
+            if (streakLines.length > 0) {
                 ctx.font = '19px Arial';
                 ctx.fillStyle = '#2c2c2c';
                 
-                for (let i = 0; i < data.streakLines.length; i++) {
+                for (let i = 0; i < streakLines.length; i++) {
                     ctx.textAlign = 'left';
-                    ctx.fillText(data.streakLines[i], baseX, currentY);
+                    ctx.fillText(streakLines[i], baseX, currentY);
                     currentY += 22;
                 }
                 currentY += 8;
@@ -4563,36 +4431,30 @@ transition: all 0.3s ease;
                 currentY += 20;
             }
             
-            // ═══════════════════════════════════════════
             // SECTION 5 : ÉCART FINAL
-            // ═══════════════════════════════════════════
             ctx.font = '19px Arial';
             ctx.fillStyle = '#2c2c2c';
             
-            for (let i = 0; i < data.ecartLines.length; i++) {
+            for (let i = 0; i < ecartLines.length; i++) {
                 ctx.textAlign = 'left';
-                ctx.fillText(data.ecartLines[i], baseX, currentY);
+                ctx.fillText(ecartLines[i], baseX, currentY);
                 currentY += 22;
             }
             currentY += 26;
             
-            // Séparateur
             this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
             currentY += 20;
             
-            // ═══════════════════════════════════════════
             // SECTION 6 : MANCHES
-            // ═══════════════════════════════════════════
             ctx.font = '19px Arial';
             ctx.fillStyle = '#2c2c2c';
             
-            for (let i = 0; i < data.manchesLines.length; i++) {
+            for (let i = 0; i < manchesStatsLines.length; i++) {
                 ctx.textAlign = 'left';
-                ctx.fillText(data.manchesLines[i], baseX, currentY);
+                ctx.fillText(manchesStatsLines[i], baseX, currentY);
                 currentY += 22;
             }
             
-            // Retourner position finale
             return contentY + height;
         },
         
@@ -4740,67 +4602,41 @@ transition: all 0.3s ease;
         }
     };
 
-    // ==================== RECAP GIF GENERATOR MOBILE ====================
-    // Version optimisée pour mobile : SANS WEB WORKERS
-    // Plus lent mais fonctionne partout (même en file://)
+    // ==================== RECAP GIF GENERATOR OPTIMISÉ ====================
     
     const RecapGifGenerator = {
         CONFIG: {
-            WIDTH: 500,      // Optimisé mobile
-            HEIGHT: 1400,    // Optimisé pour éviter espace vide
-            FPS: 15,         // 15 fps fluide
-            DURATION: 5,     // 5 secondes pour laisser lire
-            QUALITY: 20      // Qualité optimale
+            WIDTH: 500,
+            HEIGHT: 1400,
+            FPS: 12,          // Réduit de 15 à 12 pour moins de frames
+            DURATION: 4,      // Réduit de 5 à 4 secondes
+            QUALITY: 25       // Qualité légèrement réduite pour fichier plus petit
         },
         
-        debugLog(msg) {
-            const debugConsole = document.getElementById('debug-console');
-            const debugLogDiv = document.getElementById('debug-log');
-            if (debugConsole && debugLogDiv) {
-                debugConsole.style.display = 'block';
-                const time = new Date().toLocaleTimeString();
-                debugLogDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
-                debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
-            }
-            window.console.log('[RecapGif] ' + msg);
-        },
+        // Cache pour les éléments statiques
+        cachedBackground: null,
         
         async generateAnimated(gameState, progressCallback = null) {
-            this.debugLog('=== DÉBUT generateAnimated() ===');
-            
             const updateProgress = (progress, message) => {
                 if (progressCallback) progressCallback(progress, message);
             };
             
             try {
-                this.debugLog('1️⃣ Vérification gifshot...');
                 if (typeof gifshot === 'undefined') {
-                    this.debugLog('❌ gifshot undefined!');
                     UI.hideLoading();
                     throw new Error('Bibliothèque gifshot non chargée');
                 }
-                this.debugLog('✅ gifshot OK');
                 
-                this.debugLog('2️⃣ Vérification gameState...');
                 if (!gameState.players || gameState.players.length === 0) {
-                    this.debugLog('❌ Pas de joueurs!');
                     UI.hideLoading();
                     throw new Error('Aucun joueur trouvé');
                 }
-                this.debugLog(`✅ ${gameState.players.length} joueurs`);
                 
                 updateProgress(5, 'Analyse des données...');
-                this.debugLog('4️⃣ Analyse des données...');
                 const ai = RecapGenerator.analyzeGameData(gameState);
-                this.debugLog('✅ Données analysées');
-                
-                this.debugLog('5️⃣ Récupération des couleurs...');
                 const colors = RecapGenerator.GENRE_COLORS[ai.brain.genre];
-                this.debugLog(`✅ Genre: ${ai.brain.genre}`);
                 
                 const totalFrames = this.CONFIG.FPS * this.CONFIG.DURATION;
-                this.debugLog(`6️⃣ Génération de ${totalFrames} frames...`);
-                
                 updateProgress(10, `Génération de ${totalFrames} frames...`);
                 
                 // Générer toutes les frames
@@ -4812,38 +4648,32 @@ transition: all 0.3s ease;
                     if (frame % 5 === 0) {
                         const percent = 10 + Math.round((frame / totalFrames) * 50);
                         updateProgress(percent, `Frame ${frame + 1}/${totalFrames}`);
-                        this.debugLog(`   Frame ${frame}/${totalFrames} (${percent}%)`);
                     }
                 }
-                this.debugLog('✅ Toutes les frames générées');
                 
                 updateProgress(60, 'Encodage du GIF...');
-                this.debugLog('7️⃣ Création GIF avec gifshot...');
                 
                 // gifshot.createGIF avec callback
                 gifshot.createGIF({
                     images: frames,
                     gifWidth: this.CONFIG.WIDTH,
                     gifHeight: this.CONFIG.HEIGHT,
-                    interval: 1 / this.CONFIG.FPS,  // Délai en secondes
+                    interval: 1 / this.CONFIG.FPS,
                     numFrames: totalFrames,
                     frameDuration: 1,
                     sampleInterval: 10,
                     progressCallback: (progress) => {
                         const percent = 60 + Math.round(progress * 35);
                         updateProgress(percent, `Encodage: ${Math.round(progress * 100)}%`);
-                        this.debugLog(`   Encodage: ${Math.round(progress * 100)}%`);
                     }
                 }, (obj) => {
                     if (!obj.error) {
-                        this.debugLog('8️⃣ GIF créé avec succès!');
                         updateProgress(95, 'Finalisation...');
                         
                         // Convertir data URL en blob
                         fetch(obj.image)
                             .then(res => res.blob())
                             .then(blob => {
-                                this.debugLog(`   Taille: ${Math.round(blob.size / 1024)} Ko`);
                                 this.downloadGif(blob);
                                 updateProgress(100, 'Terminé !');
                                 
@@ -4851,28 +4681,21 @@ transition: all 0.3s ease;
                                     UI.hideLoading();
                                     UI.showToast('✅ GIF téléchargé !', 'success');
                                 }, 300);
-                                
-                                this.debugLog('=== FIN SUCCESS ===');
                             })
                             .catch(err => {
-                                this.debugLog('❌ Erreur conversion blob: ' + err.message);
+                                console.error('[RecapGif] Erreur blob:', err);
                                 UI.hideLoading();
                                 UI.showToast('❌ Erreur téléchargement', 'error');
                             });
                     } else {
-                        this.debugLog('❌ Erreur gifshot: ' + obj.error);
+                        console.error('[RecapGif] Erreur gifshot:', obj.error);
                         UI.hideLoading();
                         UI.showToast('❌ Erreur: ' + obj.error, 'error');
                     }
                 });
                 
-                this.debugLog('✅ gifshot.createGIF() lancé');
-                
             } catch (error) {
-                this.debugLog('❌ ERREUR CATCH:');
-                this.debugLog(`   Message: ${error.message}`);
-                this.debugLog(`   Stack: ${error.stack}`);
-                window.console.error('[RecapGifGenerator] Erreur:', error);
+                console.error('[RecapGifGenerator] Erreur:', error);
                 UI.hideLoading();
                 UI.showToast('❌ Erreur: ' + error.message, 'error');
             }
@@ -5468,14 +5291,5 @@ transition: all 0.3s ease;
         PWA.init();
     }
 </script>
-<!-- Console de débogage -->
-<div id="debug-console" style="position: fixed; bottom: 0; left: 0; right: 0; max-height: 200px; background: #000; color: #0f0; font-family: monospace; font-size: 11px; padding: 10px; overflow-y: auto; z-index: 10000; display: none; border-top: 2px solid #0f0;">
-    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <strong>🔧 DEBUG CONSOLE</strong>
-        <button onclick="document.getElementById('debug-console').style.display='none'" style="background: #f00; color: #fff; border: none; padding: 2px 8px; cursor: pointer;">✕</button>
-    </div>
-    <div id="debug-log"></div>
-</div>
-
 </body>
 </html>
