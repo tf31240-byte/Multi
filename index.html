@@ -76,7 +76,7 @@
         background: var(--bg);
         background-attachment: fixed;
         color: var(--text); 
-        padding-bottom: 140px; 
+        padding-bottom: calc(140px + env(safe-area-inset-bottom)); 
         transition: background 0.3s;
         min-height: 100vh;
         min-height: -webkit-fill-available;
@@ -189,7 +189,7 @@
     /* --- GLASSMORPHISM COMPONENTS --- */
     .modal-overlay { 
         position: fixed; inset: 0; 
-        background: rgba(0,0,0,0.1); 
+        background: rgba(0,0,0,0.5); 
         backdrop-filter: blur(8px); 
         -webkit-backdrop-filter: blur(8px);
         z-index: 4000; 
@@ -213,8 +213,274 @@
 
     .modal-box { 
         width: 100%; max-width: 340px; border-radius: 28px; padding: 25px; text-align: center; 
+        position: relative;
     }
     .modal-box.large { max-width: 500px; text-align: left; max-height: 80vh; overflow-y: auto; }
+    
+    /* === GRILLE DE PRÉSÉLECTION (iOS App Store Style) === */
+    .preset-modal {
+        z-index: 4500;
+    }
+    .preset-modal .modal-box {
+        max-width: 420px;
+        padding: 0;
+        overflow: hidden;
+    }
+    .preset-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 20px 15px;
+        border-bottom: 1px solid var(--border);
+    }
+    .preset-header h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 900;
+    }
+    .preset-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--border);
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text);
+        transition: all 0.2s;
+    }
+    .preset-close:active {
+        transform: scale(0.9);
+        background: var(--text-sec);
+        color: white;
+    }
+    .preset-edit-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: transparent;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text);
+        transition: all 0.2s;
+    }
+    .preset-edit-btn:active {
+        transform: scale(0.9);
+    }
+    .preset-edit-btn.active {
+        background: var(--danger);
+    }
+    .presets-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 15px 20px 20px;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    @media (min-width: 420px) {
+        .presets-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    .preset-card {
+        background: var(--card);
+        border: 2px solid var(--border);
+        border-radius: 18px;
+        padding: 16px 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .preset-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    .preset-card:active {
+        transform: scale(0.95);
+        background: var(--primary);
+        border-color: var(--primary);
+    }
+    .preset-card:active::before {
+        opacity: 1;
+    }
+    .preset-card:active .preset-icon,
+    .preset-card:active .preset-name,
+    .preset-card:active .preset-tag {
+        color: white;
+    }
+    .preset-card:active .preset-tag {
+        opacity: 0.8;
+    }
+    .preset-icon {
+        font-size: 36px;
+        display: block;
+        margin-bottom: 8px;
+        line-height: 1;
+    }
+    .preset-name {
+        font-weight: 800;
+        font-size: 13px;
+        color: var(--text);
+        display: block;
+        line-height: 1.2;
+    }
+    .preset-tag {
+        font-size: 10px;
+        color: var(--text-sec);
+        display: block;
+        margin-top: 4px;
+        font-weight: 600;
+    }
+    /* Carte spéciale "Personnaliser" */
+    .preset-card.custom {
+        background: linear-gradient(135deg, var(--card) 0%, var(--border) 100%);
+        border-style: dashed;
+    }
+    .preset-card.custom .preset-icon {
+        font-size: 28px;
+        opacity: 0.7;
+    }
+    /* Section favoris */
+    .preset-section-title {
+        grid-column: 1 / -1;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--text-sec);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 8px;
+        margin-bottom: 4px;
+    }
+    .preset-section-title:first-child {
+        margin-top: 0;
+    }
+    /* Animation d'apparition */
+    @keyframes presetSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .preset-card {
+        animation: presetSlideIn 0.3s ease forwards;
+        opacity: 0;
+    }
+    .preset-card:nth-child(1) { animation-delay: 0.05s; }
+    .preset-card:nth-child(2) { animation-delay: 0.1s; }
+    .preset-card:nth-child(3) { animation-delay: 0.15s; }
+    .preset-card:nth-child(4) { animation-delay: 0.2s; }
+    .preset-card:nth-child(5) { animation-delay: 0.25s; }
+    .preset-card:nth-child(6) { animation-delay: 0.3s; }
+    .preset-card:nth-child(7) { animation-delay: 0.35s; }
+    .preset-card:nth-child(8) { animation-delay: 0.4s; }
+    .preset-card:nth-child(9) { animation-delay: 0.45s; }
+    .preset-card:nth-child(10) { animation-delay: 0.5s; }
+    
+    /* Emoji selector */
+    .emoji-option {
+        width: 44px;
+        height: 44px;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        font-size: 22px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .emoji-option:active, .emoji-option.selected {
+        background: var(--primary);
+        border-color: var(--primary);
+        transform: scale(1.1);
+    }
+    .emoji-option.emoji-add {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-sec);
+        border-style: dashed;
+    }
+    .emoji-option.emoji-add:active, .emoji-option.emoji-add.selected {
+        color: white;
+    }
+    
+    /* Delete button on preset cards */
+    .preset-delete {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--danger);
+        color: white;
+        border: 2px solid var(--bg);
+        font-size: 12px;
+        font-weight: 900;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        transition: transform 0.15s;
+    }
+    .preset-delete:active {
+        transform: scale(0.9);
+    }
+    /* Mode édition : afficher tous les boutons supprimer */
+    .presets-grid.edit-mode .preset-delete {
+        display: flex;
+    }
+    .presets-grid.edit-mode .preset-card {
+        cursor: default;
+    }
+    /* Désactiver le clic sur la carte en mode édition */
+    .preset-card .preset-icon,
+    .preset-card .preset-name,
+    .preset-card .preset-tag {
+        pointer-events: none;
+    }
+    
+    /* Bouton restaurer les jeux masqués */
+    .preset-restore-btn {
+        grid-column: 1 / -1;
+        padding: 12px;
+        background: transparent;
+        border: 2px dashed var(--border);
+        border-radius: 12px;
+        color: var(--text-sec);
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 8px;
+    }
+    .preset-restore-btn:active {
+        background: var(--card);
+        border-style: solid;
+    }
     
     /* Suggestions de joueurs récents */
     .modal-player-wrapper { 
@@ -824,8 +1090,26 @@ transition: all 0.3s ease;
     </div>
 </div>
 
-<div id="modal-player-count" class="modal-overlay" onclick="if(event.target===this) document.getElementById('modal-player-count').classList.remove('active')">
+<!-- Modal de présélection des jeux -->
+<div id="preset-modal" class="modal-overlay preset-modal" onclick="if(event.target===this) app.closePresets()">
+    <div class="modal-box">
+        <div class="preset-header">
+            <h2>🎮 Choisir un jeu</h2>
+            <div style="display:flex; gap:8px;">
+                <button id="preset-edit-btn" class="preset-edit-btn" onclick="app.togglePresetEditMode()" title="Supprimer des jeux">🗑️</button>
+                <button class="preset-close" onclick="app.closePresets()">✕</button>
+            </div>
+        </div>
+        <div class="presets-grid" id="presets-grid">
+            <!-- Rempli dynamiquement par JavaScript -->
+        </div>
+    </div>
+</div>
+
+<div id="modal-player-count" class="modal-overlay" onclick="if(event.target===this) app.closePlayerCountModal()">
     <div class="modal-box" style="max-width: 400px;">
+        <!-- Bouton retour (caché par défaut) -->
+        <button id="btn-back-to-presets" class="hidden" onclick="app.backToPresets()" style="position:absolute; top:15px; left:15px; width:36px; height:36px; border-radius:50%; background:var(--border); border:none; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">←</button>
         <h2 style="margin:0 0 10px 0" id="mode-setup-title">Mode Standard</h2>
         <p style="color:var(--text-sec); margin-bottom:20px;">Combien de joueurs ?</p>
         <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:25px;">
@@ -875,6 +1159,49 @@ transition: all 0.3s ease;
                     </label>
                 </div>
             </div>
+            
+            <!-- Bouton sauvegarder le mode -->
+            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
+                <button onclick="app.openSaveCustomModal()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; border-radius: 14px; font-size: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>💾</span> Sauvegarder ce mode
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour sauvegarder un mode personnalisé -->
+<div id="save-custom-modal" class="modal-overlay" onclick="if(event.target===this) document.getElementById('save-custom-modal').classList.remove('active')">
+    <div class="modal-box" style="max-width: 340px;">
+        <h2 style="margin:0 0 20px 0">💾 Sauvegarder le mode</h2>
+        <div style="margin-bottom: 15px;">
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-sec); display: block; margin-bottom: 6px;">Nom du jeu</label>
+            <input type="text" id="custom-mode-name" placeholder="Ex: Mon Rami" maxlength="20" style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 12px; font-size: 16px; font-weight: 700; background: var(--bg); color: var(--text); box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-sec); display: block; margin-bottom: 6px; text-align: center;">Emoji</label>
+            <div id="emoji-picker" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                <button class="emoji-option selected" onclick="app.selectEmoji('🎮', event)">🎮</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🎲', event)">🎲</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🃏', event)">🃏</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🎴', event)">🎴</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🎯', event)">🎯</button>
+                <button class="emoji-option" onclick="app.selectEmoji('⭐', event)">⭐</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🏆', event)">🏆</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🔥', event)">🔥</button>
+                <button class="emoji-option" onclick="app.selectEmoji('💎', event)">💎</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🎪', event)">🎪</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🎨', event)">🎨</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🌟', event)">🌟</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🀄', event)">🀄</button>
+                <button class="emoji-option" onclick="app.selectEmoji('🪙', event)">🪙</button>
+                <button class="emoji-option emoji-add" onclick="app.openCustomEmojiPicker()" title="Emoji personnalisé">+</button>
+            </div>
+            <input type="text" id="custom-mode-emoji" value="🎮" maxlength="2" style="display:none;">
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="document.getElementById('save-custom-modal').classList.remove('active')" style="flex: 1; padding: 14px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; font-size: 14px; font-weight: 700; cursor: pointer;">Annuler</button>
+            <button onclick="app.saveCustomMode()" style="flex: 2; padding: 14px; background: var(--success); color: white; border: none; border-radius: 14px; font-size: 14px; font-weight: 700; cursor: pointer;">✓ Sauvegarder</button>
         </div>
     </div>
 </div>
@@ -887,13 +1214,13 @@ transition: all 0.3s ease;
             <button id="theme-toggle" class="theme-toggle" onclick="app.toggleTheme()">🌙</button>
         </div>
     </div>
-    <div class="mode-btn" onclick="app.showModeSelection('belote')">
+    <div class="mode-btn" onclick="app.quickStartBelote()">
         <span style="font-size:30px; margin-right:15px;">🃏</span>
-        <div><h2 style="margin:0">Belote / Coinche</h2><p style="margin:4px 0 0; font-size:12px; color:var(--text-sec)">Points à 162 • Capot 252</p></div>
+        <div><h2 style="margin:0">Belote / Coinche</h2><p style="margin:4px 0 0; font-size:12px; color:var(--text-sec)">Démarrage rapide • 2 équipes</p></div>
     </div>
-    <div class="mode-btn" onclick="app.showModeSelection('standard')">
-        <span style="font-size:30px; margin-right:15px;">🎲</span>
-        <div><h2 style="margin:0">Standard</h2><p style="margin:4px 0 0; font-size:12px; color:var(--text-sec)">Scores libres • Jusqu'à 12 joueurs</p></div>
+    <div class="mode-btn" onclick="app.openPresets()">
+        <span style="font-size:30px; margin-right:15px;">🎮</span>
+        <div><h2 style="margin:0">Nouvelle partie</h2><p style="margin:4px 0 0; font-size:12px; color:var(--text-sec)">Belote, Tarot, Skyjo, Uno...</p></div>
     </div>
     <div style="margin-top: 40px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -1017,6 +1344,17 @@ transition: all 0.3s ease;
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => fn(...args), delay);
         };
+    };
+    
+    // Escape HTML pour prévenir les XSS
+    const escapeHtml = (str) => {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     };
     
     // ==================== SOUND ENGINE ====================
@@ -1250,10 +1588,7 @@ transition: all 0.3s ease;
         sanitizeGame(game, forceRebuild = false) {
             if (!game) return null;
             
-            // Si déjà sanitisé et pas de force, éviter le recalcul
-            if (game._sanitized && !forceRebuild) {
-                return game;
-            }
+            // Ignorer le flag _sanitized legacy - toujours reconstruire pour garantir l'intégrité
             
             const sanitized = {
                 id: game.id || Date.now().toString(),
@@ -1263,8 +1598,10 @@ transition: all 0.3s ease;
                 victoryCondition: game.victoryCondition || 'highest',
                 endCondition: game.endCondition || { type: 'free', value: null },
                 finished: Boolean(game.finished),
+                preset: game.preset || null,
                 state: {
                     mode: game.state?.mode || game.mode || 'standard',
+                    victoryCondition: game.state?.victoryCondition || game.victoryCondition || 'highest',
                     players: [],
                     history: [],
                     temp: {},
@@ -1301,8 +1638,8 @@ transition: all 0.3s ease;
             // Recalculer les totaux depuis l'historique pour garantir la cohérence
             GameState.rebuildTotals(sanitized.state);
             
-            // Marquer comme sanitisé
-            sanitized._sanitized = true;
+            // Note: _sanitized flag removed - we want rebuildTotals to run on every load
+            // to catch any data corruption from previous sessions
             
             return sanitized;
         },
@@ -2114,18 +2451,115 @@ transition: all 0.3s ease;
         }
     };
 
+    // ==================== GAME PRESETS ====================
+    const GAME_PRESETS = {
+        tarot: { 
+            name: "Tarot", 
+            victory: "highest", 
+            endType: "score", 
+            endValue: 1000, 
+            icon: "🃏", 
+            tag: "Objectif 1000",
+            players: 4
+        },
+        papayoo: { 
+            name: "Papayoo", 
+            victory: "lowest", 
+            endType: "free", 
+            endValue: null, 
+            icon: "🍐", 
+            tag: "Partie libre"
+        },
+        six_qui_prend: { 
+            name: "6 qui prend !", 
+            victory: "lowest", 
+            endType: "score", 
+            endValue: 66, 
+            icon: "🐂", 
+            tag: "Limite 66" 
+        },
+        flip_7: { 
+            name: "Flip 7", 
+            victory: "highest", 
+            endType: "score", 
+            endValue: 200, 
+            icon: "🔄", 
+            tag: "Objectif 200" 
+        },
+        skyjo: { 
+            name: "Skyjo", 
+            victory: "lowest", 
+            endType: "score", 
+            endValue: 100, 
+            icon: "🟦", 
+            tag: "Limite 100" 
+        },
+        scrabble: { 
+            name: "Scrabble", 
+            victory: "highest", 
+            endType: "free", 
+            endValue: null, 
+            icon: "🅰️", 
+            tag: "Partie libre" 
+        },
+        molkky: { 
+            name: "Mölkky", 
+            victory: "highest", 
+            endType: "score", 
+            endValue: 50, 
+            icon: "🪵", 
+            tag: "Exactement 50" 
+        },
+        petanque: { 
+            name: "Pétanque", 
+            victory: "highest", 
+            endType: "score", 
+            endValue: 13, 
+            icon: "⚪", 
+            tag: "13 points" 
+        },
+        rummy: { 
+            name: "Rami", 
+            victory: "highest", 
+            endType: "score", 
+            endValue: 500, 
+            icon: "🎴", 
+            tag: "Objectif 500" 
+        },
+        uno: { 
+            name: "Uno", 
+            victory: "lowest", 
+            endType: "score", 
+            endValue: 500, 
+            icon: "🌈", 
+            tag: "Limite 500" 
+        }
+    };
+
     // ==================== APP CONTROLLER ====================
     const app = {
         currentGame: null, activePlayerId: null, editIdx: null, chart: null, savedPlayers: {}, focusMode: false,
         recentPlayers: [], // Les 8 derniers noms de joueurs utilisés
         lastRanks: {}, // Pour le suivi des animations de rang
+        pendingPreset: null, // Preset en attente lors de la sélection du nombre de joueurs
+        tempCustomMode: null, // Configuration temporaire pour la sauvegarde de mode personnalisé
 
         // Noms par défaut à ne pas suggérer
         defaultNames: ['NOUS', 'EUX', 'J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'J7', 'J8', 'J9', 'J10', 'J11', 'J12'],
 
+        // Démarrage rapide Belote (2 équipes)
+        quickStartBelote() {
+            SoundFX.click();
+            this.createGame('belote', 2);
+        },
+
         init() {
             Storage.checkStorageAvailability();
             Storage.migrateData();
+            
+            // Initialiser le moteur sonore
+            SoundFX.init();
+            
             let savedTheme = null;
             try { savedTheme = localStorage.getItem('sm_theme'); } catch(e) {}
             if(savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); this.updateThemeIcon(); }
@@ -2191,21 +2625,579 @@ transition: all 0.3s ease;
             this.focusMode = false;
             document.body.classList.remove('focus-mode');
             document.getElementById('dock').classList.add('hidden');
+            
+            // Détruire le chart pour éviter les fuites mémoire
+            if (this.chart) {
+                this.chart.destroy();
+                this.chart = null;
+            }
+            
             this.currentGame = null;
             this.editIdx = null;
             document.getElementById('setup').classList.remove('hidden');
             document.getElementById('game').classList.add('hidden');
             this.renderGamesList();
         },
-        showModeSelection(mode) {
-            SoundFX.click();
-            if(mode === 'belote') { this.createGame(mode, 2); }
-            else { 
-                document.getElementById('mode-setup-title').textContent = 'Mode Standard';
-                document.getElementById('modal-player-count').classList.add('active'); 
-                this.updateVictoryCondition();
-                this.updateEndCondition();
+        // === GESTION DES PRESETS ===
+        getPresetStats() {
+            // Récupérer les statistiques d'utilisation des presets
+            try {
+                const stats = localStorage.getItem('sm_preset_stats');
+                return stats ? JSON.parse(stats) : {};
+            } catch(e) {
+                return {};
             }
+        },
+        getCustomPresets() {
+            // Récupérer les presets personnalisés
+            try {
+                const custom = localStorage.getItem('sm_custom_presets');
+                return custom ? JSON.parse(custom) : {};
+            } catch(e) {
+                return {};
+            }
+        },
+        saveCustomPreset(key, preset) {
+            const custom = this.getCustomPresets();
+            custom[key] = preset;
+            try {
+                localStorage.setItem('sm_custom_presets', JSON.stringify(custom));
+                return true;
+            } catch(e) {
+                return false;
+            }
+        },
+        deleteCustomPreset(key) {
+            const custom = this.getCustomPresets();
+            delete custom[key];
+            try {
+                localStorage.setItem('sm_custom_presets', JSON.stringify(custom));
+                // Supprimer aussi des stats
+                const stats = this.getPresetStats();
+                delete stats[key];
+                localStorage.setItem('sm_preset_stats', JSON.stringify(stats));
+                return true;
+            } catch(e) {
+                return false;
+            }
+        },
+        getHiddenPresets() {
+            // Liste des presets cachés par l'utilisateur
+            try {
+                const hidden = localStorage.getItem('sm_hidden_presets');
+                return hidden ? JSON.parse(hidden) : [];
+            } catch(e) {
+                return [];
+            }
+        },
+        hidePreset(key) {
+            const hidden = this.getHiddenPresets();
+            if (!hidden.includes(key)) {
+                hidden.push(key);
+                try {
+                    localStorage.setItem('sm_hidden_presets', JSON.stringify(hidden));
+                    return true;
+                } catch(e) {
+                    return false;
+                }
+            }
+            return true;
+        },
+        unhidePreset(key) {
+            const hidden = this.getHiddenPresets();
+            const index = hidden.indexOf(key);
+            if (index > -1) {
+                hidden.splice(index, 1);
+                try {
+                    localStorage.setItem('sm_hidden_presets', JSON.stringify(hidden));
+                    return true;
+                } catch(e) {
+                    return false;
+                }
+            }
+            return true;
+        },
+        getAllPresets() {
+            // Combiner les presets par défaut et personnalisés
+            const custom = this.getCustomPresets();
+            return { ...GAME_PRESETS, ...custom };
+        },
+        savePresetUsage(key) {
+            // Sauvegarder l'utilisation d'un preset
+            const stats = this.getPresetStats();
+            stats[key] = {
+                count: (stats[key]?.count || 0) + 1,
+                lastUsed: Date.now()
+            };
+            try {
+                localStorage.setItem('sm_preset_stats', JSON.stringify(stats));
+            } catch(e) {}
+        },
+        getSortedPresets() {
+            const stats = this.getPresetStats();
+            const hidden = this.getHiddenPresets();
+            const allPresets = this.getAllPresets();
+            
+            // Filtrer les presets cachés
+            const presets = Object.entries(allPresets).filter(([key]) => !hidden.includes(key));
+            
+            // Trier par nombre d'utilisations (décroissant) puis par dernière utilisation
+            return presets.sort(([keyA, gameA], [keyB, gameB]) => {
+                const statA = stats[keyA] || { count: 0, lastUsed: 0 };
+                const statB = stats[keyB] || { count: 0, lastUsed: 0 };
+                
+                // D'abord par count décroissant
+                if (statA.count !== statB.count) {
+                    return statB.count - statA.count;
+                }
+                // Ensuite par dernière utilisation décroissante
+                return statB.lastUsed - statA.lastUsed;
+            });
+        },
+        openPresets() {
+            this.refreshPresetsGrid();
+            document.getElementById('preset-modal').classList.add('active');
+        },
+        refreshPresetsGrid() {
+            const grid = document.getElementById('presets-grid');
+            grid.innerHTML = '';
+            
+            // Reset le mode édition
+            grid.classList.remove('edit-mode');
+            document.getElementById('preset-edit-btn').classList.remove('active');
+            
+            const sortedPresets = this.getSortedPresets();
+            
+            // Les 2 premiers sont les favoris (les plus joués)
+            const favorites = sortedPresets.slice(0, 2);
+            const others = sortedPresets.slice(2);
+            
+            // Ajouter les favoris
+            if (favorites.length > 0) {
+                const favTitle = document.createElement('div');
+                favTitle.className = 'preset-section-title';
+                favTitle.textContent = '⭐ Vos favoris';
+                grid.appendChild(favTitle);
+                
+                favorites.forEach(([key, game]) => {
+                    grid.appendChild(this.createPresetCard(key, game));
+                });
+            }
+            
+            // Ajouter les autres jeux (triés par dernière utilisation)
+            if (others.length > 0) {
+                const otherTitle = document.createElement('div');
+                otherTitle.className = 'preset-section-title';
+                otherTitle.textContent = '🎮 Tous les jeux';
+                grid.appendChild(otherTitle);
+                
+                others.forEach(([key, game]) => {
+                    grid.appendChild(this.createPresetCard(key, game));
+                });
+            }
+            
+            // Ajouter la carte "Personnaliser" à la fin
+            const customCard = document.createElement('div');
+            customCard.className = 'preset-card custom';
+            customCard.onclick = () => this.openCustomSetup();
+            customCard.innerHTML = `
+                <span class="preset-icon">⚙️</span>
+                <span class="preset-name">Personnaliser</span>
+                <span class="preset-tag">Créer votre config</span>
+            `;
+            grid.appendChild(customCard);
+            
+            // Ajouter bouton restaurer si des jeux sont masqués
+            const hidden = this.getHiddenPresets();
+            if (hidden.length > 0) {
+                const restoreBtn = document.createElement('button');
+                restoreBtn.className = 'preset-restore-btn';
+                restoreBtn.innerHTML = `↩️ Restaurer ${hidden.length} jeu${hidden.length > 1 ? 'x' : ''} masqué${hidden.length > 1 ? 's' : ''}`;
+                restoreBtn.onclick = () => this.showHiddenPresets();
+                grid.appendChild(restoreBtn);
+            }
+        },
+        showHiddenPresets() {
+            const hidden = this.getHiddenPresets();
+            if (hidden.length === 0) return;
+            
+            const allPresets = this.getAllPresets();
+            
+            // Créer un modal pour afficher les jeux masqués
+            const existingModal = document.getElementById('hidden-presets-modal');
+            if (existingModal) existingModal.remove();
+            
+            const modal = document.createElement('div');
+            modal.id = 'hidden-presets-modal';
+            modal.className = 'modal-overlay active';
+            modal.style.zIndex = '11000';
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+            
+            let gamesList = '';
+            hidden.forEach(key => {
+                const game = allPresets[key];
+                if (game) {
+                    gamesList += `
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--card); border-radius:12px; margin-bottom:8px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:24px;">${game.icon}</span>
+                                <span style="font-weight:700;">${game.name}</span>
+                            </div>
+                            <button onclick="app.restorePreset('${key}')" style="padding:8px 16px; background:var(--success); color:white; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Restaurer</button>
+                        </div>
+                    `;
+                }
+            });
+            
+            modal.innerHTML = `
+                <div class="modal-box" style="max-width: 340px;">
+                    <h3 style="margin:0 0 15px 0; text-align:center;">↩️ Jeux masqués</h3>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${gamesList || '<p style="text-align:center; color:var(--text-sec);">Aucun jeu masqué</p>'}
+                    </div>
+                    <button onclick="document.getElementById('hidden-presets-modal').remove()" style="width:100%; margin-top:15px; padding:14px; background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:14px; font-size:14px; font-weight:700; cursor:pointer;">Fermer</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        },
+        restorePreset(key) {
+            this.unhidePreset(key);
+            const allPresets = this.getAllPresets();
+            const game = allPresets[key];
+            UI.showToast(`↩️ ${game?.name || 'Jeu'} restauré`, 'success');
+            
+            // Rafraîchir le modal des jeux masqués
+            this.showHiddenPresets();
+            // Rafraîchir la grille principale SANS fermer le modal (évite le flash)
+            this.refreshPresetsGrid();
+        },
+        createPresetCard(key, game) {
+            const card = document.createElement('div');
+            const isCustom = game.custom === true;
+            card.className = 'preset-card' + (isCustom ? ' custom-mode' : '');
+            
+            // Ajouter le bouton de suppression à toutes les cartes
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'preset-delete';
+            deleteBtn.textContent = '✕';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.confirmDeletePreset(key, game.name, isCustom);
+            };
+            card.appendChild(deleteBtn);
+            
+            card.onclick = () => this.applyPreset(key);
+            
+            const content = document.createElement('div');
+            content.innerHTML = `
+                <span class="preset-icon">${game.icon}</span>
+                <span class="preset-name">${game.name}</span>
+                <span class="preset-tag">${game.tag}</span>
+            `;
+            card.appendChild(content);
+            
+            return card;
+        },
+        confirmDeletePreset(key, name, isCustom) {
+            const title = isCustom ? 'Supprimer' : 'Masquer';
+            
+            // Message court pour le modal (textContent ne gère pas les \n)
+            UI.confirm(`${title} "${name}" ?`, () => {
+                if (isCustom) {
+                    this.deleteCustomPreset(key);
+                } else {
+                    this.hidePreset(key);
+                }
+                UI.showToast(`🗑️ ${name} ${isCustom ? 'supprimé' : 'masqué'}`, 'success');
+                // Rafraîchir la grille sans fermer le modal
+                this.refreshPresetsGrid();
+            });
+        },
+        togglePresetEditMode() {
+            const grid = document.getElementById('presets-grid');
+            const btn = document.getElementById('preset-edit-btn');
+            
+            grid.classList.toggle('edit-mode');
+            btn.classList.toggle('active');
+            
+            // Feedback sonore
+            SoundFX.click();
+        },
+        closePresets() {
+            const grid = document.getElementById('presets-grid');
+            grid.classList.remove('edit-mode');
+            document.getElementById('preset-edit-btn').classList.remove('active');
+            document.getElementById('preset-modal').classList.remove('active');
+        },
+        applyPreset(key) {
+            const allPresets = this.getAllPresets();
+            const game = allPresets[key];
+            if (!game) return;
+            
+            SoundFX.click();
+            this.closePresets();
+            
+            // Enregistrer l'utilisation
+            this.savePresetUsage(key);
+            
+            // Si le jeu a un nombre de joueurs défini, créer directement la partie
+            if (game.players) {
+                this.createGameWithPreset(key, game);
+            } else {
+                // Sinon, ouvrir le modal de sélection du nombre de joueurs avec les pré-configurations
+                this.openPlayerCountWithPreset(key, game);
+            }
+        },
+        createGameWithPreset(key, game) {
+            this.currentGame = {
+                id: Date.now().toString(),
+                name: game.name,
+                mode: 'standard',
+                date: new Date().toISOString(),
+                victoryCondition: game.victory,
+                endCondition: { type: game.endType, value: game.endValue },
+                state: GameState.create('standard', game.players),
+                finished: false,
+                preset: key
+            };
+            
+            // Appliquer les joueurs sauvegardés si disponibles
+            const savedKey = `standard_${game.players}`;
+            if(this.savedPlayers[savedKey]) {
+                const saved = this.savedPlayers[savedKey];
+                this.currentGame.state.players.forEach((p, idx) => {
+                    if(saved[idx]) { p.name = saved[idx].name; p.color = saved[idx].color; }
+                });
+            }
+            
+            if(!Storage.saveGame(this.currentGame)) {
+                UI.showToast('⚠️ Erreur de sauvegarde', 'error');
+                return;
+            }
+            
+            UI.showToast(`🎮 ${game.name} configuré !`, 'success');
+            this.showGame();
+        },
+        openPlayerCountWithPreset(key, game) {
+            // Pré-configurer les options dans le modal player count
+            document.getElementById('mode-setup-title').textContent = game.name;
+            
+            // Afficher le bouton retour
+            document.getElementById('btn-back-to-presets').classList.remove('hidden');
+            
+            // Définir la victoire (highest/lowest)
+            const victoryRadio = document.querySelector(`input[name="victory-condition"][value="${game.victory}"]`);
+            if (victoryRadio) victoryRadio.checked = true;
+            this.updateVictoryCondition();
+            
+            // Définir le type de fin
+            const endRadio = document.querySelector(`input[name="end-condition"][value="${game.endType}"]`);
+            if (endRadio) endRadio.checked = true;
+            this.updateEndCondition();
+            
+            // Définir le score cible si applicable, sinon réinitialiser
+            const scoreInput = document.getElementById('score-target');
+            if (game.endType === 'score' && game.endValue) {
+                scoreInput.value = game.endValue;
+            } else {
+                scoreInput.value = 100; // Valeur par défaut
+            }
+            
+            // Stocker le preset pour l'utiliser lors de la création
+            this.pendingPreset = { key, game };
+            
+            document.getElementById('modal-player-count').classList.add('active');
+        },
+        openCustomSetup() {
+            SoundFX.click();
+            this.closePresets();
+            
+            // Afficher le bouton retour
+            document.getElementById('btn-back-to-presets').classList.remove('hidden');
+            
+            // Reset des options
+            document.getElementById('mode-setup-title').textContent = 'Mode Personnalisé';
+            document.querySelector('input[name="victory-condition"][value="highest"]').checked = true;
+            document.querySelector('input[name="end-condition"][value="free"]').checked = true;
+            document.getElementById('score-target').value = 100;
+            this.updateVictoryCondition();
+            this.updateEndCondition();
+            
+            this.pendingPreset = null;
+            document.getElementById('modal-player-count').classList.add('active');
+        },
+        backToPresets() {
+            SoundFX.click();
+            // Cacher le bouton retour
+            document.getElementById('btn-back-to-presets').classList.add('hidden');
+            // Fermer le modal player count
+            document.getElementById('modal-player-count').classList.remove('active');
+            // Réouvrir le modal presets
+            this.openPresets();
+        },
+        closePlayerCountModal() {
+            document.getElementById('modal-player-count').classList.remove('active');
+            document.getElementById('btn-back-to-presets').classList.add('hidden');
+            this.pendingPreset = null;
+        },
+        // === SAUVEGARDE MODE PERSONNALISÉ ===
+        openSaveCustomModal() {
+            // Récupérer les valeurs actuelles
+            const victory = document.querySelector('input[name="victory-condition"]:checked')?.value || 'highest';
+            const endType = document.querySelector('input[name="end-condition"]:checked')?.value || 'free';
+            const endValue = endType === 'score' ? parseInt(document.getElementById('score-target').value) : null;
+            
+            // Stocker temporairement
+            this.tempCustomMode = { victory, endType, endValue };
+            
+            // Reset le formulaire
+            document.getElementById('custom-mode-name').value = '';
+            document.getElementById('custom-mode-emoji').value = '🎮';
+            
+            // Reset les emojis sélectionnés
+            document.querySelectorAll('.emoji-option').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector('.emoji-option').classList.add('selected');
+            
+            // Reset le bouton "+" à son état initial
+            const addBtn = document.querySelector('.emoji-add');
+            if (addBtn) {
+                addBtn.textContent = '+';
+                addBtn.classList.remove('selected');
+            }
+            
+            document.getElementById('save-custom-modal').classList.add('active');
+        },
+        selectEmoji(emoji, event) {
+            document.getElementById('custom-mode-emoji').value = emoji;
+            document.querySelectorAll('.emoji-option').forEach(btn => btn.classList.remove('selected'));
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('selected');
+            }
+            
+            // Reset le bouton "+" à son état initial
+            const addBtn = document.querySelector('.emoji-add');
+            if (addBtn) {
+                addBtn.textContent = '+';
+            }
+        },
+        openCustomEmojiPicker() {
+            // Créer un modal temporaire avec un input visible pour iOS
+            const existingModal = document.getElementById('emoji-input-modal');
+            if (existingModal) existingModal.remove();
+            
+            const modal = document.createElement('div');
+            modal.id = 'emoji-input-modal';
+            modal.className = 'modal-overlay active';
+            modal.style.zIndex = '11000';
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            };
+            modal.innerHTML = `
+                <div class="modal-box" style="max-width: 300px;">
+                    <h3 style="margin:0 0 15px 0; text-align:center;">🎨 Choisissez un emoji</h3>
+                    <input type="text" id="emoji-text-input" placeholder="Tapez votre emoji" maxlength="2" 
+                           style="width: 100%; padding: 15px; border: 2px solid var(--primary); border-radius: 14px; 
+                                  font-size: 32px; text-align: center; background: var(--bg); color: var(--text); 
+                                  box-sizing: border-box; margin-bottom: 15px;">
+                    <div style="display: flex; gap: 10px;">
+                        <button id="emoji-cancel-btn" style="flex: 1; padding: 14px; background: var(--card); color: var(--text); 
+                                       border: 1px solid var(--border); border-radius: 14px; font-size: 14px; 
+                                       font-weight: 700; cursor: pointer;">Annuler</button>
+                        <button id="emoji-confirm-btn" style="flex: 1; padding: 14px; background: var(--primary); color: white; 
+                                       border: none; border-radius: 14px; font-size: 14px; 
+                                       font-weight: 700; cursor: pointer;">✓ OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Ajouter les événements aux boutons
+            document.getElementById('emoji-cancel-btn').onclick = () => modal.remove();
+            document.getElementById('emoji-confirm-btn').onclick = () => this.confirmCustomEmoji();
+            
+            // Focus l'input après un court délai (pour iOS)
+            setTimeout(() => {
+                const input = document.getElementById('emoji-text-input');
+                if (input) input.focus();
+            }, 100);
+        },
+        confirmCustomEmoji() {
+            const input = document.getElementById('emoji-text-input');
+            const modal = document.getElementById('emoji-input-modal');
+            if (!input || !modal) return;
+            
+            const emoji = input.value.trim();
+            if (emoji) {
+                document.getElementById('custom-mode-emoji').value = emoji;
+                // Mettre à jour le bouton "+" avec l'emoji choisi
+                const addBtn = document.querySelector('.emoji-add');
+                if (addBtn) {
+                    addBtn.textContent = emoji;
+                    addBtn.classList.add('selected');
+                }
+                document.querySelectorAll('.emoji-option:not(.emoji-add)').forEach(btn => btn.classList.remove('selected'));
+            } else {
+                UI.showToast('⚠️ Veuillez entrer un emoji', 'warning');
+                return;
+            }
+            modal.remove();
+        },
+        saveCustomMode() {
+            const name = document.getElementById('custom-mode-name').value.trim();
+            const emoji = document.getElementById('custom-mode-emoji').value;
+            
+            if (!name) {
+                UI.showToast('⚠️ Veuillez entrer un nom', 'warning');
+                return;
+            }
+            
+            if (!emoji || emoji.trim() === '') {
+                UI.showToast('⚠️ Veuillez choisir un emoji', 'warning');
+                return;
+            }
+            
+            if (!this.tempCustomMode) {
+                UI.showToast('⚠️ Erreur: configuration manquante', 'error');
+                return;
+            }
+            
+            const { victory, endType, endValue } = this.tempCustomMode;
+            
+            // Créer le tag
+            let tag = '';
+            if (endType === 'free') {
+                tag = 'Partie libre';
+            } else {
+                tag = victory === 'lowest' ? `Limite ${endValue}` : `Objectif ${endValue}`;
+            }
+            
+            // Générer une clé unique
+            const key = 'custom_' + Date.now();
+            
+            // Créer le preset
+            const preset = {
+                name: name,
+                icon: emoji,
+                victory: victory,
+                endType: endType,
+                endValue: endValue,
+                tag: tag,
+                custom: true
+            };
+            
+            // Sauvegarder
+            if (this.saveCustomPreset(key, preset)) {
+                UI.showToast(`✅ ${name} sauvegardé !`, 'success');
+                document.getElementById('save-custom-modal').classList.remove('active');
+            } else {
+                UI.showToast('⚠️ Erreur de sauvegarde', 'error');
+            }
+            
+            this.tempCustomMode = null;
         },
         updateVictoryCondition() {
             const isLowest = document.querySelector('input[name="victory-condition"]:checked')?.value === 'lowest';
@@ -2260,21 +3252,32 @@ transition: all 0.3s ease;
             }
             
             document.getElementById('modal-player-count').classList.remove('active');
+            document.getElementById('btn-back-to-presets').classList.add('hidden');
             document.getElementById('extra-players').classList.add('hidden');
             document.getElementById('btn-toggle-players').textContent = 'Plus ▼';
             
-            this.createGame('standard', count, victoryCondition, endType, scoreTarget);
+            // Utiliser le preset si disponible
+            const presetName = this.pendingPreset?.game?.name || null;
+            const presetKey = this.pendingPreset?.key || null;
+            this.pendingPreset = null;
+            
+            this.createGame('standard', count, victoryCondition, endType, scoreTarget, presetName, presetKey);
         },
-        createGame(mode, playerCount, victoryCondition = 'highest', endType = 'free', scoreTarget = null) {
+        createGame(mode, playerCount, victoryCondition = 'highest', endType = 'free', scoreTarget = null, presetName = null, presetKey = null) {
+            // Créer le state et propager victoryCondition
+            const state = GameState.create(mode, playerCount);
+            state.victoryCondition = mode === 'belote' ? 'highest' : victoryCondition;
+            
             this.currentGame = {
                 id: Date.now().toString(),
-                name: mode === 'belote' ? 'Belote' : 'Partie Standard',
+                name: presetName || (mode === 'belote' ? 'Belote' : 'Partie Standard'),
                 mode, 
                 date: new Date().toISOString(),
-                victoryCondition: mode === 'belote' ? 'highest' : victoryCondition,
+                victoryCondition: state.victoryCondition,
                 endCondition: mode === 'belote' ? { type: 'score', value: 1000 } : { type: endType, value: scoreTarget },
-                state: GameState.create(mode, playerCount), 
-                finished: false
+                state, 
+                finished: false,
+                preset: presetKey
             };
             // Appliquer les joueurs sauvegardés uniquement si le nombre correspond
             const savedKey = `${mode}_${playerCount}`;
@@ -2295,7 +3298,9 @@ transition: all 0.3s ease;
             document.getElementById('game').classList.remove('hidden');
             document.getElementById('dock').classList.remove('hidden');
             const isBelote = this.currentGame.mode === 'belote';
-            document.getElementById('mode-title').textContent = isBelote ? 'BELOTE' : 'STANDARD';
+            // Afficher le nom du jeu (preset ou mode)
+            const gameName = this.currentGame.name || (isBelote ? 'BELOTE' : 'STANDARD');
+            document.getElementById('mode-title').textContent = gameName.toUpperCase();
             
             // Afficher les infos de la partie
             const gameInfo = document.getElementById('game-info');
@@ -2333,11 +3338,17 @@ transition: all 0.3s ease;
             }
         },
         showStats() { UI.showStats(); },
+        // Chart avec debounce pour optimiser les performances
+        _debouncedRenderChart: debounce(function(state, editIdx) {
+            UI.renderChart(state, editIdx);
+        }, 100),
+        
         render() {
             if(!this.currentGame) return;
             UI.renderScoreCards(this.currentGame.state);
             UI.renderHistory(this.currentGame.state, this.editIdx);
-            UI.renderChart(this.currentGame.state, this.editIdx);
+            // Utiliser le chart avec debounce pour éviter les re-rendus excessifs
+            this._debouncedRenderChart(this.currentGame.state, this.editIdx);
             
             // Mettre à jour le texte du bouton avec le numéro de manche
             const saveBtn = document.getElementById('save-btn');
@@ -2362,11 +3373,15 @@ transition: all 0.3s ease;
                 let playersScoresHtml = '';
                 sortedPlayers.forEach((p, idx) => {
                     const isWinner = idx === 0;
-                    playersScoresHtml += `<div class="game-player-score" style="background:${p.color}20; color:${p.color}; border: 1px solid ${p.color}40;">${isWinner ? '🏆 ' : ''}${p.name}: ${p.total}</div>`;
+                    // Échapper le nom du joueur pour prévenir XSS
+                    const safeName = escapeHtml(p.name);
+                    playersScoresHtml += `<div class="game-player-score" style="background:${p.color}20; color:${p.color}; border: 1px solid ${p.color}40;">${isWinner ? '🏆 ' : ''}${safeName}: ${p.total}</div>`;
                 });
+                // Échapper le nom de la partie pour prévenir XSS
+                const safeGameName = escapeHtml(game.name);
                 item.innerHTML = `
                     <div onclick="app.loadGame('${game.id}')" style="flex:1; cursor:pointer;">
-                        <div style="font-weight:900; font-size:16px; margin-bottom:6px;">${game.name} ${game.finished ? '✓' : ''} ${modeBadge}</div>
+                        <div style="font-weight:900; font-size:16px; margin-bottom:6px;">${safeGameName} ${game.finished ? '✓' : ''} ${modeBadge}</div>
                         <div style="font-size:12px; color:var(--text-sec); margin-bottom:8px;">${date} • ${game.state.history.length} manches</div>
                         <div class="game-players-list">${playersScoresHtml}</div>
                     </div>
@@ -2428,12 +3443,14 @@ transition: all 0.3s ease;
             const oldState = this.currentGame.state;
             const newGame = {
                 id: Date.now().toString(),
-                name: this.currentGame.mode === 'belote' ? 'Belote' : 'Partie Standard',
-                mode: this.currentGame.mode, date: new Date().toISOString(),
+                name: this.currentGame.name || (this.currentGame.mode === 'belote' ? 'Belote' : 'Partie Standard'),
+                mode: this.currentGame.mode, 
+                date: new Date().toISOString(),
                 victoryCondition: this.currentGame.victoryCondition || 'highest',
                 endCondition: this.currentGame.endCondition || { type: 'free', value: null },
-                state: { mode: oldState.mode, players: oldState.players.map(p => ({ ...p, total: 0, previousRank: null })), history: [], temp: {}, dealerId: oldState.dealerId, celebratedMilestones: {} },
-                finished: false
+                state: { mode: oldState.mode, victoryCondition: oldState.victoryCondition || 'highest', players: oldState.players.map(p => ({ ...p, total: 0, previousRank: null })), history: [], temp: {}, dealerId: oldState.dealerId, celebratedMilestones: {} },
+                finished: false,
+                preset: this.currentGame.preset || null
             };
             this.currentGame = newGame;
             if(!Storage.saveGame(newGame)) {
@@ -2514,6 +3531,12 @@ transition: all 0.3s ease;
                 return;
             }
             
+            // Verrou pour empêcher double génération
+            if (this._gifGenerating) {
+                UI.showToast('⏳ Génération en cours...', 'warning');
+                return;
+            }
+            
             SoundFX.click();
             
             if (typeof gifshot === 'undefined') {
@@ -2521,22 +3544,26 @@ transition: all 0.3s ease;
                 return;
             }
             
-            const userConfirmed = confirm('Le GIF prendra ~15 secondes à générer. Continuer ?');
-            if (!userConfirmed) return;
-            
-            UI.showLoading('🎬 Génération du GIF...');
-            UI.updateLoadingProgress(0, 'Initialisation...');
-            
-            try {
-                const gameStateWithConfig = { ...this.currentGame.state, victoryCondition: this.currentGame.victoryCondition };
-                UnifiedRecapGenerator.generateAnimated(gameStateWithConfig, (progress, message) => {
-                    UI.updateLoadingProgress(progress, message);
-                });
-            } catch (error) {
-                console.error('[ScoreMaster] Erreur GIF:', error);
-                UI.hideLoading();
-                UI.showToast('❌ Erreur: ' + error.message, 'error');
-            }
+            // Utiliser UI.confirm() au lieu de window.confirm() pour PWA iOS
+            UI.confirm('Générer le GIF ? (~15 secondes)', () => {
+                this._gifGenerating = true;
+                UI.showLoading('🎬 Génération du GIF...');
+                UI.updateLoadingProgress(0, 'Initialisation...');
+                
+                try {
+                    const gameStateWithConfig = { ...this.currentGame.state, victoryCondition: this.currentGame.victoryCondition };
+                    UnifiedRecapGenerator.generateAnimated(gameStateWithConfig, (progress, message) => {
+                        UI.updateLoadingProgress(progress, message);
+                    });
+                } catch (error) {
+                    console.error('[ScoreMaster] Erreur GIF:', error);
+                    UI.hideLoading();
+                    UI.showToast('❌ Erreur: ' + error.message, 'error');
+                } finally {
+                    // Le verrou sera libéré par UnifiedRecapGenerator à la fin
+                    setTimeout(() => { this._gifGenerating = false; }, 1000);
+                }
+            });
         },
         openModal(playerId) {
             SoundFX.click();
@@ -2686,6 +3713,7 @@ transition: all 0.3s ease;
             const current = (this.currentGame.state.temp[this.activePlayerId] || 0).toString();
             const newVal = parseInt((current === '0' ? '' : current) + n);
             if(newVal > 9999) { if(navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Maximum 9999 points', 'warning'); return; }
+            if(newVal < -9999) { if(navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Minimum -9999 points', 'warning'); return; }
             if(navigator.vibrate) navigator.vibrate(10);
             this.currentGame.state.temp[this.activePlayerId] = newVal;
             this.renderSwitcher();
@@ -2695,14 +3723,18 @@ transition: all 0.3s ease;
             const current = this.currentGame.state.temp[this.activePlayerId] || 0;
             const newVal = current + value;
             if(newVal > 9999) { if(navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Maximum 9999 points', 'warning'); return; }
+            if(newVal < -9999) { if(navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Minimum -9999 points', 'warning'); return; }
             if(navigator.vibrate) navigator.vibrate(20);
-            this.currentGame.state.temp[this.activePlayerId] = Math.max(0, newVal);
+            // En mode belote, pas de scores négatifs
+            this.currentGame.state.temp[this.activePlayerId] = this.currentGame.mode === 'belote' ? Math.max(0, newVal) : newVal;
             this.renderSwitcher();
             this.render();
         },
         backspace() {
             const current = (this.currentGame.state.temp[this.activePlayerId] || 0).toString();
-            this.currentGame.state.temp[this.activePlayerId] = current.length > 1 ? parseInt(current.slice(0, -1)) : 0;
+            const sliced = current.slice(0, -1);
+            // Gérer le cas "-" ou "" qui donnerait NaN avec parseInt
+            this.currentGame.state.temp[this.activePlayerId] = (sliced === '' || sliced === '-') ? 0 : parseInt(sliced);
             if(navigator.vibrate) navigator.vibrate(15);
             this.renderSwitcher();
             this.render();
@@ -4084,2336 +5116,6 @@ transition: all 0.3s ease;
         }
     };
 
-    // ==================== RECAP GENERATOR V4.0 STABLE (LEGACY) ====================
-    // OPTIMISATIONS MAJEURES :
-    // - Un seul rendu au lieu de deux (performance ×2)
-    // - Une seule boucle sur l'historique (optimisation)
-    // - Map pour les joueurs (pas de find() répété)
-    // - Fonctions de mesure séparées (architecture propre)
-    // - Gestion d'erreur complète (try/catch)
-    // - Citations raccourcies (pas de dépassement)
-    
-    const RecapGenerator = {
-        SPACING: {
-            AFTER_BANNER: 40,           
-            BEFORE_CHAMPION: 40,        
-            AFTER_CHAMPION: 20,         
-            SECTION_HEADER: 15,
-            BETWEEN_SECTIONS: 30,
-            SECTION_PADDING: 25,
-            ITEM_SPACING: 20
-        },
-        
-        GENRE_COLORS: {
-            DOMINATION: { primary: '#8B0000', secondary: '#FFD700', accent: '#FF4500', bg: 'rgba(139, 0, 0, 0.1)' },
-            THRILLER: { primary: '#FF6B35', secondary: '#F7931E', accent: '#FDC830', bg: 'rgba(255, 107, 53, 0.1)' },
-            CHAOS: { primary: '#6A0572', secondary: '#AB47BC', accent: '#E91E63', bg: 'rgba(106, 5, 114, 0.1)' },
-            COMEBACK: { primary: '#2B5AA0', secondary: '#5B9BD5', accent: '#1E88E5', bg: 'rgba(43, 90, 160, 0.1)' }
-        },
-        
-        StoryBrain: {
-            analyze(history, players, victoryCondition = 'highest') {
-                const totals = {};
-                players.forEach((p, i) => totals[i] = 0);
-                const leaders = [];
-                const curves = players.map(() => []);
-                const isLowest = victoryCondition === 'lowest';
-                
-                history.forEach(r => {
-                    players.forEach((p, i) => {
-                        totals[i] += r[p.id] || 0;
-                        curves[i].push(totals[i]);
-                    });
-                    // Tri selon victoryCondition
-                    const sorted = players.map((p, i) => ({ i, t: totals[i] })).sort((a, b) => {
-                        return isLowest ? a.t - b.t : b.t - a.t;
-                    });
-                    leaders.push(sorted[0].i);
-                });
-                
-                let changes = 0;
-                for (let i = 1; i < leaders.length; i++) {
-                    if (leaders[i] != leaders[i - 1]) changes++;
-                }
-                
-                const last = leaders[leaders.length - 1];
-                const first = leaders[0];
-                const finals = curves.map(c => c[c.length - 1]);
-                // Tri final selon victoryCondition
-                const sortedF = finals.map((t, i) => ({ i, t })).sort((a, b) => {
-                    return isLowest ? a.t - b.t : b.t - a.t;
-                });
-                // Protection contre 1 seul joueur
-                const gap = sortedF.length > 1 ? Math.abs(sortedF[0].t - sortedF[1].t) : 0;
-                
-                let genre;
-                if (changes >= 3) genre = "CHAOS";
-                else if (first !== last) genre = "COMEBACK";
-                else if (gap <= 100) genre = "THRILLER";
-                else genre = "DOMINATION";
-                
-                return { genre, winner: players[last].name, winnerIdx: last, first: players[first].name, changes, gap, curves };
-            }
-        },
-        
-        PlayerCasting: {
-            analyze(history, players, victoryCondition = 'highest') {
-                const isLowest = victoryCondition === 'lowest';
-                const stats = players.map(p => ({ name: p.name, color: p.color, total: 0, best: -999, worst: 999, wins: 0 }));
-                
-                history.forEach(r => {
-                    const scores = players.map((p, i) => ({ i, score: r[p.id] || 0 }));
-                    // En mode lowest, chercher le min, sinon le max
-                    const winningScore = isLowest 
-                        ? Math.min(...scores.map(s => s.score))
-                        : Math.max(...scores.map(s => s.score));
-                    
-                    players.forEach((p, i) => {
-                        const score = r[p.id] || 0;
-                        stats[i].total += score;
-                        stats[i].best = Math.max(stats[i].best, score);
-                        stats[i].worst = Math.min(stats[i].worst, score);
-                        // Compter les victoires selon le bon critère
-                        if (score === winningScore && (isLowest ? score >= 0 : score > 0)) {
-                            stats[i].wins++;
-                        }
-                    });
-                });
-                
-                // Trier selon victoryCondition
-                const sorted = [...stats].sort((a, b) => {
-                    return isLowest ? a.total - b.total : b.total - a.total;
-                });
-                
-                const precision = sorted.map(s => ({
-                    name: s.name,
-                    value: history.length > 0 ? Math.round((s.wins / history.length) * 100) : 0
-                }));
-                
-                return { hero: sorted[0].name, boulet: sorted[sorted.length - 1].name, stats: sorted, precision };
-            }
-        },
-        
-        NarrativeEngine: {
-            pick: a => a[Math.floor(Math.random() * a.length)],
-            templates: {
-                DOMINATION: [
-                    "Une bataille jusqu'à la dernière manche. {b} a confondu stratégie et catastrophe.",
-                    "Match à sens unique du début à la fin. {b} n'a jamais existé dans cette partie.",
-                    "Performance de très haut niveau. {b} devrait peut-être changer de jeu.",
-                    "Démonstration absolue. {b} a été balayé comme un fétu de paille.",
-                    "Aucune pitié, aucune chance. {b} a subi de bout en bout."
-                ],
-                THRILLER: [
-                    "Une fin irrespirable. {b} a offert un grand moment de solitude.",
-                    "Chaque point comptait. {b} s'est effondré au mauvais moment.",
-                    "Un match de folie. {b} a craqué sous la pression.",
-                    "Suspense insoutenable. {b} n'a pas tenu la distance.",
-                    "Combat acharné. {b} a abandonné trop tôt."
-                ],
-                CHAOS: [
-                    "Un chaos total du début à la fin. {b} a joué comme un pied.",
-                    "Rebondissements à chaque manche. {b} n'a rien compris au jeu.",
-                    "Un joyeux bordel indescriptible. {b} s'est perdu en route.",
-                    "Scénario complètement fou. {b} a fait n'importe quoi.",
-                    "Imprévisible de bout en bout. {b} a coulé tout seul."
-                ],
-                COMEBACK: [
-                    "Incroyable remontée. {b} devrait envisager un autre jeu.",
-                    "Retour spectaculaire. {b} s'est fait avoir comme un bleu.",
-                    "Renversement de situation. {b} pensait avoir gagné, quelle erreur.",
-                    "Comeback légendaire. {b} a vu la victoire lui échapper.",
-                    "Remontada inoubliable. {b} va ruminer cette défaite longtemps."
-                ]
-            },
-            reactions: {
-                winner: [
-                    "Trop facile",
-                    "J'ai gagné facile",
-                    "Pas transpiré",
-                    "Joué à 50%",
-                    "Merci l'entraînement",
-                    "Une vraie partie ?",
-                    "Attendais mieux",
-                    "Presque dormi"
-                ],
-                loser: [
-                    "Pas de chance",
-                    "Il/elle a triché",
-                    "Cartes pourries",
-                    "Pas concentré",
-                    "Prochaine fois",
-                    "Chance pure",
-                    "Mauvais tirage",
-                    "Mauvaises cartes !"
-                ]
-            },
-            build(brain, cast) {
-                return this.pick(this.templates[brain.genre]).replace("{b}", cast.boulet);
-            },
-            getWinnerQuote() {
-                return this.pick(this.reactions.winner);
-            },
-            getLoserQuote() {
-                return this.pick(this.reactions.loser);
-            }
-        },
-        
-        async generate(gameState) {
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = 1080;
-                
-                // Analyse des données
-                const ai = this.analyzeGameData(gameState);
-                
-                // Mesurer tout le contenu en une seule passe
-                const ctx = canvas.getContext('2d');
-                const measuredContent = this.measureAllContent(ctx, 465, ai, gameState);
-                
-                // Calcul de la hauteur
-                const height = this.calculateTotalHeight(ctx, ai, gameState, measuredContent);
-                canvas.height = height;
-                
-                // Dessin avec données pré-mesurées
-                this.draw(ctx, ai, gameState, measuredContent);
-                
-                return canvas;
-                
-            } catch(error) {
-                console.error('[RecapGenerator] Erreur:', error);
-                UI.showToast('❌ Erreur génération: ' + error.message, 'error');
-                return null;
-            }
-        },
-        
-        // Analyse optimisée : UNE SEULE passe sur l'historique
-        analyzeGameData(gameState) {
-            const victoryCondition = gameState.victoryCondition || 'highest';
-            const brain = this.StoryBrain.analyze(gameState.history, gameState.players, victoryCondition);
-            const cast = this.PlayerCasting.analyze(gameState.history, gameState.players, victoryCondition);
-            const narrative = this.NarrativeEngine.build(brain, cast);
-            
-            // Map des joueurs pour éviter find() répété
-            const playerMap = new Map(gameState.players.map(p => [p.id.toString(), p]));
-            
-            let bestRound = { player: null, score: -999, round: 0 };
-            let worstRound = { player: null, score: 999, round: 0 };
-            let secondBestRound = { player: null, score: -999, round: 0 };
-            
-            // Initialiser les streaks
-            const streaks = new Map();
-            gameState.players.forEach(p => {
-                streaks.set(p.id, { current: 0, max: 0 });
-            });
-            
-            const isLowest = victoryCondition === 'lowest';
-            
-            // UNE SEULE BOUCLE pour tout calculer
-            gameState.history.forEach((round, idx) => {
-                const roundScores = Object.entries(round).map(([id, score]) => ({
-                    id: parseInt(id),
-                    score
-                }));
-                
-                // Trouver le gagnant de la manche selon victoryCondition
-                const winningScore = isLowest
-                    ? Math.min(...roundScores.map(s => s.score))
-                    : Math.max(...roundScores.map(s => s.score));
-                const winner = roundScores.find(s => s.score === winningScore);
-                
-                // Mettre à jour les streaks
-                roundScores.forEach(({ id, score }) => {
-                    const streak = streaks.get(id);
-                    if (id === winner.id && (isLowest ? score >= 0 : score > 0)) {
-                        streak.current++;
-                        streak.max = Math.max(streak.max, streak.current);
-                    } else {
-                        streak.current = 0;
-                    }
-                    
-                    // Mettre à jour best/worst
-                    const player = playerMap.get(id.toString());
-                    if (player) {
-                        if (score > bestRound.score) {
-                            secondBestRound = {...bestRound};
-                            bestRound = { player: player.name, score, round: idx + 1 };
-                        } else if (score > secondBestRound.score && score !== bestRound.score) {
-                            secondBestRound = { player: player.name, score, round: idx + 1 };
-                        }
-                        if (score < worstRound.score) {
-                            worstRound = { player: player.name, score, round: idx + 1 };
-                        }
-                    }
-                });
-            });
-            
-            // Trouver le meilleur streak
-            let bestStreak = { player: null, count: 0 };
-            streaks.forEach((streak, playerId) => {
-                if (streak.max > bestStreak.count) {
-                    const player = gameState.players.find(p => p.id === playerId);
-                    bestStreak = { player: player.name, count: streak.max };
-                }
-            });
-            
-            // Trier selon victoryCondition pour calculer l'écart
-            const sorted = [...gameState.players].sort((a,b) => {
-                return isLowest ? a.total - b.total : b.total - a.total;
-            });
-            // Protection contre 1 seul joueur
-            const finalGap = sorted.length > 1 ? Math.abs(sorted[0].total - sorted[1].total) : sorted[0].total;
-            
-            return {
-                brain,
-                cast,
-                narrative,
-                bestRound,
-                secondBestRound,
-                worstRound,
-                bestStreak,
-                finalGap
-            };
-        },
-        
-        // OPTIMISATION: Mesurer tout le contenu en une seule passe
-        measureAllContent(ctx, w, ai, gameState) {
-            const sp = this.SPACING;
-            
-            // === RÉACTIONS ===
-            const winnerQuote = this.NarrativeEngine.getWinnerQuote();
-            const loserQuote = this.NarrativeEngine.getLoserQuote();
-            
-            ctx.font = 'italic 17px Georgia';
-            const winnerLines = this.wrapText(ctx, `"${winnerQuote}"`, w - 40);
-            const loserLines = this.wrapText(ctx, `"${loserQuote}"`, w - 40);
-            
-            const reactionsHeight = sp.SECTION_PADDING + 24 + winnerLines.length * 22 + 20 + 20 + 24 + loserLines.length * 22 + sp.SECTION_PADDING;
-            
-            // === TEMPS FORTS ===
-            ctx.font = '18px Arial';
-            const feuLines = this.wrapText(ctx, `${ai.bestRound.player} a explosé`, w - 40);
-            ctx.font = 'bold 20px Arial';
-            const mancheLines = this.wrapText(ctx, `▶ ${ai.bestRound.score} pts (M${ai.bestRound.round})`, w - 40);
-            
-            let dramaLines = [], dramaScoreLines = [];
-            let exploitLines = [], exploitScoreLines = [];
-            let serieLines = [], autoLines = [];
-            let manchesLines = [];
-            
-            if (ai.worstRound.score < 0) {
-                ctx.font = '18px Arial';
-                dramaLines = this.wrapText(ctx, `${ai.worstRound.player} catastrophique`, w - 40);
-                ctx.font = 'bold 20px Arial';
-                dramaScoreLines = this.wrapText(ctx, `▶ ${ai.worstRound.score} pts (M${ai.worstRound.round})`, w - 40);
-            } else {
-                ctx.font = '18px Arial';
-                exploitLines = this.wrapText(ctx, `${ai.secondBestRound.player} en feu`, w - 40);
-                ctx.font = 'bold 20px Arial';
-                exploitScoreLines = this.wrapText(ctx, `▶ ${ai.secondBestRound.score} pts (M${ai.secondBestRound.round})`, w - 40);
-            }
-            
-            if (ai.bestStreak.count > 1) {
-                ctx.font = '18px Arial';
-                serieLines = this.wrapText(ctx, `${ai.bestStreak.player} : ${ai.bestStreak.count} victoires`, w - 40);
-                ctx.font = 'bold 20px Arial';
-                autoLines = this.wrapText(ctx, '▶ Mode auto', w - 40);
-            } else {
-                ctx.font = 'bold 20px Arial';
-                manchesLines = this.wrapText(ctx, `▶ ${gameState.history.length} manches`, w - 40);
-            }
-            
-            let tempsFortsHeight = sp.SECTION_PADDING + 24 + feuLines.length * 20 + 4 + mancheLines.length * 20 + sp.ITEM_SPACING + sp.ITEM_SPACING;
-            if (ai.worstRound.score < 0) {
-                tempsFortsHeight += 24 + dramaLines.length * 20 + 4 + dramaScoreLines.length * 20 + sp.ITEM_SPACING;
-            } else {
-                tempsFortsHeight += 24 + exploitLines.length * 20 + 4 + exploitScoreLines.length * 20 + sp.ITEM_SPACING;
-            }
-            tempsFortsHeight += sp.ITEM_SPACING;
-            if (ai.bestStreak.count > 1) {
-                tempsFortsHeight += 24 + serieLines.length * 20 + 4 + autoLines.length * 20 + sp.SECTION_PADDING;
-            } else {
-                tempsFortsHeight += 24 + 24 + manchesLines.length * 20 + sp.SECTION_PADDING;
-            }
-            
-            // === STATS ===
-            const precision = ai.cast.precision;
-            ctx.font = '19px Arial';
-            const bestLines = this.wrapText(ctx, `🔥 Meilleure : ${ai.bestRound.player}`, w - 50);
-            const ecartLines = this.wrapText(ctx, `🎯 Écart final : ${ai.finalGap} pts`, w - 50);
-            const manchesStatsLines = this.wrapText(ctx, `📈 Manches : ${gameState.history.length}`, w - 50);
-            
-            let worstLines = [];
-            let streakLines = [];
-            if (ai.worstRound.score < 0) {
-                worstLines = this.wrapText(ctx, `💀 Pire : ${ai.worstRound.player}`, w - 50);
-            }
-            if (ai.bestStreak.count > 1) {
-                streakLines = this.wrapText(ctx, `⚡ Série : ${ai.bestStreak.player}`, w - 50);
-            }
-            
-            let statsHeight = sp.SECTION_PADDING;
-            if (precision && precision.length > 0) {
-                const precisionLines = this.wrapText(ctx, `🎯 Taux victoire : ${precision[0].name}`, w - 50);
-                statsHeight += precisionLines.length * 22 + 8 + 30 + 20;
-            }
-            statsHeight += bestLines.length * 22 + 8 + 28 + 20;
-            if (worstLines.length > 0) statsHeight += worstLines.length * 22 + 8 + 28 + 20;
-            if (streakLines.length > 0) statsHeight += streakLines.length * 22 + 8 + 28 + 20;
-            statsHeight += ecartLines.length * 22 + 26 + 20 + manchesStatsLines.length * 22 + sp.SECTION_PADDING;
-            
-            return {
-                reactions: { height: reactionsHeight, winnerLines, loserLines, winnerQuote, loserQuote },
-                tempsForts: { 
-                    height: tempsFortsHeight, feuLines, mancheLines,
-                    dramaLines, dramaScoreLines, exploitLines, exploitScoreLines,
-                    serieLines, autoLines, manchesLines
-                },
-                stats: { 
-                    height: statsHeight, precision, bestLines, worstLines, 
-                    streakLines, ecartLines, manchesStatsLines
-                }
-            };
-        },
-        
-        // Calculer la hauteur totale SANS dessiner
-        calculateTotalHeight(ctx, ai, gameState, measuredContent) {
-            const sp = this.SPACING;
-            let y = 50;
-            
-            // Bandeau
-            y += 4 + 130 + 4 + 140 + 35;
-            y += sp.AFTER_BANNER;
-            
-            // Confetti + Champion
-            y += 20 + sp.BEFORE_CHAMPION + 100 + sp.AFTER_CHAMPION;
-            
-            // Titre
-            y += 65;
-            
-            // Narratif (estimation)
-            const words = ai.narrative.split(' ');
-            y += Math.ceil(words.length / 10) * 30 + 35;
-            
-            // Ligne + Graphique + Double ligne
-            y += 30 + 360 + 40;
-            
-            const colWidth = 465;
-            
-            // Podium (fixe)
-            const podiumHeight = 45 + sp.SECTION_HEADER + 320;
-            const reactionsTotal = 45 + sp.SECTION_HEADER + measuredContent.reactions.height;
-            const yLeft = podiumHeight + sp.BETWEEN_SECTIONS + reactionsTotal;
-            
-            const tempsFortsTotal = 45 + sp.SECTION_HEADER + measuredContent.tempsForts.height;
-            const statsTotal = 45 + sp.SECTION_HEADER + measuredContent.stats.height;
-            const yRight = tempsFortsTotal + sp.BETWEEN_SECTIONS + statsTotal;
-            
-            return y + Math.max(yLeft, yRight) + 140;
-        },
-        
-        async draw(ctx, ai, gameState, measuredContent) {
-            const width = 1080;
-            const colors = this.GENRE_COLORS[ai.brain.genre];
-            const sp = this.SPACING;
-            
-            ctx.fillStyle = '#F5F1E8';
-            ctx.fillRect(0, 0, width, ctx.canvas.height);
-            
-            ctx.fillStyle = 'rgba(139, 119, 101, 0.03)';
-            for (let i = 0; i < 5000; i++) {
-                ctx.fillRect(Math.random() * width, Math.random() * ctx.canvas.height, 1, 1);
-            }
-            
-            this.drawFoldedPaper(ctx, width, ctx.canvas.height);
-            
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 4;
-            
-            let y = 50;
-            
-            y = this.drawBanner3D(ctx, y, width, colors);
-            y += sp.AFTER_BANNER;
-            
-            y = this.drawConfetti(ctx, width / 2, y + 20, 30);
-            y += sp.BEFORE_CHAMPION;
-            
-            y = this.drawChampionBlock(ctx, y, width, ai.brain.winner, gameState.players.find(p => p.name === ai.brain.winner).total, colors);
-            y += sp.AFTER_CHAMPION;
-            
-            ctx.font = 'italic 900 48px Arial';
-            ctx.fillStyle = colors.primary;
-            ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetY = 2;
-            ctx.fillText('ÉCRASE LA CONCURRENCE', width / 2, y);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            y += 65;
-            
-            ctx.font = 'italic 700 22px Georgia';
-            ctx.fillStyle = '#1A1A1A';
-            const words = ai.narrative.split(' ');
-            let lines = [];
-            let line = '';
-            words.forEach(word => {
-                const test = line + word + ' ';
-                const m = ctx.measureText(test);
-                if (m.width > width - 140) {
-                    if (line) lines.push(line.trim());
-                    line = word + ' ';
-                } else {
-                    line = test;
-                }
-            });
-            if (line) lines.push(line.trim());
-            lines.forEach((l, idx) => {
-                ctx.fillText(l, width / 2, y + (idx * 30));
-            });
-            y += lines.length * 30 + 35;
-            
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(55, y, width - 110, 3);
-            y += 30;
-            
-            y = this.drawGraphWithZones(ctx, 55, y, width - 110, ai, gameState, colors);
-            y += 30;
-            
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(55, y, width - 110, 2);
-            ctx.fillRect(55, y + 5, width - 110, 2);
-            y += 40;
-            
-            const leftCol = 55;
-            const colWidth = 465;
-            const rightCol = leftCol + colWidth + 30;
-            
-            let yLeft = y;
-            let yRight = y;
-            
-            yLeft = this.drawPodium3DImproved(ctx, leftCol, yLeft, colWidth, gameState.players, colors, gameState.victoryCondition);
-            yLeft += sp.BETWEEN_SECTIONS;
-            yLeft = this.drawReactionsClean(ctx, leftCol, yLeft, colWidth, ai, colors, measuredContent.reactions);
-            
-            yRight = this.drawTempsFortsClean(ctx, rightCol, yRight, colWidth, ai, colors, gameState, measuredContent.tempsForts);
-            yRight += sp.BETWEEN_SECTIONS;
-            yRight = this.drawStatsClean(ctx, rightCol, yRight, colWidth, ai, gameState, colors, measuredContent.stats);
-            
-            const finalY = Math.max(yLeft, yRight) + 60;
-            
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 5;
-            ctx.shadowOffsetY = 2;
-            ctx.font = 'bold 26px Arial';
-            ctx.fillStyle = colors.primary;
-            ctx.textAlign = 'center';
-            ctx.fillText('ScoreMaster Sports™', width / 2, finalY);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.font = 'italic 20px Georgia';
-            ctx.fillStyle = '#666';
-            ctx.fillText('"On immortalise vos défaites depuis 2026"', width / 2, finalY + 35);
-            
-            const totalHeight = finalY + 80;
-            
-            ctx.strokeRect(25, 25, width - 50, totalHeight - 50);
-        },
-        
-        drawFoldedPaper(ctx, width, height) {
-            const foldX = width / 2;
-            const foldGradient = ctx.createLinearGradient(foldX - 3, 0, foldX + 3, 0);
-            foldGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            foldGradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.05)');
-            foldGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = foldGradient;
-            ctx.fillRect(foldX - 3, 0, 6, height);
-            
-            for (let i = 0; i < 15; i++) {
-                const x = Math.random() * width;
-                const y = Math.random() * height;
-                const w = Math.random() * 100 + 50;
-                const angle = Math.random() * Math.PI / 6;
-                
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.rotate(angle);
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.015)';
-                ctx.fillRect(0, 0, w, 1);
-                ctx.restore();
-            }
-        },
-        
-        drawBanner3D(ctx, y, width, colors) {
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(55, y, width - 110, 4);
-            y += 4;
-            
-            const gradient = ctx.createLinearGradient(0, y, 0, y + 130);
-            gradient.addColorStop(0, colors.primary);
-            gradient.addColorStop(0.5, colors.primary + 'DD');
-            gradient.addColorStop(1, colors.primary + 'BB');
-            ctx.fillStyle = gradient;
-            
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 8;
-            ctx.fillRect(55, y, width - 110, 130);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(55, y + 130, width - 110, 4);
-            
-            ctx.font = 'italic 900 95px Georgia';
-            ctx.textAlign = 'center';
-            
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-            ctx.shadowBlur = 3;
-            ctx.shadowOffsetX = 6;
-            ctx.shadowOffsetY = 6;
-            ctx.fillStyle = '#000000';
-            ctx.fillText('LE SCORE', width / 2, y + 87);
-            
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
-            ctx.shadowBlur = 5;
-            ctx.shadowOffsetX = -2;
-            ctx.shadowOffsetY = -2;
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillText('LE SCORE', width / 2, y + 85);
-            
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-            
-            y += 140;
-            y += 35;
-            
-            ctx.font = 'bold 21px Arial';
-            ctx.fillStyle = '#000000';
-            const date = new Date().toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            });
-            ctx.fillText(`ÉDITION SPÉCIALE — ${date.toUpperCase()}`, width / 2, y);
-            
-            return y;
-        },
-        
-        drawConfetti(ctx, cx, cy, count) {
-            const confettiColors = ['#FF6B35', '#F7931E', '#FDC830', '#4CAF50', '#2196F3', '#9C27B0'];
-            for (let i = 0; i < count; i++) {
-                const x = cx + Math.random() * 300 - 150;
-                const y = cy + Math.random() * 80 - 40;
-                const size = Math.random() * 8 + 4;
-                const rotation = Math.random() * Math.PI * 2;
-                
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.rotate(rotation);
-                ctx.fillStyle = confettiColors[Math.floor(Math.random() * confettiColors.length)];
-                ctx.globalAlpha = 0.7;
-                ctx.fillRect(-size/2, -size/2, size, size);
-                ctx.globalAlpha = 1;
-                ctx.restore();
-            }
-            return cy;
-        },
-        
-        drawChampionBlock(ctx, y, width, name, score, colors) {
-            const blockWidth = 450;
-            const blockHeight = 100;
-            const x = (width - blockWidth) / 2;
-            
-            const gradient = ctx.createLinearGradient(x, y, x, y + blockHeight);
-            gradient.addColorStop(0, colors.secondary);
-            gradient.addColorStop(0.5, colors.accent);
-            gradient.addColorStop(1, colors.secondary);
-            ctx.fillStyle = gradient;
-            
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetY = 10;
-            ctx.fillRect(x, y, blockWidth, blockHeight);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(x, y, blockWidth, blockHeight);
-            
-            ctx.font = 'bold 50px Arial';
-            ctx.fillStyle = '#000';
-            ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
-            ctx.shadowBlur = 3;
-            ctx.fillText(`🏆 ${name.toUpperCase()} 🏆`, width / 2, y + 45);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            
-            ctx.font = 'bold 32px Arial';
-            ctx.fillText(`${score} pts`, width / 2, y + 80);
-            
-            return y + blockHeight;
-        },
-        
-        drawGraphWithZones(ctx, x, y, w, ai, gameState, colors) {
-            const h = 340;
-            const padding = 50;
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, y, w, h);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, w, h);
-            
-            ctx.font = 'bold 26px Arial';
-            ctx.fillStyle = colors.primary;
-            ctx.textAlign = 'center';
-            ctx.fillText('📈 ÉVOLUTION DES SCORES', x + w / 2, y + 30);
-            
-            const gx = x + padding;
-            const gy = y + 60;
-            const gw = w - padding * 2;
-            const gh = h - 110;
-            
-            const curves = ai.brain.curves;
-            const maxScore = Math.max(...curves.flat());
-            const minScore = Math.min(...curves.flat(), 0);
-            const nbRounds = gameState.history.length || 1; // Protection contre division par 0
-            
-            const winGradient = ctx.createLinearGradient(0, gy, 0, gy + gh/3);
-            winGradient.addColorStop(0, 'rgba(76, 175, 80, 0.15)');
-            winGradient.addColorStop(1, 'rgba(76, 175, 80, 0)');
-            ctx.fillStyle = winGradient;
-            ctx.fillRect(gx, gy, gw, gh/3);
-            
-            const loseGradient = ctx.createLinearGradient(0, gy + 2*gh/3, 0, gy + gh);
-            loseGradient.addColorStop(0, 'rgba(244, 67, 54, 0)');
-            loseGradient.addColorStop(1, 'rgba(244, 67, 54, 0.15)');
-            ctx.fillStyle = loseGradient;
-            ctx.fillRect(gx, gy + 2*gh/3, gw, gh/3);
-            
-            const avgScore = (maxScore + minScore) / 2;
-            const avgY = gy + gh - ((avgScore - minScore) / (maxScore - minScore || 1)) * gh;
-            ctx.strokeStyle = '#999';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
-            ctx.beginPath();
-            ctx.moveTo(gx, avgY);
-            ctx.lineTo(gx + gw, avgY);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            
-            ctx.strokeStyle = '#E5E5E5';
-            ctx.lineWidth = 1;
-            for (let i = 0; i <= 4; i++) {
-                const gridY = gy + (gh / 4) * i;
-                ctx.beginPath();
-                ctx.moveTo(gx, gridY);
-                ctx.lineTo(gx + gw, gridY);
-                ctx.stroke();
-                
-                const value = maxScore - ((maxScore - minScore) / 4) * i;
-                ctx.font = '14px Arial';
-                ctx.fillStyle = '#666';
-                ctx.textAlign = 'right';
-                ctx.fillText(Math.round(value), gx - 10, gridY + 5);
-            }
-            
-            ctx.font = '14px Arial';
-            ctx.fillStyle = '#666';
-            ctx.textAlign = 'center';
-            ctx.fillText('0', gx, y + h - 25);
-            for (let i = 0; i < nbRounds; i++) {
-                const labelX = gx + ((gw / nbRounds) * (i + 1));
-                ctx.fillText(`M${i + 1}`, labelX, y + h - 25);
-            }
-            
-            curves.forEach((curve, playerIdx) => {
-                const player = gameState.players[playerIdx];
-                ctx.strokeStyle = player.color;
-                ctx.lineWidth = 5;
-                ctx.beginPath();
-                
-                ctx.moveTo(gx, gy + gh);
-                
-                curve.forEach((score, roundIdx) => {
-                    const px = gx + ((gw / nbRounds) * (roundIdx + 1));
-                    const py = gy + gh - ((score - minScore) / (maxScore - minScore || 1)) * gh;
-                    ctx.lineTo(px, py);
-                });
-                
-                ctx.stroke();
-                
-                ctx.fillStyle = player.color + '40';
-                curve.forEach((score, roundIdx) => {
-                    const px = gx + ((gw / nbRounds) * (roundIdx + 1));
-                    const py = gy + gh - ((score - minScore) / (maxScore - minScore || 1)) * gh;
-                    ctx.beginPath();
-                    ctx.arc(px, py, 10, 0, Math.PI * 2);
-                    ctx.fill();
-                });
-                
-                ctx.fillStyle = player.color;
-                curve.forEach((score, roundIdx) => {
-                    const px = gx + ((gw / nbRounds) * (roundIdx + 1));
-                    const py = gy + gh - ((score - minScore) / (maxScore - minScore || 1)) * gh;
-                    ctx.beginPath();
-                    ctx.arc(px, py, 6, 0, Math.PI * 2);
-                    ctx.fill();
-                });
-                
-                const lastScore = curve[curve.length - 1];
-                const lastX = gx + gw;
-                const lastY = gy + gh - ((lastScore - minScore) / (maxScore - minScore || 1)) * gh;
-                ctx.fillStyle = player.color + '60';
-                ctx.beginPath();
-                ctx.arc(lastX, lastY, 14, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = player.color;
-                ctx.beginPath();
-                ctx.arc(lastX, lastY, 9, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.font = 'bold 16px Arial';
-                ctx.fillStyle = player.color;
-                ctx.textAlign = 'left';
-                ctx.fillText(player.name, lastX + 18, lastY + 5);
-            });
-            
-            return y + h + 20;
-        },
-        
-        drawPodium3DImproved(ctx, x, y, w, players, colors, victoryCondition = 'highest') {
-            const isLowest = victoryCondition === 'lowest';
-            const sorted = [...players].sort((a,b) => isLowest ? a.total - b.total : b.total - a.total);
-            
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetY = 3;
-            ctx.fillStyle = colors.primary;
-            ctx.fillRect(x, y, w, 45);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.font = 'bold 24px Arial';
-            ctx.fillStyle = '#FFFFFF';
-            ctx.textAlign = 'center';
-            ctx.fillText('🏆 LE CLASSEMENT FINAL', x + w / 2, y + 30);
-            
-            y += 45 + this.SPACING.SECTION_HEADER;
-            
-            const podiumY = y;
-            const podiumHeight = 320;
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, y, w, podiumHeight);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, w, podiumHeight);
-            
-            y += 25;
-            
-            const blockWidth = 130;
-            const spacing = 10;
-            const totalWidth = blockWidth * 3 + spacing * 2;
-            const startX = x + (w - totalWidth) / 2;
-            
-            const pos2X = startX;
-            const pos1X = startX + blockWidth + spacing;
-            const pos3X = startX + (blockWidth + spacing) * 2;
-            
-            if (sorted.length > 1) {
-                const h2 = 120;
-                const y2 = podiumY + podiumHeight - h2 - 30;
-                
-                ctx.save();
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-                ctx.shadowBlur = 8;
-                ctx.shadowOffsetY = 4;
-                
-                const grad2 = ctx.createLinearGradient(pos2X, y2, pos2X, y2 + h2);
-                grad2.addColorStop(0, '#E0E0E0');
-                grad2.addColorStop(0.3, '#C0C0C0');
-                grad2.addColorStop(0.7, '#A8A8A8');
-                grad2.addColorStop(1, '#909090');
-                ctx.fillStyle = grad2;
-                ctx.fillRect(pos2X, y2, blockWidth, h2);
-                ctx.restore();
-                
-                ctx.strokeStyle = '#666';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(pos2X, y2, blockWidth, h2);
-                
-                ctx.font = '40px Arial';
-                ctx.fillText('🥈', pos2X + blockWidth/2, y2 - 10);
-                
-                ctx.font = 'bold 20px Arial';
-                ctx.fillStyle = '#000';
-                const name2 = sorted[1].name.length > 7 ? sorted[1].name.substring(0, 7) : sorted[1].name;
-                ctx.fillText(name2, pos2X + blockWidth/2, y2 + h2/2 - 5);
-                
-                ctx.font = 'bold 24px Arial';
-                ctx.fillStyle = '#333';
-                ctx.fillText(sorted[1].total, pos2X + blockWidth/2, y2 + h2/2 + 22);
-                
-                ctx.font = '16px Arial';
-                ctx.fillStyle = '#666';
-                const diff1 = sorted[0].total - sorted[1].total;
-                ctx.fillText(`-${diff1}`, pos2X + blockWidth/2, y2 + h2/2 + 42);
-            }
-            
-            const h1 = 180;
-            const y1 = podiumY + podiumHeight - h1 - 30;
-            
-            ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 12;
-            ctx.shadowOffsetY = 6;
-            
-            const grad1 = ctx.createLinearGradient(pos1X, y1, pos1X, y1 + h1);
-            grad1.addColorStop(0, '#FFD700');
-            grad1.addColorStop(0.3, '#FFED4E');
-            grad1.addColorStop(0.5, '#FFC107');
-            grad1.addColorStop(0.7, '#FFB300');
-            grad1.addColorStop(1, '#FF8F00');
-            ctx.fillStyle = grad1;
-            ctx.fillRect(pos1X, y1, blockWidth, h1);
-            ctx.restore();
-            
-            ctx.strokeStyle = '#CC8800';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(pos1X, y1, blockWidth, h1);
-            
-            ctx.font = '45px Arial';
-            ctx.fillText('🏆', pos1X + blockWidth/2, y1 - 10);
-            
-            ctx.font = 'bold 22px Arial';
-            ctx.fillStyle = '#000';
-            const name1 = sorted[0].name.length > 7 ? sorted[0].name.substring(0, 7) : sorted[0].name;
-            ctx.fillText(name1, pos1X + blockWidth/2, y1 + h1/2 - 18);
-            
-            ctx.font = 'bold 28px Arial';
-            ctx.fillStyle = '#000';
-            ctx.fillText(sorted[0].total, pos1X + blockWidth/2, y1 + h1/2 + 10);
-            
-            ctx.font = 'bold 18px Arial';
-            ctx.fillStyle = '#8B4513';
-            ctx.fillText('CHAMPION', pos1X + blockWidth/2, y1 + h1/2 + 35);
-            
-            if (sorted.length > 2) {
-                const h3 = 90;
-                const y3 = podiumY + podiumHeight - h3 - 30;
-                
-                ctx.save();
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-                ctx.shadowBlur = 6;
-                ctx.shadowOffsetY = 3;
-                
-                const grad3 = ctx.createLinearGradient(pos3X, y3, pos3X, y3 + h3);
-                grad3.addColorStop(0, '#E4A853');
-                grad3.addColorStop(0.4, '#CD7F32');
-                grad3.addColorStop(0.7, '#B87333');
-                grad3.addColorStop(1, '#8B5A2B');
-                ctx.fillStyle = grad3;
-                ctx.fillRect(pos3X, y3, blockWidth, h3);
-                ctx.restore();
-                
-                ctx.strokeStyle = '#8B5A2B';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(pos3X, y3, blockWidth, h3);
-                
-                ctx.font = '35px Arial';
-                ctx.fillText('🥉', pos3X + blockWidth/2, y3 - 8);
-                
-                ctx.font = 'bold 18px Arial';
-                ctx.fillStyle = '#000';
-                const name3 = sorted[2].name.length > 7 ? sorted[2].name.substring(0, 7) : sorted[2].name;
-                ctx.fillText(name3, pos3X + blockWidth/2, y3 + h3/2 - 2);
-                
-                ctx.font = 'bold 22px Arial';
-                ctx.fillStyle = '#333';
-                ctx.fillText(sorted[2].total, pos3X + blockWidth/2, y3 + h3/2 + 22);
-                
-                const diff2 = sorted[0].total - sorted[2].total;
-                ctx.font = '14px Arial';
-                ctx.fillStyle = '#666';
-                ctx.fillText(`-${diff2}`, pos3X + blockWidth/2, y3 + h3/2 + 40);
-            }
-            
-            return podiumY + podiumHeight;
-        },
-        
-        // ========== FONCTIONS DE DESSIN OPTIMISÉES (utilisent données pré-mesurées) ==========
-        
-        drawReactionsClean(ctx, x, y, w, ai, colors, measuredData) {
-            const sp = this.SPACING;
-            
-            // Utiliser les données pré-mesurées
-            const { height: calcH, winnerLines, loserLines, winnerQuote, loserQuote } = measuredData;
-            
-            // Dessiner le bandeau
-            const gradient = ctx.createLinearGradient(x, y, x + w, y);
-            gradient.addColorStop(0, colors.accent);
-            gradient.addColorStop(1, colors.primary);
-            ctx.fillStyle = gradient;
-            
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetY = 3;
-            ctx.fillRect(x, y, w, 45);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.font = 'bold 24px Arial';
-            ctx.fillStyle = '#FFFFFF';
-            ctx.textAlign = 'center';
-            ctx.fillText('💬 LES RÉACTIONS', x + w / 2, y + 30);
-            
-            y += 45 + sp.SECTION_HEADER;
-            const contentY = y;
-            
-            // Dessiner le cadre blanc
-            ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, contentY, w, calcH);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, contentY, w, calcH);
-            
-            // Dessiner le contenu
-            y = contentY + sp.SECTION_PADDING;
-            
-            ctx.font = 'bold 19px Arial';
-            ctx.fillStyle = colors.primary;
-            ctx.textAlign = 'left';
-            ctx.fillText(`🎤 ${ai.brain.winner.toUpperCase()}`, x + 20, y);
-            y += 24;
-            
-            ctx.font = 'italic 17px Georgia';
-            ctx.fillStyle = '#555';
-            winnerLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 22));
-            });
-            y += winnerLines.length * 22 + 20;
-            
-            ctx.strokeStyle = '#EEEEEE';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
-            ctx.stroke();
-            y += 20;
-            
-            ctx.font = 'bold 19px Arial';
-            ctx.fillStyle = '#C8102E';
-            ctx.fillText(`😭 ${ai.cast.boulet.toUpperCase()}`, x + 20, y);
-            y += 24;
-            
-            ctx.font = 'italic 17px Georgia';
-            ctx.fillStyle = '#555';
-            loserLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 22));
-            });
-            
-            return contentY + calcH;
-        },
-        
-        drawTempsFortsClean(ctx, x, y, w, ai, colors, gameState, measuredData) {
-            const sp = this.SPACING;
-            
-            // Utiliser les données pré-mesurées
-            const { 
-                height: calcH, feuLines, mancheLines,
-                dramaLines, dramaScoreLines, exploitLines, exploitScoreLines,
-                serieLines, autoLines, manchesLines
-            } = measuredData;
-            
-            // Dessiner le bandeau
-            const gradient = ctx.createLinearGradient(x, y, x + w, y);
-            gradient.addColorStop(0, colors.primary);
-            gradient.addColorStop(1, colors.accent);
-            ctx.fillStyle = gradient;
-            
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetY = 3;
-            ctx.fillRect(x, y, w, 45);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.font = 'bold 24px Arial';
-            ctx.fillStyle = '#FFFFFF';
-            ctx.textAlign = 'center';
-            ctx.fillText('⭐ LES TEMPS FORTS', x + w / 2, y + 30);
-            
-            y += 45 + sp.SECTION_HEADER;
-            const contentY = y;
-            
-            // ÉTAPE 3 : Dessiner le cadre blanc
-            ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 5;
-            ctx.fillRect(x, contentY, w, calcH);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, contentY, w, calcH);
-            
-            // ÉTAPE 4 : Dessiner le contenu (UNE SEULE FOIS !)
-            y = contentY + sp.SECTION_PADDING;
-            
-            this.drawFlame(ctx, x + 30, y - 5, 18);
-            ctx.font = 'bold 22px Arial';
-            ctx.fillStyle = '#FF6600';
-            ctx.textAlign = 'left';
-            ctx.fillText('LE MOMENT FEU', x + 60, y);
-            y += 24;
-            
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#333';
-            feuLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
-            });
-            y += feuLines.length * 20 + 4;
-            
-            ctx.font = 'bold 20px Arial';
-            ctx.fillStyle = '#FF6600';
-            mancheLines.forEach((line, idx) => {
-                ctx.fillText(line, x + 20, y + (idx * 20));
-            });
-            y += mancheLines.length * 20 + sp.ITEM_SPACING;
-            
-            ctx.strokeStyle = '#DDDDDD';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
-            ctx.stroke();
-            y += sp.ITEM_SPACING;
-            
-            if (ai.worstRound.score < 0) {
-                ctx.font = '28px Arial';
-                ctx.fillText('💀', x + 20, y);
-                ctx.font = 'bold 22px Arial';
-                ctx.fillStyle = '#8B0000';
-                ctx.fillText('LE DRAMA', x + 60, y);
-                y += 24;
-                
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                dramaLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += dramaLines.length * 20 + 4;
-                
-                ctx.font = 'bold 20px Arial';
-                ctx.fillStyle = '#8B0000';
-                dramaScoreLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += dramaScoreLines.length * 20 + sp.ITEM_SPACING;
-            } else {
-                ctx.font = '28px Arial';
-                ctx.fillText('🎯', x + 20, y);
-                ctx.font = 'bold 22px Arial';
-                ctx.fillStyle = '#4CAF50';
-                ctx.fillText('EXPLOIT #2', x + 60, y);
-                y += 24;
-                
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                exploitLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += exploitLines.length * 20 + 4;
-                
-                ctx.font = 'bold 20px Arial';
-                ctx.fillStyle = '#4CAF50';
-                exploitScoreLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += exploitScoreLines.length * 20 + sp.ITEM_SPACING;
-            }
-            
-            ctx.strokeStyle = '#DDDDDD';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x + 20, y);
-            ctx.lineTo(x + w - 20, y);
-            ctx.stroke();
-            y += sp.ITEM_SPACING;
-            
-            if (ai.bestStreak.count > 1) {
-                this.drawLightning(ctx, x + 25, y - 20, 20);
-                ctx.font = 'bold 22px Arial';
-                ctx.fillStyle = '#FFD700';
-                ctx.fillText('LA SÉRIE', x + 60, y);
-                y += 24;
-                
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                serieLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-                y += serieLines.length * 20 + 4;
-                
-                ctx.font = 'bold 20px Arial';
-                ctx.fillStyle = '#FFD700';
-                autoLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-            } else {
-                ctx.font = '28px Arial';
-                ctx.fillText('📊', x + 20, y);
-                ctx.font = 'bold 22px Arial';
-                ctx.fillStyle = colors.primary;
-                ctx.fillText('RÉGULARITÉ', x + 60, y);
-                y += 24;
-                
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#333';
-                ctx.fillText(`Match équilibré`, x + 20, y);
-                y += 24;
-                
-                ctx.font = 'bold 20px Arial';
-                ctx.fillStyle = colors.primary;
-                manchesLines.forEach((line, idx) => {
-                    ctx.fillText(line, x + 20, y + (idx * 20));
-                });
-            }
-            
-            return contentY + calcH;
-        },
-        
-        drawStatsClean(ctx, x, y, w, ai, gameState, colors, measuredData) {
-            const sp = this.SPACING;
-            
-            // Utiliser les données pré-mesurées
-            const { height, precision, bestLines, worstLines, streakLines, ecartLines, manchesStatsLines } = measuredData;
-            const topPlayer = precision && precision.length > 0 ? precision[0] : null;
-            
-            // Header
-            const headerGrad = ctx.createLinearGradient(x, y, x + w, y);
-            headerGrad.addColorStop(0, colors.primary);
-            headerGrad.addColorStop(0.5, colors.accent);
-            headerGrad.addColorStop(1, colors.primary);
-            ctx.fillStyle = headerGrad;
-            
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-            ctx.shadowBlur = 12;
-            ctx.shadowOffsetY = 4;
-            ctx.fillRect(x, y, w, 50);
-            
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            
-            ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, w, 50);
-            
-            ctx.font = 'bold 26px Arial';
-            ctx.fillStyle = '#FFFFFF';
-            ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 3;
-            ctx.fillText('📊 LES STATS', x + w / 2, y + 33);
-            ctx.shadowBlur = 0;
-            ctx.shadowColor = 'transparent';
-            
-            y += 50 + sp.SECTION_HEADER;
-            const contentY = y;
-            
-            // ═══════════════════════════════════════════
-            // CADRE BLANC
-            // ═══════════════════════════════════════════
-            ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetY = 8;
-            ctx.fillRect(x, contentY, w, height);
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            ctx.shadowColor = 'transparent';
-            
-            ctx.strokeStyle = '#DDDDDD';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(x, contentY, w, height);
-            
-            // ═══════════════════════════════════════════
-            // CONTENU - POSITION DE DÉPART
-            // ═══════════════════════════════════════════
-            let currentY = contentY + sp.SECTION_PADDING;
-            const baseX = x + 25;  // Position X de base pour TOUT le texte
-            
-            // SECTION 1 : TAUX DE VICTOIRE
-            if (topPlayer) {
-                ctx.font = '19px Arial';
-                ctx.fillStyle = '#2c2c2c';
-                ctx.textAlign = 'left';
-                ctx.fillText(`🎯 Taux victoire : ${topPlayer.name}`, baseX, currentY);
-                currentY += 30;
-                
-                this.drawStatBar(ctx, baseX, currentY, w - 50, topPlayer.value, 100, colors.primary);
-                currentY += 30;
-                
-                this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
-                currentY += 20;
-            }
-            
-            // SECTION 2 : MEILLEURE MANCHE
-            ctx.font = '19px Arial';
-            ctx.fillStyle = '#2c2c2c';
-            
-            for (let i = 0; i < bestLines.length; i++) {
-                ctx.textAlign = 'left';
-                ctx.fillText(bestLines[i], baseX, currentY);
-                currentY += 22;
-            }
-            currentY += 8;
-            
-            ctx.textAlign = 'left';
-            ctx.font = 'bold 24px Arial';
-            ctx.fillStyle = colors.accent;
-            ctx.shadowColor = 'rgba(255, 100, 0, 0.3)';
-            ctx.shadowBlur = 5;
-            ctx.fillText(`${ai.bestRound.score} pts`, baseX, currentY);
-            ctx.shadowBlur = 0;
-            ctx.shadowColor = 'transparent';
-            currentY += 28;
-            
-            this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
-            currentY += 20;
-            
-            // SECTION 3 : PIRE MANCHE (si existe)
-            if (worstLines.length > 0) {
-                ctx.font = '19px Arial';
-                ctx.fillStyle = '#2c2c2c';
-                
-                for (let i = 0; i < worstLines.length; i++) {
-                    ctx.textAlign = 'left';
-                    ctx.fillText(worstLines[i], baseX, currentY);
-                    currentY += 22;
-                }
-                currentY += 8;
-                
-                ctx.textAlign = 'left';
-                ctx.font = 'bold 24px Arial';
-                ctx.fillStyle = '#F44336';
-                ctx.shadowColor = 'rgba(244, 67, 54, 0.3)';
-                ctx.shadowBlur = 5;
-                ctx.fillText(`${ai.worstRound.score} pts`, baseX, currentY);
-                ctx.shadowBlur = 0;
-                ctx.shadowColor = 'transparent';
-                currentY += 28;
-                
-                this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
-                currentY += 20;
-            }
-            
-            // SECTION 4 : SÉRIE (si existe)
-            if (streakLines.length > 0) {
-                ctx.font = '19px Arial';
-                ctx.fillStyle = '#2c2c2c';
-                
-                for (let i = 0; i < streakLines.length; i++) {
-                    ctx.textAlign = 'left';
-                    ctx.fillText(streakLines[i], baseX, currentY);
-                    currentY += 22;
-                }
-                currentY += 8;
-                
-                ctx.textAlign = 'left';
-                ctx.font = 'bold 24px Arial';
-                ctx.fillStyle = colors.secondary;
-                ctx.shadowColor = `${colors.secondary}40`;
-                ctx.shadowBlur = 5;
-                ctx.fillText(`${ai.bestStreak.count} victoires`, baseX, currentY);
-                ctx.shadowBlur = 0;
-                ctx.shadowColor = 'transparent';
-                currentY += 28;
-                
-                this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
-                currentY += 20;
-            }
-            
-            // SECTION 5 : ÉCART FINAL
-            ctx.font = '19px Arial';
-            ctx.fillStyle = '#2c2c2c';
-            
-            for (let i = 0; i < ecartLines.length; i++) {
-                ctx.textAlign = 'left';
-                ctx.fillText(ecartLines[i], baseX, currentY);
-                currentY += 22;
-            }
-            currentY += 26;
-            
-            this.drawSeparator(ctx, x + 25, x + w - 25, currentY);
-            currentY += 20;
-            
-            // SECTION 6 : MANCHES
-            ctx.font = '19px Arial';
-            ctx.fillStyle = '#2c2c2c';
-            
-            for (let i = 0; i < manchesStatsLines.length; i++) {
-                ctx.textAlign = 'left';
-                ctx.fillText(manchesStatsLines[i], baseX, currentY);
-                currentY += 22;
-            }
-            
-            return contentY + height;
-        },
-        
-        // Fonction helper pour dessiner les séparateurs
-        drawSeparator(ctx, x1, x2, y) {
-            const grad = ctx.createLinearGradient(x1, y, x2, y);
-            grad.addColorStop(0, 'rgba(0,0,0,0)');
-            grad.addColorStop(0.5, 'rgba(0,0,0,0.15)');
-            grad.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x1, y);
-            ctx.lineTo(x2, y);
-            ctx.stroke();
-        },
-        
-        drawFlame(ctx, x, y, size) {
-            ctx.fillStyle = '#FF6600';
-            ctx.beginPath();
-            ctx.moveTo(x, y + size);
-            ctx.bezierCurveTo(x - size*0.4, y, x - size*0.2, y - size, x, y - size*1.5);
-            ctx.bezierCurveTo(x + size*0.2, y - size, x + size*0.4, y, x, y + size);
-            ctx.fill();
-            
-            ctx.fillStyle = '#FFD700';
-            ctx.beginPath();
-            ctx.arc(x, y - size*0.3, size*0.4, 0, Math.PI * 2);
-            ctx.fill();
-        },
-        
-        drawLightning(ctx, x, y, size) {
-            ctx.fillStyle = '#FFD700';
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x + size*0.3, y + size*0.5);
-            ctx.lineTo(x + size*0.15, y + size*0.5);
-            ctx.lineTo(x + size*0.4, y + size);
-            ctx.lineTo(x - size*0.1, y + size*0.6);
-            ctx.lineTo(x + size*0.1, y + size*0.6);
-            ctx.closePath();
-            ctx.fill();
-            
-            ctx.strokeStyle = '#FF8C00';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        },
-        
-        drawStatBar(ctx, x, y, w, value, maxValue, color) {
-            // Background de la barre avec dégradé subtil
-            const bgGrad = ctx.createLinearGradient(x, y, x, y + 26);
-            bgGrad.addColorStop(0, '#F0F0F0');
-            bgGrad.addColorStop(1, '#E0E0E0');
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(x, y, w, 26);  // Barre plus haute
-            
-            // Barre de progression avec dégradé coloré
-            const barWidth = (value / maxValue) * w;
-            if (barWidth > 0) {
-                const gradient = ctx.createLinearGradient(x, y, x + barWidth, y);
-                gradient.addColorStop(0, color);
-                gradient.addColorStop(0.5, color + 'DD');
-                gradient.addColorStop(1, color + 'AA');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(x, y, barWidth, 26);
-                
-                // Effet de brillance sur la barre
-                const shineGrad = ctx.createLinearGradient(x, y, x, y + 26);
-                shineGrad.addColorStop(0, 'rgba(255,255,255,0.4)');
-                shineGrad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
-                shineGrad.addColorStop(1, 'rgba(0,0,0,0.1)');
-                ctx.fillStyle = shineGrad;
-                ctx.fillRect(x, y, barWidth, 26);
-            }
-            
-            // Bordure avec ombre interne
-            ctx.strokeStyle = '#CCC';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, w, 26);
-            
-            // Pourcentage avec ombre
-            ctx.font = 'bold 17px Arial';  // Police plus grande
-            ctx.fillStyle = '#000';
-            ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-            ctx.shadowBlur = 3;
-            ctx.shadowOffsetY = 1;
-            ctx.fillText(`${value}%`, x + w/2, y + 18);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-        },
-        
-        wrapText(ctx, text, maxWidth) {
-            const words = text.split(' ');
-            const lines = [];
-            let line = '';
-            
-            words.forEach(word => {
-                const test = line + word + ' ';
-                const metrics = ctx.measureText(test);
-                if (metrics.width > maxWidth && line !== '') {
-                    lines.push(line.trim());
-                    line = word + ' ';
-                } else {
-                    line = test;
-                }
-            });
-            
-            if (line) lines.push(line.trim());
-            return lines;
-        },
-        
-        downloadImage(canvas, filename = 'ScoreMaster_Recap_CLEAN.png') {
-            canvas.toBlob((blob) => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-                URL.revokeObjectURL(url);
-            });
-        },
-        
-        async shareImage(canvas) {
-            if (!navigator.share || !navigator.canShare) return false;
-            
-            try {
-                const blob = await new Promise(resolve => canvas.toBlob(resolve));
-                const file = new File([blob], 'ScoreMaster_Recap_CLEAN.png', { type: 'image/png' });
-                
-                if (navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: 'ScoreMaster - Récap CLEAN',
-                        text: 'Découvrez le récap CLEAN ! 🏆'
-                    });
-                    return true;
-                }
-            } catch (error) {
-                console.error('Erreur partage:', error);
-            }
-            
-            return false;
-        }
-    };
-
-    // ==================== RECAP GIF GENERATOR OPTIMISÉ ====================
-    
-    const RecapGifGenerator = {
-        CONFIG: {
-            WIDTH: 500,
-            HEIGHT: 1400,
-            FPS: 10,          // FPS optimisé
-            DURATION: 5,      // 5 secondes pour apprécier les animations
-            QUALITY: 25
-        },
-        
-        // Particules pour l'animation de fond
-        particles: [],
-        
-        // Initialiser les particules
-        initParticles() {
-            this.particles = [];
-            for (let i = 0; i < 30; i++) {
-                this.particles.push({
-                    x: Math.random() * this.CONFIG.WIDTH,
-                    y: Math.random() * this.CONFIG.HEIGHT,
-                    size: Math.random() * 4 + 1,
-                    speedX: (Math.random() - 0.5) * 0.8,
-                    speedY: (Math.random() - 0.5) * 0.5,
-                    opacity: Math.random() * 0.5 + 0.3,
-                    type: Math.random() > 0.7 ? 'star' : 'dot',
-                    phase: Math.random() * Math.PI * 2
-                });
-            }
-        },
-        
-        async generateAnimated(gameState, progressCallback = null) {
-            const updateProgress = (progress, message) => {
-                if (progressCallback) progressCallback(progress, message);
-            };
-            
-            try {
-                if (typeof gifshot === 'undefined') {
-                    UI.hideLoading();
-                    throw new Error('Bibliothèque gifshot non chargée');
-                }
-                
-                if (!gameState.players || gameState.players.length === 0) {
-                    UI.hideLoading();
-                    throw new Error('Aucun joueur trouvé');
-                }
-                
-                // Initialiser les particules une seule fois
-                this.initParticles();
-                
-                updateProgress(5, 'Analyse des données...');
-                const ai = RecapGenerator.analyzeGameData(gameState);
-                const colors = RecapGenerator.GENRE_COLORS[ai.brain.genre];
-                
-                const totalFrames = this.CONFIG.FPS * this.CONFIG.DURATION;
-                updateProgress(10, `Génération de ${totalFrames} frames...`);
-                
-                // Pré-rendre les éléments statiques une seule fois
-                const staticElements = this.prerenderStaticElements(ai, gameState, colors);
-                
-                // Générer toutes les frames
-                const frames = [];
-                for (let frame = 0; frame < totalFrames; frame++) {
-                    const canvas = this.drawAnimatedFrame(frame, totalFrames, ai, gameState, colors, staticElements);
-                    frames.push(canvas.toDataURL('image/png'));
-                    
-                    if (frame % 5 === 0) {
-                        const percent = 10 + Math.round((frame / totalFrames) * 50);
-                        updateProgress(percent, `Frame ${frame + 1}/${totalFrames}`);
-                    }
-                }
-                
-                updateProgress(60, 'Encodage du GIF...');
-                
-                // gifshot.createGIF avec callback
-                gifshot.createGIF({
-                    images: frames,
-                    gifWidth: this.CONFIG.WIDTH,
-                    gifHeight: this.CONFIG.HEIGHT,
-                    interval: 1 / this.CONFIG.FPS,
-                    numFrames: totalFrames,
-                    frameDuration: 1,
-                    sampleInterval: 10,
-                    progressCallback: (progress) => {
-                        const percent = 60 + Math.round(progress * 35);
-                        updateProgress(percent, `Encodage: ${Math.round(progress * 100)}%`);
-                    }
-                }, (obj) => {
-                    if (!obj.error) {
-                        updateProgress(95, 'Finalisation...');
-                        
-                        // Convertir data URL en blob
-                        fetch(obj.image)
-                            .then(res => res.blob())
-                            .then(blob => {
-                                this.downloadGif(blob);
-                                updateProgress(100, 'Terminé !');
-                                
-                                setTimeout(() => {
-                                    UI.hideLoading();
-                                    UI.showToast('✅ GIF téléchargé !', 'success');
-                                }, 300);
-                            })
-                            .catch(err => {
-                                console.error('[RecapGif] Erreur blob:', err);
-                                UI.hideLoading();
-                                UI.showToast('❌ Erreur téléchargement', 'error');
-                            });
-                    } else {
-                        console.error('[RecapGif] Erreur gifshot:', obj.error);
-                        UI.hideLoading();
-                        UI.showToast('❌ Erreur: ' + obj.error, 'error');
-                    }
-                });
-                
-            } catch (error) {
-                console.error('[RecapGifGenerator] Erreur:', error);
-                UI.hideLoading();
-                UI.showToast('❌ Erreur: ' + error.message, 'error');
-            }
-        },
-        
-        // Pré-rendre les éléments statiques pour optimiser
-        prerenderStaticElements(ai, gameState, colors) {
-            return {
-                winner: ai.brain.winner,
-                winnerScore: gameState.players.find(p => p.name === ai.brain.winner).total,
-                narrative: ai.narrative,
-                bestRound: ai.bestRound,
-                secondBestRound: ai.secondBestRound,
-                bestStreak: ai.bestStreak,
-                precision: ai.cast.precision,
-                finalGap: ai.finalGap,
-                totalManches: gameState.history.length,
-                players: gameState.players
-            };
-        },
-        
-        drawAnimatedFrame(frame, totalFrames, ai, gameState, colors, staticElements) {
-            const canvas = document.createElement('canvas');
-            canvas.width = this.CONFIG.WIDTH;
-            canvas.height = this.CONFIG.HEIGHT;
-            const ctx = canvas.getContext('2d');
-            
-            const time = frame / totalFrames;
-            const frameTime = frame * (1 / this.CONFIG.FPS);
-            
-            // === COUCHE 1: Fond avec texture ===
-            this.drawAnimatedBackground(ctx, frameTime);
-            
-            // === COUCHE 2: Particules flottantes ===
-            this.drawFloatingParticles(ctx, frameTime);
-            
-            // === COUCHE 3: Vague de lumière qui traverse ===
-            this.drawLightWave(ctx, frameTime);
-            
-            let y = 0;
-            
-            // === CONTENU STATIQUE (apparition rapide puis fixe) ===
-            const fadeInComplete = Math.min(1, time * 4); // Fade en 25% du temps
-            
-            // Bannière - texte fixe, bordure animée
-            y = this.drawStaticBanner(ctx, y, colors, staticElements.winner, fadeInComplete, frameTime);
-            
-            // Champion - contenu fixe, halo pulsant
-            y = this.drawStaticChampion(ctx, y, staticElements.winner, staticElements.winnerScore, colors, fadeInComplete, frameTime);
-            
-            // Titre narrative - fixe
-            y = this.drawStaticNarrative(ctx, y, staticElements.narrative, fadeInComplete, frameTime);
-            
-            // Temps forts - texte fixe, cartes avec bordure animée
-            y = this.drawStaticTempsForts(ctx, y, ai, gameState, colors, fadeInComplete, frameTime);
-            
-            // Stats - texte fixe, barres avec effet de brillance
-            y = this.drawStaticStats(ctx, y, ai, gameState, colors, fadeInComplete, frameTime);
-            
-            // === COUCHE 4: Watermark flottant ===
-            this.drawFloatingWatermark(ctx, frameTime);
-            
-            return canvas;
-        },
-        
-        // === FOND ANIMÉ ===
-        drawAnimatedBackground(ctx, time) {
-            const w = this.CONFIG.WIDTH;
-            const h = this.CONFIG.HEIGHT;
-            
-            // Dégradé de base
-            const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-            bgGrad.addColorStop(0, '#F5F1E8');
-            bgGrad.addColorStop(0.5, '#FAF8F3');
-            bgGrad.addColorStop(1, '#F0EBE0');
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(0, 0, w, h);
-            
-            // Texture de papier
-            this.drawPaperTexture(ctx);
-            
-            // Effet de "breathing" - légère variation de luminosité
-            const breathe = Math.sin(time * 0.5) * 0.02 + 0.98;
-            ctx.fillStyle = `rgba(255, 255, 255, ${(1 - breathe) * 0.3})`;
-            ctx.fillRect(0, 0, w, h);
-        },
-        
-        // === PARTICULES FLOTTANTES ===
-        drawFloatingParticles(ctx, time) {
-            const w = this.CONFIG.WIDTH;
-            const h = this.CONFIG.HEIGHT;
-            
-            this.particles.forEach((p, i) => {
-                // Mouvement fluide
-                p.x += p.speedX;
-                p.y += p.speedY;
-                
-                // Rebond sur les bords
-                if (p.x < 0 || p.x > w) p.speedX *= -1;
-                if (p.y < 0 || p.y > h) p.speedY *= -1;
-                
-                // Pulsation d'opacité
-                const pulse = Math.sin(time * 2 + p.phase) * 0.3 + 0.7;
-                const currentOpacity = p.opacity * pulse;
-                
-                ctx.save();
-                ctx.globalAlpha = currentOpacity;
-                
-                if (p.type === 'star') {
-                    // Étoile scintillante
-                    ctx.fillStyle = '#FFD700';
-                    ctx.font = `${p.size * 3}px Arial`;
-                    ctx.fillText('✦', p.x, p.y);
-                } else {
-                    // Point lumineux
-                    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 2);
-                    grad.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
-                    grad.addColorStop(1, 'rgba(255, 215, 0, 0)');
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                
-                ctx.restore();
-            });
-        },
-        
-        // === VAGUE DE LUMIÈRE ===
-        drawLightWave(ctx, time) {
-            const w = this.CONFIG.WIDTH;
-            const h = this.CONFIG.HEIGHT;
-            
-            // Vague qui traverse horizontalement
-            const waveX = (time * 150) % (w + 200) - 100;
-            
-            const waveGrad = ctx.createLinearGradient(waveX - 100, 0, waveX + 100, 0);
-            waveGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-            waveGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.15)');
-            waveGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            
-            ctx.fillStyle = waveGrad;
-            ctx.fillRect(0, 0, w, h);
-        },
-        
-        // === BANNIÈRE AVEC BORDURE ANIMÉE ===
-        drawStaticBanner(ctx, startY, colors, winner, fadeIn, time) {
-            const w = this.CONFIG.WIDTH;
-            const h = 120;
-            
-            ctx.save();
-            ctx.globalAlpha = fadeIn;
-            
-            // Fond fixe
-            const gradient = ctx.createLinearGradient(0, startY, 0, startY + h);
-            gradient.addColorStop(0, '#1a1a2e');
-            gradient.addColorStop(0.5, colors.primary);
-            gradient.addColorStop(1, '#0f0f1e');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, startY, w, h);
-            
-            // === BORDURE ANIMÉE (effet de "marching ants") ===
-            ctx.strokeStyle = '#FFD700';
-            ctx.lineWidth = 3;
-            ctx.setLineDash([15, 10]);
-            ctx.lineDashOffset = -time * 50; // Animation de la bordure
-            ctx.strokeRect(2, startY + 2, w - 4, h - 4);
-            ctx.setLineDash([]);
-            
-            // Particules intégrées à la bannière
-            ctx.fillStyle = 'rgba(255, 215, 0, 0.6)';
-            for (let i = 0; i < 12; i++) {
-                const px = (w / 12) * i + Math.sin(time * 3 + i) * 15;
-                const py = startY + 25 + Math.cos(time * 2 + i) * 10;
-                const size = 2 + Math.sin(time * 4 + i) * 1;
-                ctx.beginPath();
-                ctx.arc(px, py, size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            // Texte fixe "LE SCORE"
-            ctx.shadowBlur = 25;
-            ctx.shadowColor = 'rgba(255, 215, 0, 0.9)';
-            ctx.font = 'italic 900 70px Georgia';
-            ctx.fillStyle = '#FFD700';
-            ctx.textAlign = 'center';
-            ctx.fillText('LE SCORE', w / 2, startY + 75);
-            
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = '#8B4513';
-            ctx.lineWidth = 4;
-            ctx.strokeText('LE SCORE', w / 2, startY + 75);
-            
-            ctx.restore();
-            return startY + h + 10;
-        },
-        
-        // === CHAMPION AVEC HALO PULSANT ===
-        drawStaticChampion(ctx, startY, name, score, colors, fadeIn, time) {
-            const w = this.CONFIG.WIDTH;
-            const h = 110;
-            const centerX = w / 2;
-            const centerY = startY + h / 2;
-            
-            ctx.save();
-            ctx.globalAlpha = fadeIn;
-            
-            // === HALO PULSANT ===
-            const haloSize = 230 + Math.sin(time * 2) * 10;
-            const haloGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, haloSize);
-            haloGrad.addColorStop(0, 'rgba(255, 215, 0, 0.2)');
-            haloGrad.addColorStop(0.5, 'rgba(255, 165, 0, 0.1)');
-            haloGrad.addColorStop(1, 'rgba(255, 215, 0, 0)');
-            ctx.fillStyle = haloGrad;
-            ctx.fillRect(0, startY, w, h);
-            
-            // Ombre portée
-            ctx.shadowBlur = 30;
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-            ctx.shadowOffsetY = 10;
-            
-            // Fond doré
-            const boxGrad = ctx.createLinearGradient(0, startY, 0, startY + h);
-            boxGrad.addColorStop(0, '#FFD700');
-            boxGrad.addColorStop(0.5, '#FFA500');
-            boxGrad.addColorStop(1, '#FF8C00');
-            ctx.fillStyle = boxGrad;
-            ctx.fillRect(40, startY + 10, w - 80, h - 20);
-            
-            // === BORDURE BRILLANTE ANIMÉE ===
-            ctx.shadowBlur = 0;
-            const borderShine = (Math.sin(time * 3) + 1) / 2;
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 + borderShine * 0.4})`;
-            ctx.lineWidth = 4;
-            ctx.strokeRect(40, startY + 10, w - 80, h - 20);
-            ctx.strokeStyle = '#8B4513';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(40, startY + 10, w - 80, h - 20);
-            
-            // Trophées oscillants
-            const trophyBob = Math.sin(time * 4) * 3;
-            ctx.font = '40px Arial';
-            ctx.fillText('🏆', 60, centerY + 5 + trophyBob);
-            ctx.fillText('🏆', w - 80, centerY + 5 - trophyBob);
-            
-            // Nom du champion (fixe)
-            ctx.font = 'bold 35px Arial';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-            ctx.textAlign = 'center';
-            ctx.fillText(name.toUpperCase(), centerX + 2, centerY - 8);
-            ctx.fillStyle = '#1a1a2e';
-            ctx.fillText(name.toUpperCase(), centerX, centerY - 10);
-            
-            // Score (fixe)
-            ctx.font = 'bold 28px Arial';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-            ctx.fillText(`${score} pts`, centerX + 2, centerY + 25);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillText(`${score} pts`, centerX, centerY + 23);
-            
-            ctx.restore();
-            return startY + h + 15;
-        },
-        
-        // === NARRATIVE FIXE AVEC FOND SUBTILEMENT ANIMÉ ===
-        drawStaticNarrative(ctx, startY, narrative, fadeIn, time) {
-            const w = this.CONFIG.WIDTH;
-            const bgHeight = 95;
-            
-            ctx.save();
-            ctx.globalAlpha = fadeIn;
-            
-            // Fond avec légère pulsation
-            const pulseAlpha = 0.4 + Math.sin(time * 1.5) * 0.1;
-            const bgGrad = ctx.createLinearGradient(0, startY, 0, startY + bgHeight);
-            bgGrad.addColorStop(0, `rgba(245, 245, 220, ${pulseAlpha})`);
-            bgGrad.addColorStop(1, `rgba(255, 250, 240, ${pulseAlpha})`);
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(20, startY, w - 40, bgHeight);
-            
-            // Bordure dorée fixe
-            ctx.strokeStyle = 'rgba(184, 134, 11, 0.6)';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(20, startY, w - 40, bgHeight);
-            
-            // Guillemets décoratifs
-            ctx.font = 'bold 45px Georgia';
-            ctx.fillStyle = 'rgba(184, 134, 11, 0.3)';
-            ctx.textAlign = 'left';
-            ctx.fillText('"', 30, startY + 40);
-            ctx.textAlign = 'right';
-            ctx.fillText('"', w - 30, startY + 85);
-            
-            // Texte de narrative (fixe)
-            ctx.font = 'italic 18px Georgia';
-            ctx.fillStyle = '#1a1a1a';
-            ctx.textAlign = 'center';
-            
-            const words = narrative.split(' ');
-            let lines = [];
-            let line = '';
-            
-            words.forEach(word => {
-                const test = line + word + ' ';
-                if (ctx.measureText(test).width > w - 70) {
-                    lines.push(line.trim());
-                    line = word + ' ';
-                } else {
-                    line = test;
-                }
-            });
-            if (line) lines.push(line.trim());
-            
-            const lineHeight = 24;
-            const totalHeight = lines.length * lineHeight;
-            const startLineY = startY + (bgHeight - totalHeight) / 2 + 15;
-            
-            lines.forEach((l, idx) => {
-                ctx.fillText(l, w / 2, startLineY + (idx * lineHeight));
-            });
-            
-            ctx.restore();
-            return startY + bgHeight + 25;
-        },
-        
-        // === TEMPS FORTS AVEC CARTES ET BORDURES ANIMÉES ===
-        drawStaticTempsForts(ctx, startY, ai, gameState, colors, fadeIn, time) {
-            const w = this.CONFIG.WIDTH;
-            
-            ctx.save();
-            ctx.globalAlpha = fadeIn;
-            
-            // Header fixe
-            const headerGrad = ctx.createLinearGradient(0, startY, 0, startY + 40);
-            headerGrad.addColorStop(0, colors.primary);
-            headerGrad.addColorStop(1, '#0f0f1e');
-            ctx.fillStyle = headerGrad;
-            ctx.fillRect(15, startY, w - 30, 40);
-            
-            ctx.font = 'bold 20px Arial';
-            ctx.fillStyle = '#FFD700';
-            ctx.textAlign = 'center';
-            ctx.fillText('⭐ LES TEMPS FORTS ⭐', w / 2, startY + 26);
-            
-            startY += 45;
-            
-            const items = [
-                { icon: '🔥', label: 'MOMENT FEU', text: ai.bestRound.player, score: `${ai.bestRound.score} pts`, color: '#FF4500' },
-                { icon: '🎯', label: 'EXPLOIT #2', text: ai.secondBestRound.player, score: `${ai.secondBestRound.score} pts`, color: '#1E90FF' },
-                { icon: '⚡', label: 'SÉRIE', text: ai.bestStreak.count > 1 ? `${ai.bestStreak.player}` : `${gameState.history.length} manches`, score: ai.bestStreak.count > 1 ? `${ai.bestStreak.count} victoires` : 'Match équilibré', color: '#FFD700' }
-            ];
-            
-            const itemHeight = 85;
-            
-            items.forEach((item, i) => {
-                const itemY = startY + (i * itemHeight);
-                
-                // === CARTE AVEC OMBRE FLOTTANTE ===
-                const floatY = Math.sin(time * 2 + i) * 2;
-                
-                ctx.save();
-                ctx.translate(0, floatY);
-                
-                // Ombre dynamique
-                ctx.shadowBlur = 15 + Math.sin(time * 3 + i) * 5;
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-                ctx.shadowOffsetY = 5;
-                
-                // Fond de carte
-                const cardGrad = ctx.createLinearGradient(0, itemY, 0, itemY + 65);
-                cardGrad.addColorStop(0, '#ffffff');
-                cardGrad.addColorStop(1, '#f5f5f5');
-                ctx.fillStyle = cardGrad;
-                ctx.fillRect(20, itemY, w - 40, 65);
-                
-                ctx.shadowBlur = 0;
-                
-                // === BORDURE COLORÉE PULSANTE ===
-                const borderPulse = 0.6 + Math.sin(time * 4 + i) * 0.4;
-                ctx.fillStyle = item.color;
-                ctx.globalAlpha = borderPulse;
-                ctx.fillRect(20, itemY, 6, 65);
-                ctx.globalAlpha = 1;
-                
-                // Contenu fixe
-                ctx.font = '32px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillText(item.icon, 35, itemY + 42);
-                
-                ctx.font = 'bold 17px Arial';
-                ctx.fillStyle = item.color;
-                ctx.fillText(item.label, 80, itemY + 25);
-                
-                ctx.font = 'bold 16px Arial';
-                ctx.fillStyle = '#1a1a1a';
-                ctx.fillText(item.text, 80, itemY + 45);
-                
-                ctx.font = 'bold 16px Arial';
-                ctx.fillStyle = item.color;
-                ctx.fillText(item.score, 80, itemY + 62);
-                
-                // Badge à droite
-                ctx.fillStyle = item.color;
-                ctx.globalAlpha = 0.1;
-                ctx.beginPath();
-                ctx.arc(w - 55, itemY + 32, 22, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalAlpha = 1;
-                
-                ctx.restore();
-            });
-            
-            ctx.restore();
-            return startY + (items.length * itemHeight) + 20;
-        },
-        
-        // === STATS AVEC BARRES BRILLANTES ===
-        drawStaticStats(ctx, startY, ai, gameState, colors, fadeIn, time) {
-            const w = this.CONFIG.WIDTH;
-            
-            ctx.save();
-            ctx.globalAlpha = fadeIn;
-            
-            // Header fixe
-            const headerGrad = ctx.createLinearGradient(0, startY, 0, startY + 40);
-            headerGrad.addColorStop(0, colors.primary);
-            headerGrad.addColorStop(1, '#0f0f1e');
-            ctx.fillStyle = headerGrad;
-            ctx.fillRect(15, startY, w - 30, 40);
-            
-            ctx.font = 'bold 20px Arial';
-            ctx.fillStyle = '#6495ED';
-            ctx.textAlign = 'center';
-            ctx.fillText('📊 LES STATS 📊', w / 2, startY + 26);
-            
-            startY += 45;
-            
-            const frameHeight = 250;
-            
-            // Fond fixe
-            const bgGrad = ctx.createLinearGradient(0, startY, 0, startY + frameHeight);
-            bgGrad.addColorStop(0, '#f8f8f8');
-            bgGrad.addColorStop(1, '#ffffff');
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(15, startY, w - 30, frameHeight);
-            
-            ctx.strokeStyle = '#ccc';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(15, startY, w - 30, frameHeight);
-            
-            let y = startY + 30;
-            
-            // Taux victoire avec barre brillante
-            if (ai.cast.precision && ai.cast.precision.length > 0) {
-                const topPlayer = ai.cast.precision[0];
-                
-                ctx.font = '17px Arial';
-                ctx.fillStyle = '#1a1a1a';
-                ctx.textAlign = 'left';
-                ctx.fillText(`🎯 Taux de victoire : ${topPlayer.name}`, 30, y);
-                y += 28;
-                
-                const barWidth = w - 60;
-                
-                // Barre background
-                ctx.fillStyle = '#e8e8e8';
-                ctx.fillRect(30, y, barWidth, 24);
-                
-                // === BARRE AVEC EFFET DE BRILLANCE MOUVANT ===
-                const filledWidth = barWidth * (topPlayer.value / 100);
-                
-                const barGradient = ctx.createLinearGradient(30, y, 30 + filledWidth, y);
-                barGradient.addColorStop(0, '#4CAF50');
-                barGradient.addColorStop(0.5, '#45a049');
-                barGradient.addColorStop(1, '#66BB6A');
-                ctx.fillStyle = barGradient;
-                ctx.fillRect(30, y, filledWidth, 24);
-                
-                // Effet de brillance qui se déplace
-                const shinePos = (time * 100) % barWidth;
-                const shineGrad = ctx.createLinearGradient(30 + shinePos - 30, y, 30 + shinePos + 30, y);
-                shineGrad.addColorStop(0, 'rgba(255,255,255,0)');
-                shineGrad.addColorStop(0.5, 'rgba(255,255,255,0.4)');
-                shineGrad.addColorStop(1, 'rgba(255,255,255,0)');
-                ctx.fillStyle = shineGrad;
-                ctx.fillRect(30, y, filledWidth, 24);
-                
-                // Pourcentage fixe
-                ctx.font = 'bold 18px "Courier New", monospace';
-                ctx.fillStyle = '#fff';
-                ctx.textAlign = 'center';
-                ctx.fillText(`${topPlayer.value}%`, w / 2, y + 17);
-                
-                y += 40;
-            }
-            
-            // Meilleure manche (fixe)
-            ctx.font = '17px Arial';
-            ctx.fillStyle = '#1a1a1a';
-            ctx.textAlign = 'left';
-            ctx.fillText(`🔥 Meilleure manche : ${ai.bestRound.player}`, 30, y);
-            y += 28;
-            
-            ctx.font = 'bold 32px "Courier New", monospace';
-            const scoreGrad = ctx.createLinearGradient(0, y - 22, 0, y);
-            scoreGrad.addColorStop(0, colors.accent);
-            scoreGrad.addColorStop(1, colors.primary);
-            ctx.fillStyle = scoreGrad;
-            ctx.fillText(`${ai.bestRound.score} pts`, 30, y);
-            
-            y += 38;
-            
-            // Écart final (fixe)
-            ctx.font = '17px Arial';
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillText(`🎯 Écart final : ${ai.finalGap} pts`, 30, y);
-            y += 30;
-            
-            ctx.fillText(`📈 Total manches : ${gameState.history.length}`, 30, y);
-            
-            ctx.restore();
-            return startY + frameHeight + 30;
-        },
-        
-        // === WATERMARK FLOTTANT ===
-        drawFloatingWatermark(ctx, time) {
-            const w = this.CONFIG.WIDTH;
-            const h = this.CONFIG.HEIGHT;
-            
-            // Oscillation douce
-            const bobY = Math.sin(time * 1.5) * 3;
-            const bobRotate = Math.sin(time * 0.8) * 0.02;
-            
-            ctx.save();
-            ctx.translate(w / 2, h - 35 + bobY);
-            ctx.rotate(bobRotate);
-            
-            // Ombre
-            ctx.shadowBlur = 10 + Math.sin(time * 2) * 3;
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            
-            // Badge
-            const badgeGrad = ctx.createLinearGradient(-55, -12, 55, 12);
-            badgeGrad.addColorStop(0, 'rgba(30, 30, 46, 0.9)');
-            badgeGrad.addColorStop(1, 'rgba(15, 15, 30, 0.9)');
-            ctx.fillStyle = badgeGrad;
-            ctx.fillRect(-55, -12, 110, 24);
-            
-            ctx.shadowBlur = 0;
-            
-            // Bordure pulsante
-            const borderGlow = 0.5 + Math.sin(time * 3) * 0.3;
-            ctx.strokeStyle = `rgba(255, 215, 0, ${borderGlow})`;
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(-55, -12, 110, 24);
-            
-            // Texte
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = 'rgba(255, 215, 0, 0.7)';
-            ctx.font = 'bold 13px Arial';
-            ctx.fillStyle = '#FFD700';
-            ctx.textAlign = 'center';
-            ctx.fillText('ScoreMaster™', 0, 4);
-            
-            ctx.restore();
-        },
-        
-        drawPaperTexture(ctx) {
-            // Texture de fond déterministe (pas de random pour éviter le scintillement GIF)
-            ctx.fillStyle = 'rgba(139, 119, 101, 0.015)';
-            for (let i = 0; i < 400; i++) {
-                // Pattern déterministe basé sur l'index
-                const px = (i * 17 + 7) % this.CONFIG.WIDTH;
-                const py = (i * 23 + 13) % this.CONFIG.HEIGHT;
-                const size = 1 + (i % 2);
-                ctx.fillRect(px, py, size, size);
-            }
-            
-            // Vignette subtile sur les bords
-            const vignetteGrad = ctx.createRadialGradient(
-                this.CONFIG.WIDTH / 2, this.CONFIG.HEIGHT / 2, 0,
-                this.CONFIG.WIDTH / 2, this.CONFIG.HEIGHT / 2, this.CONFIG.WIDTH * 0.7
-            );
-            vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
-            vignetteGrad.addColorStop(1, 'rgba(0,0,0,0.03)');
-            ctx.fillStyle = vignetteGrad;
-            ctx.fillRect(0, 0, this.CONFIG.WIDTH, this.CONFIG.HEIGHT);
-        },
-        
-        drawWatermark(ctx) {
-            const w = this.CONFIG.WIDTH;
-            const h = this.CONFIG.HEIGHT;
-            
-            // Badge premium en bas centré
-            ctx.save();
-            ctx.translate(w / 2, h - 35);
-            
-            // Fond du badge avec ombre
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            
-            const badgeGrad = ctx.createLinearGradient(-55, -12, 55, 12);
-            badgeGrad.addColorStop(0, 'rgba(30, 30, 46, 0.9)');
-            badgeGrad.addColorStop(1, 'rgba(15, 15, 30, 0.9)');
-            ctx.fillStyle = badgeGrad;
-            ctx.fillRect(-55, -12, 110, 24);
-            
-            ctx.shadowBlur = 0;
-            
-            // Bordure dorée
-            ctx.strokeStyle = 'rgba(255, 215, 0, 0.7)';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(-55, -12, 110, 24);
-            
-            // Texte avec glow
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = 'rgba(255, 215, 0, 0.7)';
-            ctx.font = 'bold 13px Arial';
-            ctx.fillStyle = '#FFD700';
-            ctx.textAlign = 'center';
-            ctx.fillText('ScoreMaster™', 0, 4);
-            
-            ctx.restore();
-        },
-        
-        easeOutCubic(t) {
-            return 1 - Math.pow(1 - t, 3);
-        },
-        
-        easeOutBounce(t) {
-            const n1 = 7.5625;
-            const d1 = 2.75;
-            if (t < 1 / d1) return n1 * t * t;
-            else if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;
-            else if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;
-            else return n1 * (t -= 2.625 / d1) * t + 0.984375;
-        },
-        
-        easeOutBack(t) {
-            const c1 = 1.70158;
-            const c3 = c1 + 1;
-            return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-        },
-        
-        downloadGif(blob) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ScoreMaster_Recap_${Date.now()}.gif`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-    };
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             app.init();
