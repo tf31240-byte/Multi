@@ -1029,6 +1029,7 @@ transition: all 0.3s ease;
 
 @keyframes podiumRise { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+#confirm-modal { z-index: 6500; }
 #confirm-modal .modal-box { text-align: center; }
 #confirm-msg { font-size: 18px; margin: 0 0 25px 0; color: var(--text); }
 .confirm-actions { display: flex; gap: 10px; }
@@ -1211,6 +1212,7 @@ transition: all 0.3s ease;
         <h1 class="welcome-title" style="margin:0; flex:1;">ScoreMaster</h1>
         <div style="display:flex; gap:10px;">
             <button class="btn-stats" onclick="app.showStats()" title="Statistiques">📊</button>
+            <button id="sound-toggle" class="theme-toggle" onclick="app.toggleSound()" title="Son">🔊</button>
             <button id="theme-toggle" class="theme-toggle" onclick="app.toggleTheme()">🌙</button>
         </div>
     </div>
@@ -1220,7 +1222,7 @@ transition: all 0.3s ease;
     </div>
     <div class="mode-btn" onclick="app.openPresets()">
         <span style="font-size:30px; margin-right:15px;">🎮</span>
-        <div><h2 style="margin:0">Nouvelle partie</h2><p style="margin:4px 0 0; font-size:12px; color:var(--text-sec)">Belote, Tarot, Skyjo, Uno...</p></div>
+        <div><h2 style="margin:0">Nouvelle partie</h2><p style="margin:4px 0 0; font-size:12px; color:var(--text-sec)">Uno, Skyjo, Flip 7, Rami...</p></div>
     </div>
     <div style="margin-top: 40px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -1231,9 +1233,11 @@ transition: all 0.3s ease;
     </div>
     <div class="guide-container">
         <b style="display:block; margin-bottom:8px; color:var(--text)">📖 Guide Rapide</b>
-        • Cliquez sur le <b style="color:var(--text)">NOM</b> pour le donneur 🃏<br>
-        • Cliquez sur le <b style="color:var(--text)">SCORE</b> pour les points ✍️<br>
-        • Cliquez sur l'<b style="color:var(--text)">HISTORIQUE</b> pour corriger ✏️
+        • 📊 Stats : Consultez vos classements et records<br>
+        • 👁️ Zen : Affichage épuré plein écran<br>
+        • 🃏 Nom : Cliquez pour donner/renommer<br>
+        • ✍️ Score : Cliquez sur le score pour saisir<br>
+        • ✏️ Manche : Cliquez sur l'historique pour corriger
     </div>
 </div>
 
@@ -1327,7 +1331,7 @@ transition: all 0.3s ease;
             </button>
             <button class="btn-main" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; font-size:16px;" onclick="app.shareRecapGIF()">
                 🎬 GIF
-                <div style="font-size:10px; opacity:0.8; margin-top:2px;">~30s</div>
+                <div style="font-size:10px; opacity:0.8; margin-top:2px;">~15s</div>
             </button>
         </div>
         <button class="btn-main" style="background:var(--primary); color:white; margin:0 0 12px;" onclick="app.restartWithSamePlayers()">🔄 REJOUER (mêmes joueurs)</button>
@@ -2194,12 +2198,24 @@ transition: all 0.3s ease;
                 container.appendChild(el);
             });
         },
-        renderScoreCards(state) {
+        renderScoreCards(state, editIdx = null) {
             const isLowest = app.currentGame.victoryCondition === 'lowest';
+            
+            // Calculer le score corrigé pour l'affichage
+            const getDisplayScore = (p) => {
+                if (editIdx !== null && state.temp[p.id] !== undefined) {
+                    // En mode édition: total - ancienne valeur + nouvelle valeur
+                    const oldRoundValue = state.history[editIdx]?.[p.id] || 0;
+                    const newRoundValue = state.temp[p.id] || 0;
+                    return p.total - oldRoundValue + newRoundValue;
+                }
+                return p.total + (state.temp[p.id] || 0);
+            };
+            
             // Toujours trier selon victoryCondition, même en mode Zen
             const sorted = [...state.players].sort((a,b) => {
-                const scoreA = a.total + (state.temp[a.id]||0);
-                const scoreB = b.total + (state.temp[b.id]||0);
+                const scoreA = getDisplayScore(a);
+                const scoreB = getDisplayScore(b);
                 return isLowest ? scoreA - scoreB : scoreB - scoreA;
             });
             const grid = document.getElementById('grid');
@@ -2217,8 +2233,9 @@ transition: all 0.3s ease;
             // En mode Zen, afficher dans l'ordre trié pour que les badges soient corrects
             const displayOrder = sorted;
             displayOrder.forEach(p => {
-                const tempScore = state.temp[p.id] || 0;
-                const totalScore = p.total + tempScore;
+                const totalScore = getDisplayScore(p);
+                const oldRoundValue = editIdx !== null ? (state.history[editIdx]?.[p.id] || 0) : 0;
+                const tempScore = editIdx !== null ? (state.temp[p.id] || 0) - oldRoundValue : (state.temp[p.id] || 0);
                 const rankIdx = sorted.findIndex(s => s.id === p.id);
                 let badgeClass = 'badge-none', badgeText = '#' + (rankIdx + 1);
                 if(rankIdx === 0) { badgeClass = 'badge-1'; badgeText = '🥇'; }
@@ -2599,6 +2616,15 @@ transition: all 0.3s ease;
             try { savedTheme = localStorage.getItem('sm_theme'); } catch(e) {}
             if(savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); this.updateThemeIcon(); }
             
+            // Charger la préférence son
+            try {
+                const savedSound = localStorage.getItem('sm_sound');
+                if (savedSound !== null) {
+                    SoundFX.enabled = savedSound === '1';
+                }
+                this.updateSoundIcon();
+            } catch(e) {}
+            
             try {
                 const savedPlayersData = localStorage.getItem('sm_saved_players');
                 if(savedPlayersData) { this.savedPlayers = JSON.parse(savedPlayersData); }
@@ -2646,6 +2672,24 @@ transition: all 0.3s ease;
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const isDark = theme === 'dark' || (theme !== 'light' && prefersDark);
             document.getElementById('theme-toggle').textContent = isDark ? '☀️' : '🌙';
+        },
+        toggleSound() {
+            SoundFX.enabled = !SoundFX.enabled;
+            try {
+                if (Storage.storageAvailable) {
+                    localStorage.setItem('sm_sound', SoundFX.enabled ? '1' : '0');
+                }
+            } catch(e) {
+                console.warn('Impossible de sauvegarder le son:', e);
+            }
+            this.updateSoundIcon();
+            if(navigator.vibrate) navigator.vibrate(30);
+        },
+        updateSoundIcon() {
+            const btn = document.getElementById('sound-toggle');
+            if (btn) {
+                btn.textContent = SoundFX.enabled ? '🔊' : '🔇';
+            }
         },
         updateThemeColor() {
             const theme = document.documentElement.getAttribute('data-theme');
@@ -3380,7 +3424,7 @@ transition: all 0.3s ease;
         
         render() {
             if(!this.currentGame) return;
-            UI.renderScoreCards(this.currentGame.state);
+            UI.renderScoreCards(this.currentGame.state, this.editIdx);
             UI.renderHistory(this.currentGame.state, this.editIdx);
             // Utiliser le chart avec debounce pour éviter les re-rendus excessifs
             this._debouncedRenderChart(this.currentGame.state, this.editIdx);
@@ -3566,9 +3610,14 @@ transition: all 0.3s ease;
                 return;
             }
             
-            // Verrou pour empêcher double génération
+            // Verrou pour empêcher double génération (vérifié au début ET lors du confirm)
             if (this._gifGenerating) {
                 UI.showToast('⏳ Génération en cours...', 'warning');
+                return;
+            }
+            
+            // Verrou pour empêcher d'ouvrir plusieurs confirms
+            if (this._confirmPending) {
                 return;
             }
             
@@ -3579,18 +3628,27 @@ transition: all 0.3s ease;
                 return;
             }
             
-            // Activer le verrou AVANT le confirm pour éviter double-clic
-            this._gifGenerating = true;
+            // Capturer les données du jeu IMMÉDIATEMENT avant tout confirm
+            // (le modal de victoire peut être fermé pendant l'attente)
+            const savedGameState = { 
+                ...this.currentGame.state, 
+                victoryCondition: this.currentGame.victoryCondition 
+            };
             
-            // Utiliser UI.confirm() au lieu de window.confirm() pour PWA iOS
+            // Marquer qu'un confirm est en attente
+            this._confirmPending = true;
+            
             const self = this;
             UI.confirm('Générer le GIF ? (~15 secondes)', function() {
+                // Activer le verrou GIF au moment de la confirmation
+                self._gifGenerating = true;
+                self._confirmPending = false;
+                
                 UI.showLoading('🎬 Génération du GIF...');
                 UI.updateLoadingProgress(0, 'Initialisation...');
                 
                 try {
-                    const gameStateWithConfig = { ...self.currentGame.state, victoryCondition: self.currentGame.victoryCondition };
-                    UnifiedRecapGenerator.generateAnimated(gameStateWithConfig, (progress, message) => {
+                    UnifiedRecapGenerator.generateAnimated(savedGameState, (progress, message) => {
                         UI.updateLoadingProgress(progress, message);
                     });
                 } catch (error) {
@@ -3603,8 +3661,8 @@ transition: all 0.3s ease;
                 // ou après un timeout de sécurité
                 setTimeout(() => { self._gifGenerating = false; }, 30000);
             }, function() {
-                // Callback onNo: libérer le verrou si l'utilisateur annule
-                self._gifGenerating = false;
+                // Callback onNo: libérer le flag confirm si l'utilisateur annule
+                self._confirmPending = false;
             });
         },
         openModal(playerId) {
@@ -4441,9 +4499,9 @@ transition: all 0.3s ease;
                 }
                 
                 // Libérer le canvas immédiatement après génération des frames
+                // Note: pas besoin de setter ctx = null, ça lancerait une erreur (const)
                 reusableCanvas.width = 1;
                 reusableCanvas.height = 1;
-                ctx = null;
                 
                 updateProgress(60, 'Encodage du GIF...');
                 
