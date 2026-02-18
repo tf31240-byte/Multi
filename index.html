@@ -1499,10 +1499,15 @@ transition: all 0.3s ease;
             if (!state || !state.players || !state.history) return state;
             // Réinitialiser tous les totaux à 0
             state.players.forEach(p => { p.total = 0; });
-            // Recalculer depuis l'historique
+            // Recalculer depuis l'historique avec validation
             state.history.forEach(round => {
                 state.players.forEach(p => {
-                    p.total += (round[p.id] || 0);
+                    const score = round[p.id];
+                    // Valider que le score est un nombre fini
+                    if (typeof score === 'number' && isFinite(score) && !isNaN(score)) {
+                        p.total += score;
+                    }
+                    // Ignorer les valeurs invalides (non-numériques)
                 });
             });
             return state;
@@ -1514,8 +1519,22 @@ transition: all 0.3s ease;
             );
         },
         validate(scores, mode) {
+            // Vérifier que scores est un objet valide
+            if (!scores || typeof scores !== 'object') {
+                return { valid: false, error: 'Scores invalides' };
+            }
+            
             const values = Object.values(scores);
+            
+            // Vérifier que toutes les valeurs sont des nombres valides
+            for (const v of values) {
+                if (typeof v !== 'number' || isNaN(v) || !isFinite(v)) {
+                    return { valid: false, error: 'Score invalide (doit être un nombre)' };
+                }
+            }
+            
             if(values.some(v => v > 9999)) return { valid: false, error: 'Score trop élevé (max 9999)' };
+            if(values.some(v => v < -9999)) return { valid: false, error: 'Score trop bas (min -9999)' };
             if(mode === 'belote' && values.some(v => v < 0)) return { valid: false, error: 'Score négatif impossible en Belote' };
             return { valid: true };
         }
@@ -1945,21 +1964,37 @@ transition: all 0.3s ease;
             if(type === 'success') SoundFX.success();
             else if(type === 'error') SoundFX.error();
         },
-        confirm(message, onYes) {
+        confirm(message, onYes, onNo) {
             SoundFX.click();
             const modal = document.getElementById('confirm-modal');
             const msgEl = document.getElementById('confirm-msg');
             const yesBtn = document.getElementById('confirm-yes-btn');
             msgEl.textContent = message;
             modal.classList.add('active');
-            const newBtn = yesBtn.cloneNode(true);
-            yesBtn.parentNode.replaceChild(newBtn, yesBtn);
-            newBtn.addEventListener('click', () => {
+            
+            // Stocker le callback onNo pour pouvoir l'appeler lors de l'annulation
+            this._confirmOnNo = onNo || null;
+            
+            // Utiliser une fonction nommée pour pouvoir la retirer
+            const handleConfirm = () => {
                 modal.classList.remove('active');
+                yesBtn.removeEventListener('click', handleConfirm);
+                this._confirmOnNo = null; // Nettoyer
                 onYes();
-            });
+            };
+            
+            // Retirer tout ancien handler et ajouter le nouveau
+            yesBtn.onclick = null;
+            yesBtn.addEventListener('click', handleConfirm);
         },
-        closeConfirm() { document.getElementById('confirm-modal').classList.remove('active'); },
+        closeConfirm() {
+            document.getElementById('confirm-modal').classList.remove('active');
+            // Appeler le callback onNo si défini (pour annulation)
+            if (this._confirmOnNo) {
+                this._confirmOnNo();
+                this._confirmOnNo = null;
+            }
+        },
         
         showStats() {
             SoundFX.click();
@@ -3544,10 +3579,12 @@ transition: all 0.3s ease;
                 return;
             }
             
+            // Activer le verrou AVANT le confirm pour éviter double-clic
+            this._gifGenerating = true;
+            
             // Utiliser UI.confirm() au lieu de window.confirm() pour PWA iOS
             const self = this;
             UI.confirm('Générer le GIF ? (~15 secondes)', function() {
-                self._gifGenerating = true;
                 UI.showLoading('🎬 Génération du GIF...');
                 UI.updateLoadingProgress(0, 'Initialisation...');
                 
@@ -3565,6 +3602,9 @@ transition: all 0.3s ease;
                 // Note: le verrou sera libéré par UnifiedRecapGenerator à la fin de la génération
                 // ou après un timeout de sécurité
                 setTimeout(() => { self._gifGenerating = false; }, 30000);
+            }, function() {
+                // Callback onNo: libérer le verrou si l'utilisateur annule
+                self._gifGenerating = false;
             });
         },
         openModal(playerId) {
@@ -3640,6 +3680,13 @@ transition: all 0.3s ease;
         savePlayer() {
             SoundFX.click();
             const player = this.currentGame.state.players.find(p => p.id === this.editPlayerId);
+            
+            // Vérifier que le joueur existe
+            if (!player) {
+                UI.showToast('⚠️ Erreur: joueur introuvable', 'error');
+                return;
+            }
+            
             let newName = document.getElementById('edit-name').value.trim().toUpperCase();
             
             // === VALIDATION DU NOM ===
@@ -4370,27 +4417,33 @@ transition: all 0.3s ease;
                 const totalFrames = this.CONFIG.FPS * this.CONFIG.DURATION;
                 updateProgress(10, `Génération de ${totalFrames} frames...`);
                 
+                // Utiliser un seul canvas réutilisable pour réduire la mémoire
+                const reusableCanvas = document.createElement('canvas');
+                reusableCanvas.width = this.CONFIG.WIDTH;
+                reusableCanvas.height = this.calculateHeight(ai);
+                const ctx = reusableCanvas.getContext('2d');
+                
                 const frames = [];
                 for (let frame = 0; frame < totalFrames; frame++) {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = this.CONFIG.WIDTH;
-                    canvas.height = this.calculateHeight(ai);
-                    const ctx = canvas.getContext('2d');
+                    // Effacer le canvas pour la nouvelle frame
+                    ctx.clearRect(0, 0, reusableCanvas.width, reusableCanvas.height);
                     
                     const time = frame / totalFrames;
                     this.drawFrame(ctx, ai, time, true);
                     
-                    // Convertir directement en dataURL et libérer le canvas
-                    frames.push(canvas.toDataURL('image/png'));
-                    // Libérer la mémoire du canvas immédiatement
-                    canvas.width = 1;
-                    canvas.height = 1;
+                    // Convertir en dataURL
+                    frames.push(reusableCanvas.toDataURL('image/png'));
                     
                     if (frame % 4 === 0) {
                         const percent = 10 + Math.round((frame / totalFrames) * 50);
                         updateProgress(percent, `Frame ${frame + 1}/${totalFrames}`);
                     }
                 }
+                
+                // Libérer le canvas immédiatement après génération des frames
+                reusableCanvas.width = 1;
+                reusableCanvas.height = 1;
+                ctx = null;
                 
                 updateProgress(60, 'Encodage du GIF...');
                 
