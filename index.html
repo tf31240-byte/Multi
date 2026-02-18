@@ -1035,6 +1035,72 @@ transition: all 0.3s ease;
 .confirm-actions { display: flex; gap: 10px; }
 .btn-confirm-no { background: var(--card); color: var(--text); border: 1px solid var(--border); }
 .btn-confirm-yes { background: var(--danger); color: white; border: 1px solid var(--danger); }
+
+/* Toggle Switch pour Paramètres */
+.settings-toggle {
+    width: 52px;
+    height: 32px;
+    border-radius: 16px;
+    background: var(--border);
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+    padding: 0;
+}
+.settings-toggle.active {
+    background: var(--success);
+}
+.settings-toggle .toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.3s;
+}
+.settings-toggle.active .toggle-slider {
+    transform: translateX(20px);
+}
+
+/* Sections de paramètres */
+.settings-section {
+    margin-bottom: 20px;
+}
+.settings-section-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-sec);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+.settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--bg);
+    border-radius: 14px;
+    margin-bottom: 8px;
+}
+.settings-label {
+    flex: 1;
+}
+.settings-name {
+    font-weight: 800;
+    font-size: 15px;
+    margin-bottom: 2px;
+}
+.settings-desc {
+    font-size: 12px;
+    color: var(--text-sec);
+}
 </style>
 
 </head>
@@ -1087,6 +1153,138 @@ transition: all 0.3s ease;
                 <button class="filter-btn-records" onclick="UI.filterRecords('standard')">🎲 Standard</button>
             </div>
             <div id="records-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Paramètres -->
+<div id="settings-modal" class="modal-overlay" onclick="if(event.target===this) UI.closeSettings()">
+    <div class="modal-box large" style="max-height:80vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0">⚙️ Paramètres</h2>
+            <button onclick="UI.closeSettings()" style="background:none; border:none; font-size:24px; color:var(--text); cursor:pointer;">✕</button>
+        </div>
+        
+        <!-- Section Apparence -->
+        <div class="settings-section">
+            <div class="settings-section-title">Apparence</div>
+            <div class="settings-row">
+                <div class="settings-label">
+                    <div class="settings-name">🌙 Mode sombre</div>
+                    <div class="settings-desc">Activer le thème sombre</div>
+                </div>
+                <button id="settings-theme-btn" class="settings-toggle" onclick="app.toggleTheme(); UI.updateSettingsUI();">
+                    <span class="toggle-slider"></span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Section Notifications -->
+        <div class="settings-section">
+            <div class="settings-section-title">🔔 Notifications & Alertes</div>
+            <div class="settings-row">
+                <div class="settings-label">
+                    <div class="settings-name">📳 Vibration</div>
+                    <div class="settings-desc">Retours haptiques sur les actions</div>
+                </div>
+                <button id="settings-vibration-btn" class="settings-toggle" onclick="app.toggleSetting('vibration'); UI.updateSettingsUI();">
+                    <span class="toggle-slider"></span>
+                </button>
+            </div>
+            <div class="settings-row">
+                <div class="settings-label">
+                    <div class="settings-name">🎉 Célébrations</div>
+                    <div class="settings-desc">Confettis à la victoire</div>
+                </div>
+                <button id="settings-confetti-btn" class="settings-toggle" onclick="app.toggleSetting('confetti'); UI.updateSettingsUI();">
+                    <span class="toggle-slider"></span>
+                </button>
+            </div>
+            <div class="settings-row">
+                <div class="settings-label">
+                    <div class="settings-name">🏆 Milestones</div>
+                    <div class="settings-desc">Célébrer les 200, 500, 1000 pts</div>
+                </div>
+                <button id="settings-milestones-btn" class="settings-toggle" onclick="app.toggleSetting('milestones'); UI.updateSettingsUI();">
+                    <span class="toggle-slider"></span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Section Sons -->
+        <div class="settings-section">
+            <div class="settings-section-title">🔊 Sons</div>
+            <div class="settings-row">
+                <div class="settings-label">
+                    <div class="settings-name">🔊 Effets sonores</div>
+                    <div class="settings-desc">Activer les sons</div>
+                </div>
+                <button id="settings-sound-btn" class="settings-toggle" onclick="app.toggleSound(); UI.updateSettingsUI();">
+                    <span class="toggle-slider"></span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Section Affichage -->
+        <div class="settings-section">
+            <div class="settings-section-title">🎨 Affichage</div>
+            <div class="settings-row">
+                <div class="settings-label">
+                    <div class="settings-name">📊 Graphique</div>
+                    <div class="settings-desc">Afficher le graphique de progression</div>
+                </div>
+                <button id="settings-chart-btn" class="settings-toggle" onclick="app.toggleSetting('showChart'); UI.updateSettingsUI();">
+                    <span class="toggle-slider"></span>
+                </button>
+            </div>
+            <div class="settings-row">
+                <div class="settings-label">
+                    <div class="settings-name">➕ Score temporaire</div>
+                    <div class="settings-desc">Afficher le delta sous le score</div>
+                </div>
+                <button id="settings-tempScore-btn" class="settings-toggle" onclick="app.toggleSetting('showTempScore'); UI.updateSettingsUI();">
+                    <span class="toggle-slider"></span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Section Avancé -->
+        <div class="settings-section">
+            <div class="settings-section-title">🔧 Avancé</div>
+            <div class="settings-row" style="cursor:pointer;" onclick="app.clearRecentPlayers()">
+                <div class="settings-label">
+                    <div class="settings-name">🗑️ Effacer joueurs récents</div>
+                    <div class="settings-desc">Vider la liste des noms suggérés</div>
+                </div>
+                <div style="color:var(--primary); font-size:20px;">→</div>
+            </div>
+            <div class="settings-row" style="cursor:pointer;" onclick="app.resetStats()">
+                <div class="settings-label">
+                    <div class="settings-name">📊 Réinitialiser les stats</div>
+                    <div class="settings-desc">Remettre à zéro les classements</div>
+                </div>
+                <div style="color:var(--primary); font-size:20px;">→</div>
+            </div>
+        </div>
+        
+        <!-- Section Données -->
+        <div class="settings-section">
+            <div class="settings-section-title">💾 Données</div>
+            <div class="settings-row" style="cursor:pointer;" onclick="app.exportData()">
+                <div class="settings-label">
+                    <div class="settings-name">📤 Exporter les données</div>
+                    <div class="settings-desc">Télécharger toutes vos parties</div>
+                </div>
+                <div style="color:var(--primary); font-size:20px;">→</div>
+            </div>
+            <div class="settings-row" style="cursor:pointer;" onclick="document.getElementById('import-file').click()">
+                <div class="settings-label">
+                    <div class="settings-name">📥 Importer les données</div>
+                    <div class="settings-desc">Restaurer une sauvegarde</div>
+                </div>
+                <div style="color:var(--primary); font-size:20px;">→</div>
+            </div>
+            <input type="file" id="import-file" accept=".json" style="display:none;" onchange="app.importData(this)">
         </div>
     </div>
 </div>
@@ -1212,8 +1410,7 @@ transition: all 0.3s ease;
         <h1 class="welcome-title" style="margin:0; flex:1;">ScoreMaster</h1>
         <div style="display:flex; gap:10px;">
             <button class="btn-stats" onclick="app.showStats()" title="Statistiques">📊</button>
-            <button id="sound-toggle" class="theme-toggle" onclick="app.toggleSound()" title="Son">🔊</button>
-            <button id="theme-toggle" class="theme-toggle" onclick="app.toggleTheme()">🌙</button>
+            <button class="theme-toggle" onclick="UI.showSettings()" title="Paramètres">⚙️</button>
         </div>
     </div>
     <div class="mode-btn" onclick="app.quickStartBelote()">
@@ -2006,6 +2203,34 @@ transition: all 0.3s ease;
             this.switchStatsTab('rank'); 
         },
         closeStats() { document.getElementById('stats-modal').classList.remove('active'); },
+        showSettings() {
+            SoundFX.click();
+            document.getElementById('settings-modal').classList.add('active');
+            this.updateSettingsUI();
+        },
+        closeSettings() { document.getElementById('settings-modal').classList.remove('active'); },
+        updateSettingsUI() {
+            const themeBtn = document.getElementById('settings-theme-btn');
+            const soundBtn = document.getElementById('settings-sound-btn');
+            const vibrationBtn = document.getElementById('settings-vibration-btn');
+            const confettiBtn = document.getElementById('settings-confetti-btn');
+            const milestonesBtn = document.getElementById('settings-milestones-btn');
+            const chartBtn = document.getElementById('settings-chart-btn');
+            const tempScoreBtn = document.getElementById('settings-tempScore-btn');
+            
+            // Vérifier si le mode sombre est actif
+            const theme = document.documentElement.getAttribute('data-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = theme === 'dark' || (theme !== 'light' && prefersDark);
+            
+            if (themeBtn) themeBtn.classList.toggle('active', isDark);
+            if (soundBtn) soundBtn.classList.toggle('active', SoundFX.enabled);
+            if (vibrationBtn) vibrationBtn.classList.toggle('active', app.settings.vibration);
+            if (confettiBtn) confettiBtn.classList.toggle('active', app.settings.confetti);
+            if (milestonesBtn) milestonesBtn.classList.toggle('active', app.settings.milestones);
+            if (chartBtn) chartBtn.classList.toggle('active', app.settings.showChart);
+            if (tempScoreBtn) tempScoreBtn.classList.toggle('active', app.settings.showTempScore);
+        },
         switchStatsTab(tab) {
             SoundFX.click();
             document.getElementById('tab-rank').classList.remove('active');
@@ -2244,11 +2469,13 @@ transition: all 0.3s ease;
                 const card = document.createElement('div');
                 card.className = `p-card ${state.dealerId === p.id ? 'is-dealer' : ''}`;
                 if(rankChanges.has(p.id) && !app.focusMode) card.classList.add('rank-change');
+                const tempScoreDisplay = app.settings.showTempScore ? 
+                    `<div class="p-temp">${tempScore ? (tempScore > 0 ? '+' + tempScore : tempScore) : ''}</div>` : '';
                 card.innerHTML = `
                     <div class="rank-badge ${badgeClass} ${rankChanges.has(p.id) ? 'bounce' : ''}">${badgeText}</div>
                     <div class="p-name-btn" style="color:${p.color}; border-color:${p.color}40" onclick="app.openModal(${p.id})">${p.name}</div>
                     <div class="p-score ${tempScore !== 0 ? 'score-bump' : ''}" onclick="app.openSheet(${p.id})">${totalScore}</div>
-                    <div class="p-temp">${tempScore ? (tempScore > 0 ? '+' + tempScore : tempScore) : ''}</div>
+                    ${tempScoreDisplay}
                     ${state.dealerId === p.id ? '<div style="position:absolute; top:8px; right:8px; font-size:12px;">🃏</div>' : ''}
                 `;
                 grid.appendChild(card);
@@ -2283,7 +2510,14 @@ transition: all 0.3s ease;
         },
         renderChart(state, editIdx) {
             const ctx = document.getElementById('chart');
+            const chartBox = ctx?.closest('.chart-box');
             if(!ctx || typeof Chart === 'undefined') return;
+            
+            // Masquer le graphique si le paramètre est désactivé
+            if (chartBox) {
+                chartBox.style.display = app.settings.showChart ? '' : 'none';
+            }
+            if (!app.settings.showChart) return;
             
             // Préparer les données
             let allValues = [0];
@@ -2455,8 +2689,8 @@ transition: all 0.3s ease;
             }
             overlay.classList.add('active');
             this.switchVictoryTab('podium');
-            this.launchFireworks();
-            if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+            if(app.settings.confetti) this.launchFireworks();
+            if(app.settings.vibration && navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
         },
         calculatePlayerGameStats(player, state) {
             const isLowest = state.victoryCondition === 'lowest';
@@ -2494,7 +2728,7 @@ transition: all 0.3s ease;
             if(score >= 1000) milestone = '🎉 1000 POINTS !';
             else if(score >= 500) milestone = '🎊 500 POINTS !';
             else if(score >= 200) milestone = '✨ 200 POINTS !';
-            if(navigator.vibrate) {
+            if(app.settings.vibration && navigator.vibrate) {
                 if(score >= 1000) navigator.vibrate([50, 100, 50, 100, 50]);
                 else if(score >= 500) navigator.vibrate([50, 100, 50]);
                 else navigator.vibrate(100);
@@ -2592,6 +2826,15 @@ transition: all 0.3s ease;
     const app = {
         currentGame: null, activePlayerId: null, editIdx: null, chart: null, savedPlayers: {}, focusMode: false,
         recentPlayers: [], // Les 8 derniers noms de joueurs utilisés
+        
+        // Paramètres par défaut
+        settings: {
+            vibration: true,
+            confetti: true,
+            milestones: true,
+            showChart: true,
+            showTempScore: true
+        },
         lastRanks: {}, // Pour le suivi des animations de rang
         pendingPreset: null, // Preset en attente lors de la sélection du nombre de joueurs
         tempCustomMode: null, // Configuration temporaire pour la sauvegarde de mode personnalisé
@@ -2623,6 +2866,14 @@ transition: all 0.3s ease;
                     SoundFX.enabled = savedSound === '1';
                 }
                 this.updateSoundIcon();
+            } catch(e) {}
+            
+            // Charger les paramètres
+            try {
+                const savedSettings = localStorage.getItem('sm_settings');
+                if (savedSettings) {
+                    this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
+                }
             } catch(e) {}
             
             try {
@@ -2665,13 +2916,11 @@ transition: all 0.3s ease;
                 console.warn('Impossible de sauvegarder le thème:', e);
             }
             this.updateThemeIcon();
-            if(navigator.vibrate) navigator.vibrate(30);
+            if(app.settings.vibration && navigator.vibrate) navigator.vibrate(30);
         },
         updateThemeIcon() {
-            const theme = document.documentElement.getAttribute('data-theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const isDark = theme === 'dark' || (theme !== 'light' && prefersDark);
-            document.getElementById('theme-toggle').textContent = isDark ? '☀️' : '🌙';
+            // Met à jour le toggle dans le modal paramètres si ouvert
+            UI.updateSettingsUI();
         },
         toggleSound() {
             SoundFX.enabled = !SoundFX.enabled;
@@ -2683,13 +2932,146 @@ transition: all 0.3s ease;
                 console.warn('Impossible de sauvegarder le son:', e);
             }
             this.updateSoundIcon();
-            if(navigator.vibrate) navigator.vibrate(30);
+            if(app.settings.vibration && navigator.vibrate) navigator.vibrate(30);
         },
         updateSoundIcon() {
-            const btn = document.getElementById('sound-toggle');
-            if (btn) {
-                btn.textContent = SoundFX.enabled ? '🔊' : '🔇';
+            // Met à jour le toggle dans le modal paramètres si ouvert
+            UI.updateSettingsUI();
+        },
+        toggleSetting(key) {
+            this.settings[key] = !this.settings[key];
+            this.saveSettings();
+            if(this.settings.vibration && navigator.vibrate) navigator.vibrate(30);
+        },
+        saveSettings() {
+            try {
+                localStorage.setItem('sm_settings', JSON.stringify(this.settings));
+            } catch(e) {
+                console.warn('Impossible de sauvegarder les paramètres:', e);
             }
+        },
+        clearRecentPlayers() {
+            SoundFX.click();
+            UI.confirm('Effacer la liste des joueurs récents ?', () => {
+                this.recentPlayers = [];
+                try {
+                    localStorage.removeItem('sm_recent_players');
+                } catch(e) {}
+                UI.showToast('🗑️ Joueurs récents effacés', 'success');
+            });
+        },
+        resetStats() {
+            SoundFX.click();
+            UI.confirm('Réinitialiser tous les classements et records ?', () => {
+                try {
+                    // Supprimer les données de statistiques
+                    localStorage.removeItem('sm_player_stats');
+                    
+                    // Parcourir toutes les parties et réinitialiser les flags
+                    const games = Storage.loadGames();
+                    if (games) {
+                        games.forEach(game => {
+                            if (game.state && game.state.celebratedMilestones) {
+                                game.state.celebratedMilestones = {};
+                            }
+                        });
+                        localStorage.setItem(Storage.GAMES_KEY, JSON.stringify(games));
+                    }
+                    
+                    UI.showToast('📊 Statistiques réinitialisées', 'success');
+                } catch(e) {
+                    console.error('Erreur reset stats:', e);
+                    UI.showToast('❌ Erreur lors de la réinitialisation', 'error');
+                }
+            });
+        },
+        exportData() {
+            SoundFX.click();
+            try {
+                const data = {
+                    version: 1,
+                    exportDate: new Date().toISOString(),
+                    games: Storage.loadGames(),
+                    currentGame: Storage.loadCurrentGame(),
+                    settings: this.settings,
+                    savedPlayers: this.savedPlayers,
+                    recentPlayers: this.recentPlayers,
+                    sound: SoundFX.enabled,
+                    theme: localStorage.getItem('sm_theme')
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ScoreMaster_Export_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                UI.showToast('📤 Données exportées !', 'success');
+            } catch(e) {
+                console.error('Erreur export:', e);
+                UI.showToast('❌ Erreur lors de l\'export', 'error');
+            }
+        },
+        importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // Vérifier la version
+                    if (!data.version) {
+                        throw new Error('Format de fichier invalide');
+                    }
+                    
+                    // Importer les données
+                    if (data.games) {
+                        localStorage.setItem(Storage.GAMES_KEY, JSON.stringify(data.games));
+                    }
+                    if (data.currentGame) {
+                        localStorage.setItem(Storage.CURRENT_KEY, JSON.stringify(data.currentGame));
+                    }
+                    if (data.settings) {
+                        this.settings = { ...this.settings, ...data.settings };
+                        this.saveSettings();
+                    }
+                    if (data.savedPlayers) {
+                        this.savedPlayers = data.savedPlayers;
+                        localStorage.setItem('sm_saved_players', JSON.stringify(data.savedPlayers));
+                    }
+                    if (data.recentPlayers) {
+                        this.recentPlayers = data.recentPlayers;
+                        localStorage.setItem('sm_recent_players', JSON.stringify(data.recentPlayers));
+                    }
+                    if (data.sound !== undefined) {
+                        SoundFX.enabled = data.sound;
+                        localStorage.setItem('sm_sound', data.sound ? '1' : '0');
+                    }
+                    if (data.theme) {
+                        localStorage.setItem('sm_theme', data.theme);
+                        document.documentElement.setAttribute('data-theme', data.theme);
+                    }
+                    
+                    UI.showToast('📥 Données importées !', 'success');
+                    UI.closeSettings();
+                    
+                    // Recharger l'affichage
+                    setTimeout(() => {
+                        this.init();
+                        this.showSetup();
+                    }, 500);
+                    
+                } catch(err) {
+                    console.error('Erreur import:', err);
+                    UI.showToast('❌ Fichier invalide', 'error');
+                }
+            };
+            reader.readAsText(file);
+            input.value = ''; // Reset pour permettre de réimporter le même fichier
         },
         updateThemeColor() {
             const theme = document.documentElement.getAttribute('data-theme');
@@ -2704,6 +3086,11 @@ transition: all 0.3s ease;
             this.focusMode = false;
             document.body.classList.remove('focus-mode');
             document.getElementById('dock').classList.add('hidden');
+            
+            // Sauvegarder la partie en cours avant de quitter
+            if(this.currentGame && !this.currentGame.finished) {
+                Storage.saveGame(this.currentGame);
+            }
             
             // Détruire le chart pour éviter les fuites mémoire
             if (this.chart) {
@@ -3410,7 +3797,7 @@ transition: all 0.3s ease;
 
             if(this.focusMode) { 
                 root.classList.add('focus-mode');
-                if(navigator.vibrate) navigator.vibrate(20);
+                if(app.settings.vibration && navigator.vibrate) navigator.vibrate(20);
             }
             else { 
                 root.classList.remove('focus-mode');
@@ -3595,7 +3982,7 @@ transition: all 0.3s ease;
                         UI.showToast('✅ PNG partagé !', 'success');
                     }
                     
-                    if(navigator.vibrate) navigator.vibrate([50, 30, 50]);
+                    if(app.settings.vibration && navigator.vibrate) navigator.vibrate([50, 30, 50]);
                 }, 300);
                 
             } catch (error) {
@@ -3819,9 +4206,9 @@ transition: all 0.3s ease;
         typeNum(n) {
             const current = (this.currentGame.state.temp[this.activePlayerId] || 0).toString();
             const newVal = parseInt((current === '0' ? '' : current) + n);
-            if(newVal > 9999) { if(navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Maximum 9999 points', 'warning'); return; }
-            if(newVal < -9999) { if(navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Minimum -9999 points', 'warning'); return; }
-            if(navigator.vibrate) navigator.vibrate(10);
+            if(newVal > 9999) { if(app.settings.vibration && navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Maximum 9999 points', 'warning'); return; }
+            if(newVal < -9999) { if(app.settings.vibration && navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Minimum -9999 points', 'warning'); return; }
+            if(app.settings.vibration && navigator.vibrate) navigator.vibrate(10);
             this.currentGame.state.temp[this.activePlayerId] = newVal;
             this.renderSwitcher();
             this.render();
@@ -3829,9 +4216,9 @@ transition: all 0.3s ease;
         addVal(value) {
             const current = this.currentGame.state.temp[this.activePlayerId] || 0;
             const newVal = current + value;
-            if(newVal > 9999) { if(navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Maximum 9999 points', 'warning'); return; }
-            if(newVal < -9999) { if(navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Minimum -9999 points', 'warning'); return; }
-            if(navigator.vibrate) navigator.vibrate(20);
+            if(newVal > 9999) { if(app.settings.vibration && navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Maximum 9999 points', 'warning'); return; }
+            if(newVal < -9999) { if(app.settings.vibration && navigator.vibrate) navigator.vibrate([50, 50, 50]); UI.showToast('⚠️ Minimum -9999 points', 'warning'); return; }
+            if(app.settings.vibration && navigator.vibrate) navigator.vibrate(20);
             // En mode belote, pas de scores négatifs
             this.currentGame.state.temp[this.activePlayerId] = this.currentGame.mode === 'belote' ? Math.max(0, newVal) : newVal;
             this.renderSwitcher();
@@ -3842,13 +4229,13 @@ transition: all 0.3s ease;
             const sliced = current.slice(0, -1);
             // Gérer le cas "-" ou "" qui donnerait NaN avec parseInt
             this.currentGame.state.temp[this.activePlayerId] = (sliced === '' || sliced === '-') ? 0 : parseInt(sliced);
-            if(navigator.vibrate) navigator.vibrate(15);
+            if(app.settings.vibration && navigator.vibrate) navigator.vibrate(15);
             this.renderSwitcher();
             this.render();
         },
         clearInput() {
             this.currentGame.state.temp[this.activePlayerId] = 0;
-            if(navigator.vibrate) navigator.vibrate([30, 50, 30]);
+            if(app.settings.vibration && navigator.vibrate) navigator.vibrate([30, 50, 30]);
             this.renderSwitcher();
             this.render();
         },
@@ -3907,7 +4294,7 @@ transition: all 0.3s ease;
                 UI.showToast(`✅ Manche ${roundNumber} enregistrée`, 'success');
             }
             // Milestones uniquement en mode 'highest' (pas en mode lowest)
-            if(this.currentGame.mode === 'standard' && this.currentGame.victoryCondition === 'highest') {
+            if(this.currentGame.mode === 'standard' && this.currentGame.victoryCondition === 'highest' && this.settings.milestones) {
                 state.players.forEach(p => {
                     const milestones = [200, 500, 1000];
                     milestones.forEach(milestone => {
