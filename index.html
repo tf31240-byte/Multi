@@ -3545,13 +3545,14 @@ transition: all 0.3s ease;
             }
             
             // Utiliser UI.confirm() au lieu de window.confirm() pour PWA iOS
-            UI.confirm('Générer le GIF ? (~15 secondes)', () => {
-                this._gifGenerating = true;
+            const self = this;
+            UI.confirm('Générer le GIF ? (~15 secondes)', function() {
+                self._gifGenerating = true;
                 UI.showLoading('🎬 Génération du GIF...');
                 UI.updateLoadingProgress(0, 'Initialisation...');
                 
                 try {
-                    const gameStateWithConfig = { ...this.currentGame.state, victoryCondition: this.currentGame.victoryCondition };
+                    const gameStateWithConfig = { ...self.currentGame.state, victoryCondition: self.currentGame.victoryCondition };
                     UnifiedRecapGenerator.generateAnimated(gameStateWithConfig, (progress, message) => {
                         UI.updateLoadingProgress(progress, message);
                     });
@@ -3559,10 +3560,11 @@ transition: all 0.3s ease;
                     console.error('[ScoreMaster] Erreur GIF:', error);
                     UI.hideLoading();
                     UI.showToast('❌ Erreur: ' + error.message, 'error');
-                } finally {
-                    // Le verrou sera libéré par UnifiedRecapGenerator à la fin
-                    setTimeout(() => { this._gifGenerating = false; }, 1000);
+                    self._gifGenerating = false;
                 }
+                // Note: le verrou sera libéré par UnifiedRecapGenerator à la fin de la génération
+                // ou après un timeout de sécurité
+                setTimeout(() => { self._gifGenerating = false; }, 30000);
             });
         },
         openModal(playerId) {
