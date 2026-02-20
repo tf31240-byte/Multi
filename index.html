@@ -2700,10 +2700,10 @@ transition: all 0.3s ease;
             
             // Calculer le score corrigé pour l'affichage
             const getDisplayScore = (p) => {
-                if (editIdx !== null && state.temp[p.id] !== undefined) {
-                    // En mode édition: total - ancienne valeur + nouvelle valeur
+                if (editIdx !== null) {
+                    // En mode édition: total - ancienne valeur + nouvelle valeur (ou ancienne si non saisie)
                     const oldRoundValue = state.history[editIdx]?.[p.id] || 0;
-                    const newRoundValue = state.temp[p.id] || 0;
+                    const newRoundValue = state.temp[p.id] !== undefined ? state.temp[p.id] : oldRoundValue;
                     return p.total - oldRoundValue + newRoundValue;
                 }
                 return p.total + (state.temp[p.id] || 0);
@@ -3335,10 +3335,13 @@ transition: all 0.3s ease;
                     UI.showToast('📥 Données importées !', 'success');
                     UI.closeSettings();
                     
+                    // Supprimer la partie courante pour éviter le flash d'écran
+                    // init() appellera showSetup() car currentGame sera null
+                    localStorage.removeItem(Storage.CURRENT_KEY);
+                    
                     // Recharger l'affichage
                     setTimeout(() => {
                         this.init();
-                        this.showSetup();
                     }, 500);
                     
                 } catch(err) {
@@ -3610,9 +3613,17 @@ transition: all 0.3s ease;
             const game = allPresets[key];
             UI.showToast(`↩️ ${game?.name || 'Jeu'} restauré`, 'success');
             
-            // Rafraîchir le modal des jeux masqués
-            this.showHiddenPresets();
-            // Rafraîchir la grille principale SANS fermer le modal (évite le flash)
+            // Vérifier s'il reste des jeux masqués
+            const remaining = this.getHiddenPresets();
+            if (remaining.length === 0) {
+                // Fermer le modal si plus de jeux masqués
+                const modal = document.getElementById('hidden-presets-modal');
+                if (modal) modal.remove();
+            } else {
+                // Rafraîchir le modal des jeux masqués
+                this.showHiddenPresets();
+            }
+            // Rafraîchir la grille principale
             this.refreshPresetsGrid();
         },
         createPresetCard(key, game) {
@@ -3902,6 +3913,13 @@ transition: all 0.3s ease;
                 return;
             }
             
+            // Vérifier l'unicité du nom
+            const existingPresets = Object.values(this.getAllPresets());
+            if (existingPresets.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                UI.showToast(`⚠️ Un jeu "${name}" existe déjà`, 'warning');
+                return;
+            }
+            
             if (!this.tempCustomMode) {
                 UI.showToast('⚠️ Erreur: configuration manquante', 'error');
                 return;
@@ -4082,6 +4100,8 @@ transition: all 0.3s ease;
         showStats() { UI.showStats(); },
         // Chart avec debounce pour optimiser les performances
         _debouncedRenderChart: debounce(function(state, editIdx) {
+            // Vérifier que currentGame existe toujours (peut avoir été effacé pendant le debounce)
+            if (!app.currentGame) return;
             UI.renderChart(state, editIdx);
         }, 100),
         
@@ -4341,7 +4361,7 @@ transition: all 0.3s ease;
             filtersContainer.innerHTML = filtersHtml;
         },
         toggleGameItem(id) {
-            const item = document.querySelector(`.game-item-collapsed[data-game-id="${id}"]`);
+            const item = document.querySelector(`.game-item-collapsed[data-game-id="${CSS.escape(id)}"]`);
             if(item) {
                 item.classList.toggle('expanded');
             }
@@ -4394,6 +4414,10 @@ transition: all 0.3s ease;
         deleteGame(gameId) {
             UI.confirm('Supprimer cette partie ?', () => {
                 Storage.deleteGame(gameId);
+                // Réinitialiser currentGame si c'était la partie en cours
+                if (this.currentGame && this.currentGame.id === gameId) {
+                    this.currentGame = null;
+                }
                 UI.showToast('✅ Partie supprimée', 'success');
                 this.renderGamesList();
             });
@@ -4434,6 +4458,8 @@ transition: all 0.3s ease;
                 UI.showToast('⚠️ Erreur de sauvegarde (Mémoire pleine)', 'error');
                 return;
             }
+            // Réinitialiser les rangs précédents pour éviter les animations incorrectes
+            this.lastRanks = {};
             UI.showToast('🎮 Nouvelle partie lancée !', 'success');
             this.render();
         },
@@ -4528,9 +4554,14 @@ transition: all 0.3s ease;
             
             // Capturer les données du jeu IMMÉDIATEMENT avant tout confirm
             // (le modal de victoire peut être fermé pendant l'attente)
+            // Copie PROFONDE pour éviter les race conditions
             const savedGameState = { 
-                ...this.currentGame.state, 
-                victoryCondition: this.currentGame.victoryCondition 
+                players: JSON.parse(JSON.stringify(this.currentGame.state.players)),
+                history: JSON.parse(JSON.stringify(this.currentGame.state.history)),
+                temp: {},
+                dealerId: this.currentGame.state.dealerId,
+                celebratedMilestones: { ...this.currentGame.state.celebratedMilestones },
+                victoryCondition: this.currentGame.victoryCondition
             };
             
             // Marquer qu'un confirm est en attente
@@ -4706,16 +4737,9 @@ transition: all 0.3s ease;
         },
         closeSheet() { 
             document.getElementById('sheet').classList.remove('active');
-            
-            // Réinitialiser le mode édition si on ferme sans valider
-            if (this.editIdx !== null) {
-                this.editIdx = null;
-                this.currentGame.state.temp = {};
-                const nextRound = this.currentGame.state.history.length + 1;
-                document.getElementById('save-btn').textContent = `ENREGISTRER MANCHE ${nextRound}`;
-                document.getElementById('save-btn').classList.remove('editing');
-            }
-            
+            // Ne PAS réinitialiser editIdx ni temp ici
+            // L'utilisateur doit valider via le bouton dock
+            // validateRound() s'en chargera après validation
             this.render(); 
         },
         renderSwitcher() {
@@ -4805,6 +4829,11 @@ transition: all 0.3s ease;
             SoundFX.click();
             const state = this.currentGame.state;
             if(Object.keys(state.temp).length === 0) { UI.showToast('⚠️ Aucun score saisi', 'warning'); return; }
+            
+            // Vérifier si tous les scores sont à zéro
+            const allZero = Object.values(state.temp).every(v => v === 0);
+            if(allZero) { UI.showToast('⚠️ Tous les scores sont à zéro', 'warning'); return; }
+            
             const validation = GameState.validate(state.temp, this.currentGame.mode);
             if(!validation.valid) { UI.showToast(validation.error, 'error'); return; }
             const previousTotals = {};
@@ -4845,8 +4874,13 @@ transition: all 0.3s ease;
             let winner = null;
             
             if(this.currentGame.mode === 'belote') {
-                winner = state.players.find(p => p.total >= 1000);
-                if(winner) gameEnded = true;
+                // Trouver tous les joueurs qui dépassent 1000
+                const over1000 = state.players.filter(p => p.total >= 1000);
+                if(over1000.length > 0) {
+                    // Prendre celui avec le score le plus élevé (en cas d'égalité simultanée)
+                    winner = over1000.sort((a, b) => b.total - a.total)[0];
+                    gameEnded = true;
+                }
             } else if(endCond.type === 'score') {
                 if(victCond === 'highest') {
                     // Premier à atteindre l'objectif gagne
@@ -4919,20 +4953,22 @@ transition: all 0.3s ease;
         },
         delRound(idx) {
             UI.confirm('Supprimer cette manche ?', () => {
-                GameState.deleteRound(this.currentGame.state, idx);
-                
-                // Reset editIdx si nécessaire
+                // Reset editIdx et temp AVANT deleteRound si on supprime la manche en cours d'édition
+                // (pour éviter que les valeurs temporaires ne soient prises en compte dans l'affichage)
                 if (this.editIdx !== null) {
                     if (this.editIdx === idx) {
-                        // On supprime la manche en cours d'édition
                         this.editIdx = null;
                         this.currentGame.state.temp = {};
-                        document.getElementById('save-btn').textContent = `ENREGISTRER MANCHE ${this.currentGame.state.history.length + 1}`;
+                        document.getElementById('save-btn').textContent = `ENREGISTRER MANCHE ${this.currentGame.state.history.length}`;
                         document.getElementById('save-btn').classList.remove('editing');
-                    } else if (this.editIdx > idx) {
-                        // La manche éditée est après celle supprimée, décaler l'index
-                        this.editIdx--;
                     }
+                }
+                
+                GameState.deleteRound(this.currentGame.state, idx);
+                
+                // Ajuster editIdx si la manche supprimée est avant celle en cours d'édition
+                if (this.editIdx !== null && this.editIdx > idx) {
+                    this.editIdx--;
                 }
                 
                 // Sauvegarder après suppression
@@ -4944,12 +4980,22 @@ transition: all 0.3s ease;
         undo() {
             const history = this.currentGame.state.history;
             if(history.length > 0) {
+                // Sauvegarder la taille avant suppression
+                const prevLength = history.length;
+                
                 // Undo direct sans confirmation pour une action plus fluide
                 GameState.deleteRound(this.currentGame.state, history.length - 1);
                 this.lastRanks = {}; // Reset les ranks pour éviter les animations incorrectes
                 
-                // Réinitialiser editIdx si on annule la manche en cours d'édition
-                if (this.editIdx !== null && this.editIdx >= history.length - 1) {
+                // Faire reculer le donneur d'un cran
+                const state = this.currentGame.state;
+                const currentIdx = state.players.findIndex(p => p.id === state.dealerId);
+                const prevIdx = (currentIdx - 1 + state.players.length) % state.players.length;
+                state.dealerId = state.players[prevIdx].id;
+                
+                // Réinitialiser editIdx seulement si la manche éditée a été supprimée
+                // (editIdx >= prevLength - 1 signifie qu'on éditait la dernière manche)
+                if (this.editIdx !== null && this.editIdx >= prevLength - 1) {
                     this.editIdx = null;
                     this.currentGame.state.temp = {};
                     const nextRound = this.currentGame.state.history.length + 1;
@@ -5489,6 +5535,8 @@ transition: all 0.3s ease;
                         this.particles = [];
                         UI.hideLoading();
                         UI.showToast('❌ Erreur: ' + obj.error, 'error');
+                        // Libérer le verrou GIF
+                        app._gifGenerating = false;
                     }
                 });
             } catch (error) {
@@ -5496,6 +5544,8 @@ transition: all 0.3s ease;
                 this.particles = [];
                 UI.hideLoading();
                 UI.showToast('❌ Erreur: ' + error.message, 'error');
+                // Libérer le verrou GIF
+                app._gifGenerating = false;
             }
         },
         
@@ -5778,7 +5828,7 @@ transition: all 0.3s ease;
                     // Tronquer si trop long
                     const maxNameW = podiumWidth - 10;
                     let displayName = name;
-                    while (ctx.measureText(displayName).width > maxNameW && displayName.length > 2) {
+                    while (ctx.measureText(displayName).width > maxNameW && displayName.length > 1) {
                         displayName = displayName.slice(0, -1);
                     }
                     ctx.fillText(displayName, centerX, aboveBarY - 28);
@@ -6069,7 +6119,7 @@ transition: all 0.3s ease;
                 const maxW = cardW - 30;
                 let text = ai.narrative;
                 if (ctx.measureText(text).width > maxW) {
-                    while (ctx.measureText(text + '...').width > maxW && text.length > 10) {
+                    while (ctx.measureText(text + '...').width > maxW && text.length > 1) {
                         text = text.slice(0, -1);
                     }
                     text += '...';
