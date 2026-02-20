@@ -32,7 +32,7 @@
 <style>
     /* --- VARIABLES & THEME --- */
     :root {
-        --primary: #007AFF; --bg: #F5F5F7; --card: #FFFFFF; --text: #1D1D1F;
+        --primary: #007AFF; --accent: #5856D6; --bg: #F5F5F7; --card: #FFFFFF; --text: #1D1D1F;
         --text-sec: #86868B; --border: #E5E5EA; --dealer: #FF9500; 
         --danger: #FF3B30; --success: #34C759; 
         
@@ -46,7 +46,7 @@
         --bg-gradient: radial-gradient(circle at 50% 0%, #ffffff, #F5F5F7);
     }
     :root[data-theme="dark"] {
-        --primary: #0A84FF; --bg: #000000; --card: #1C1C1E; --text: #F5F5F7;
+        --primary: #0A84FF; --accent: #6E6CF0; --bg: #000000; --card: #1C1C1E; --text: #F5F5F7;
         --text-sec: #98989D; --border: #38383A; 
         
         --glass-bg: rgba(28, 28, 30, 0.65);
@@ -616,6 +616,250 @@
     .game-actions button { background: none; border: none; font-size: 18px; padding: 8px; cursor: pointer; transition: transform 0.2s; }
     .game-actions button:active { transform: scale(0.9); }
 
+    /* Filtres historique */
+    .history-filters {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+        overflow-x: auto;
+        padding: 4px 0;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .history-filters::-webkit-scrollbar { display: none; }
+    .history-filter-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        cursor: pointer;
+        transition: all 0.2s;
+        flex-shrink: 0;
+        min-width: 52px;
+    }
+    .history-filter-btn:active { transform: scale(0.95); }
+    .history-filter-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .history-filter-btn .filter-icon {
+        font-size: 18px;
+        line-height: 1;
+    }
+    .history-filter-btn .filter-label {
+        font-size: 9px;
+        font-weight: 700;
+        margin-top: 3px;
+        color: var(--text);
+    }
+    .history-filter-btn.active .filter-icon,
+    .history-filter-btn.active .filter-label {
+        color: white;
+    }
+    
+    /* Items d'historique repliables */
+    .game-item-collapsed {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .game-item-collapsed:hover { border-color: var(--primary); }
+    .game-item-collapsed .collapsed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .game-item-collapsed .collapsed-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+    .game-item-collapsed .collapsed-icon {
+        font-size: 24px;
+    }
+    .game-item-collapsed .collapsed-title {
+        font-weight: 800;
+        font-size: 14px;
+    }
+    .game-item-collapsed .collapsed-date {
+        font-size: 11px;
+        color: var(--text-sec);
+    }
+    .game-item-collapsed .collapsed-winner {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .game-item-collapsed .expand-icon {
+        font-size: 12px;
+        color: var(--text-sec);
+        transition: transform 0.2s;
+    }
+    .game-item-collapsed.expanded .expand-icon {
+        transform: rotate(180deg);
+    }
+    .game-item-details {
+        display: none;
+        padding-top: 10px;
+        margin-top: 10px;
+        border-top: 1px solid var(--border);
+    }
+    .game-item-collapsed.expanded .game-item-details {
+        display: block;
+        animation: slideIn 0.2s ease-out;
+    }
+    .game-item-players {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+    .game-item-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+    }
+    
+    /* Badge pour les jeux */
+    .game-preset-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 9px;
+        font-weight: 800;
+        margin-left: 6px;
+        background: var(--primary);
+        color: white;
+    }
+    .game-preset-badge.belote { background: #FF9500; }
+    .game-preset-badge.uno { background: #FF3B30; }
+    .game-preset-badge.skyjo { background: #007AFF; }
+    .game-preset-badge.tarot { background: #5856D6; }
+    
+    /* Section parties en cours - design affiné */
+    .current-game-item {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+    }
+    .current-game-item:hover { 
+        border-color: var(--primary);
+        box-shadow: 0 4px 16px rgba(0,122,255,0.12);
+    }
+    .current-game-item:active { transform: scale(0.99); }
+    .current-game-item .current-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .current-game-item .current-icon {
+        font-size: 28px;
+        line-height: 1;
+    }
+    .current-game-item .current-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .current-game-item .current-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .current-game-item .current-title {
+        font-weight: 800;
+        font-size: 15px;
+        color: var(--text);
+    }
+    .current-game-item .current-badge {
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: var(--success);
+        color: white;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .current-game-item .current-meta {
+        font-size: 12px;
+        color: var(--text-sec);
+        margin-top: 3px;
+    }
+    .current-game-item .current-scores {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+    }
+    .current-game-item .player-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        transition: transform 0.15s;
+    }
+    .current-game-item .player-chip:hover {
+        transform: scale(1.05);
+    }
+    .current-game-item .player-chip-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+    .current-game-item .player-chip-name {
+        opacity: 0.8;
+    }
+    .current-game-item .player-chip-score {
+        font-weight: 900;
+    }
+    .current-game-item .current-arrow {
+        color: var(--text-sec);
+        font-size: 14px;
+        opacity: 0.4;
+        margin-left: 4px;
+    }
+
+    /* Message quand historique vide */
+    .history-empty-msg {
+        text-align: center;
+        color: var(--text-sec);
+        padding: 30px 20px;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    .history-empty-msg .empty-icon {
+        font-size: 40px;
+        margin-bottom: 12px;
+        opacity: 0.4;
+    }
+    
+    /* Masquer la section historique si vide */
+    #history-section:empty {
+        display: none;
+    }
+
     .chart-box { background: var(--glass-bg); backdrop-filter: blur(10px); border-radius: 24px; padding: 15px; height: 200px; margin-bottom: 25px; border: 1px solid var(--border); box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: opacity 0.5s ease; }
     
     .players-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-bottom: 30px; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -759,7 +1003,7 @@ box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 transform: scale(1.1);
 }
 
-.focus-mode header > *:not(.btn-focus) {
+.focus-mode header > *:not(.btn-focus):not(.btn-back) {
 opacity: 0;
 pointer-events: none;
 }
@@ -1421,12 +1665,29 @@ transition: all 0.3s ease;
         <span style="font-size:30px; margin-right:15px;">🎮</span>
         <div><h2 style="margin:0">Nouvelle partie</h2><p style="margin:4px 0 0; font-size:12px; color:var(--text-sec)">Uno, Skyjo, Flip 7, Rami...</p></div>
     </div>
-    <div style="margin-top: 40px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h3 style="margin:0; font-size:18px; font-weight:900;">📚 Historique des parties</h3>
-            <button onclick="app.clearAll()" style="background:none; border:none; color:var(--danger); font-weight:900; font-size:12px; cursor:pointer;">TOUT EFFACER</button>
+    <!-- Section Parties en cours -->
+    <div id="current-games-section" style="margin-top: 30px; display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0; font-size:16px; font-weight:900;">▶️ Parties en cours</h3>
         </div>
+        <div id="current-games-list"></div>
+    </div>
+    
+    <!-- Section Historique des parties -->
+    <div id="history-section" style="margin-top: 30px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0; font-size:16px; font-weight:900;">📚 Historique</h3>
+            <button id="clear-all-btn" onclick="app.clearAll()" style="background:none; border:none; color:var(--danger); font-weight:900; font-size:11px; cursor:pointer; display:none;">TOUT EFFACER</button>
+        </div>
+        <!-- Filtres par jeu (générés dynamiquement) -->
+        <div id="history-filters" class="history-filters"></div>
+        <!-- Liste des parties (cachée par défaut) -->
         <div id="games-list"></div>
+        <!-- Message par défaut -->
+        <div id="history-placeholder" class="history-empty-msg">
+            <div class="empty-icon">📚</div>
+            <div>Cliquez sur un filtre ci-dessus<br>pour voir vos parties</div>
+        </div>
     </div>
     <div class="guide-container">
         <b style="display:block; margin-bottom:8px; color:var(--text)">📖 Guide Rapide</b>
@@ -1440,7 +1701,7 @@ transition: all 0.3s ease;
 
 <div id="game" class="container hidden">
     <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <button onclick="app.showSetup()" style="background:var(--card); border:1px solid var(--border); width:40px; height:40px; border-radius:12px; color:var(--text); cursor:pointer;">⬅️</button>
+        <button class="btn-back" onclick="app.showSetup()" style="background:var(--card); border:1px solid var(--border); width:40px; height:40px; border-radius:12px; color:var(--text); cursor:pointer;">⬅️</button>
         <div style="flex:1; text-align:center;">
             <h1 id="mode-title" style="margin:0; font-size:22px; font-weight:900;">SCORE</h1>
             <div id="game-info" style="font-size:10px; color:var(--text-sec); font-weight:700; margin-top:3px;"></div>
@@ -1565,6 +1826,12 @@ transition: all 0.3s ease;
         audioAvailable: false,
         
         init() {
+            // Fermer l'ancien AudioContext s'il existe
+            if (this.ctx && this.ctx.state !== 'closed') {
+                this.ctx.close().catch(() => {});
+                this.ctx = null;
+            }
+            
             try {
                 if (window.AudioContext || window.webkitAudioContext) {
                     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1865,6 +2132,9 @@ transition: all 0.3s ease;
         },
         
         saveGame(game) {
+            // Mettre à jour la date de dernière modification
+            game.lastModified = new Date().toISOString();
+            
             // Valider d'abord
             if (!this.validateGameData(game)) {
                 console.error("SM: Données invalides, tentative de réparation");
@@ -1993,8 +2263,14 @@ transition: all 0.3s ease;
                 g.finished && (mode === 'all' || g.mode === mode)
             );
 
-            // Trier les jeux par date une seule fois
-            games.sort((a, b) => new Date(a.date || a.timestamp) - new Date(b.date || b.timestamp));
+            // Trier les jeux par date une seule fois (gérer les dates invalides)
+            games.sort((a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                if (isNaN(dateA)) return 1;  // Dates invalides à la fin
+                if (isNaN(dateB)) return -1;
+                return dateA - dateB;
+            });
 
             const stats = {};
             const streaks = {};
@@ -2129,6 +2405,7 @@ transition: all 0.3s ease;
     // ==================== UI LAYER AMÉLIORÉ ====================
     const UI = {
         currentStatsMode: 'all',
+        currentRecordsMode: 'all',
         
         // === INDICATEUR DE CHARGEMENT ===
         showLoading(message = 'Génération en cours...') {
@@ -2176,17 +2453,12 @@ transition: all 0.3s ease;
             // Stocker le callback onNo pour pouvoir l'appeler lors de l'annulation
             this._confirmOnNo = onNo || null;
             
-            // Utiliser une fonction nommée pour pouvoir la retirer
-            const handleConfirm = () => {
+            // Utiliser onclick (pas addEventListener) pour éviter l'accumulation de handlers
+            yesBtn.onclick = () => {
                 modal.classList.remove('active');
-                yesBtn.removeEventListener('click', handleConfirm);
                 this._confirmOnNo = null; // Nettoyer
                 onYes();
             };
-            
-            // Retirer tout ancien handler et ajouter le nouveau
-            yesBtn.onclick = null;
-            yesBtn.addEventListener('click', handleConfirm);
         },
         closeConfirm() {
             document.getElementById('confirm-modal').classList.remove('active');
@@ -2261,7 +2533,7 @@ transition: all 0.3s ease;
         },
         renderRanking() {
             const data = StatsEngine.calculateStats(this.currentStatsMode);
-            const container = document.getElementById('stats-content-rank');
+            const container = document.getElementById('ranking-list');
             container.innerHTML = '';
             if(data.length === 0) { container.innerHTML = '<p class="text-center" style="color:var(--text-sec); padding:20px;">Aucune statistique disponible</p>'; return; }
             data.forEach((p, idx) => {
@@ -2362,13 +2634,13 @@ transition: all 0.3s ease;
             `;
         },
         filterRecords(mode) {
-            this.currentStatsMode = mode;
+            this.currentRecordsMode = mode;
             document.querySelectorAll('.filter-btn-records').forEach(b => b.classList.remove('active'));
             document.querySelector(`.filter-btn-records[onclick="UI.filterRecords('${mode}')"]`)?.classList.add('active');
             this.renderRecords();
         },
         renderRecords() {
-            const data = StatsEngine.getRecordScores(this.currentStatsMode || 'all');
+            const data = StatsEngine.getRecordScores(this.currentRecordsMode || 'all');
             const container = document.getElementById('stats-content-records');
             container.innerHTML = '';
             if(data.length === 0) { container.innerHTML = '<p class="text-center" style="color:var(--text-sec); padding:20px;">Aucun record.</p>'; return; }
@@ -2988,11 +3260,12 @@ transition: all 0.3s ease;
         exportData() {
             SoundFX.click();
             try {
+                const currentGame = Storage.loadCurrentGame();
                 const data = {
                     version: 1,
                     exportDate: new Date().toISOString(),
                     games: Storage.loadGames(),
-                    currentGame: Storage.loadCurrentGame(),
+                    currentGameId: currentGame?.id || null,
                     settings: this.settings,
                     savedPlayers: this.savedPlayers,
                     recentPlayers: this.recentPlayers,
@@ -3032,8 +3305,11 @@ transition: all 0.3s ease;
                     if (data.games) {
                         localStorage.setItem(Storage.GAMES_KEY, JSON.stringify(data.games));
                     }
-                    if (data.currentGame) {
-                        localStorage.setItem(Storage.CURRENT_KEY, JSON.stringify(data.currentGame));
+                    // Supporter les deux formats : currentGameId (nouveau) et currentGame (ancien)
+                    if (data.currentGameId) {
+                        localStorage.setItem(Storage.CURRENT_KEY, data.currentGameId);
+                    } else if (data.currentGame && data.currentGame.id) {
+                        localStorage.setItem(Storage.CURRENT_KEY, data.currentGame.id);
                     }
                     if (data.settings) {
                         this.settings = { ...this.settings, ...data.settings };
@@ -3823,41 +4099,276 @@ transition: all 0.3s ease;
                 saveBtn.textContent = `ENREGISTRER MANCHE ${nextRound}`;
             }
         },
-        renderGamesList() {
+        renderGamesList(filter = null) {
             const games = Storage.loadGames();
-            const list = document.getElementById('games-list');
-            if(!games || games.length === 0) { list.innerHTML = '<p class="text-center" style="color:var(--text-sec); padding:20px;">Aucune partie enregistrée</p>'; return; }
-            list.innerHTML = '';
-            games.slice().reverse().forEach(game => {
+            const currentGamesList = document.getElementById('current-games-list');
+            const historyList = document.getElementById('games-list');
+            const currentSection = document.getElementById('current-games-section');
+            const filtersContainer = document.getElementById('history-filters');
+            const placeholder = document.getElementById('history-placeholder');
+            const clearAllBtn = document.getElementById('clear-all-btn');
+            
+            // Aucune partie enregistrée
+            if(!games || games.length === 0) { 
+                historyList.innerHTML = '';
+                currentSection.style.display = 'none';
+                filtersContainer.innerHTML = '';
+                placeholder.innerHTML = '<div class="empty-icon">🎮</div><div>Aucune partie enregistrée<br>Lancez votre première partie !</div>';
+                placeholder.style.display = 'block';
+                clearAllBtn.style.display = 'none';
+                return;
+            }
+            
+            // Séparer les parties en cours et terminées
+            const currentGames = games.filter(g => !g.finished);
+            const finishedGames = games.filter(g => g.finished);
+            
+            // Afficher les parties en cours (triées par dernière modification)
+            if(currentGames.length > 0) {
+                currentSection.style.display = 'block';
+                currentGamesList.innerHTML = '';
+                
+                // Trier par date de modification (la plus récente en premier)
+                const sortedCurrentGames = [...currentGames].sort((a, b) => {
+                    const dateA = a.lastModified || a.date || 0;
+                    const dateB = b.lastModified || b.date || 0;
+                    return new Date(dateB) - new Date(dateA);
+                });
+                
+                sortedCurrentGames.forEach(game => {
+                    const isLowest = game.victoryCondition === 'lowest';
+                    const sortedPlayers = [...game.state.players].sort((a,b) => isLowest ? a.total - b.total : b.total - a.total);
+                    const preset = this.getAllPresets()[game.preset] || null;
+                    const icon = preset?.icon || (game.mode === 'belote' ? '🃏' : '🎲');
+                    const safeId = String(game.id).replace(/[^a-zA-Z0-9_-]/g, '');
+                    const safeGameName = escapeHtml(game.name);
+                    
+                    // Formater la date
+                    const gameDate = new Date(game.lastModified || game.date);
+                    const dateStr = gameDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                    const timeStr = gameDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                    
+                    // Générer les chips des joueurs avec leurs couleurs
+                    let playersHtml = '';
+                    sortedPlayers.forEach(p => {
+                        playersHtml += `
+                            <div class="player-chip" style="background: ${p.color}18; color: ${p.color};">
+                                <span class="player-chip-dot" style="background: ${p.color};"></span>
+                                <span class="player-chip-name">${escapeHtml(p.name)}</span>
+                                <span class="player-chip-score">${p.total}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    const item = document.createElement('div');
+                    item.className = 'current-game-item';
+                    item.onclick = () => this.loadGame(safeId);
+                    item.innerHTML = `
+                        <div class="current-header">
+                            <span class="current-icon">${icon}</span>
+                            <div class="current-info">
+                                <div class="current-title-row">
+                                    <span class="current-title">${safeGameName}</span>
+                                    <span class="current-badge">En cours</span>
+                                </div>
+                                <div class="current-meta">${dateStr} • ${timeStr} • ${game.state.history.length} manche${game.state.history.length > 1 ? 's' : ''}</div>
+                            </div>
+                            <span class="current-arrow">›</span>
+                        </div>
+                        <div class="current-scores">${playersHtml}</div>
+                    `;
+                    currentGamesList.appendChild(item);
+                });
+            } else {
+                currentSection.style.display = 'none';
+            }
+            
+            // Générer les filtres dynamiquement basés sur les parties existantes
+            this.renderHistoryFilters(finishedGames, filter);
+            
+            // Si pas de filtre sélectionné, afficher le placeholder
+            if(!filter) {
+                historyList.innerHTML = '';
+                placeholder.style.display = finishedGames.length > 0 ? 'block' : 'none';
+                clearAllBtn.style.display = finishedGames.length > 0 ? 'block' : 'none';
+                return;
+            }
+            
+            // Masquer le placeholder
+            placeholder.style.display = 'none';
+            clearAllBtn.style.display = 'block';
+            
+            // Filtrer les parties
+            let filteredGames = finishedGames;
+            
+            if(filter !== 'all' && filter !== 'recent') {
+                filteredGames = finishedGames.filter(g => {
+                    if(filter === 'belote') return g.mode === 'belote' || g.preset === 'belote';
+                    return g.preset === filter;
+                });
+            }
+            
+            if(filteredGames.length === 0) {
+                historyList.innerHTML = '<p class="text-center" style="color:var(--text-sec); padding:20px;">Aucune partie dans cette catégorie</p>';
+                return;
+            }
+            
+            // Trier par date (plus récent d'abord)
+            filteredGames = filteredGames.slice().reverse();
+            
+            // Limiter à 10 parties récentes si filtre "recent"
+            if(filter === 'recent') {
+                filteredGames = filteredGames.slice(0, 10);
+            }
+            
+            historyList.innerHTML = '';
+            filteredGames.forEach(game => {
                 const isLowest = game.victoryCondition === 'lowest';
                 const sortedPlayers = [...game.state.players].sort((a,b) => isLowest ? a.total - b.total : b.total - a.total);
                 const winner = sortedPlayers[0];
-                const date = new Date(game.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-                const modeBadge = game.mode === 'belote' ? '<span class="game-mode-badge badge-belote">🃏 BELOTE</span>' : '<span class="game-mode-badge badge-standard">🎲 STANDARD</span>';
-                const item = document.createElement('div');
-                item.className = 'game-item';
-                let playersScoresHtml = '';
-                sortedPlayers.forEach((p, idx) => {
-                    const isWinner = idx === 0;
-                    // Échapper le nom du joueur pour prévenir XSS
-                    const safeName = escapeHtml(p.name);
-                    playersScoresHtml += `<div class="game-player-score" style="background:${p.color}20; color:${p.color}; border: 1px solid ${p.color}40;">${isWinner ? '🏆 ' : ''}${safeName}: ${p.total}</div>`;
-                });
-                // Échapper le nom de la partie pour prévenir XSS
+                const preset = this.getAllPresets()[game.preset] || null;
+                const icon = preset?.icon || (game.mode === 'belote' ? '🃏' : '🎲');
+                const date = new Date(game.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                const safeId = String(game.id).replace(/[^a-zA-Z0-9_-]/g, '');
                 const safeGameName = escapeHtml(game.name);
+                const safeWinnerName = escapeHtml(winner.name);
+                
+                const item = document.createElement('div');
+                item.className = 'game-item-collapsed';
+                item.setAttribute('data-game-id', safeId);
+                
+                let playersHtml = '';
+                sortedPlayers.forEach(p => {
+                    playersHtml += `<div class="game-player-score" style="background:${p.color}20; color:${p.color}; border: 1px solid ${p.color}40;">${escapeHtml(p.name)}: ${p.total}</div>`;
+                });
+                
                 item.innerHTML = `
-                    <div onclick="app.loadGame('${game.id}')" style="flex:1; cursor:pointer;">
-                        <div style="font-weight:900; font-size:16px; margin-bottom:6px;">${safeGameName} ${game.finished ? '✓' : ''} ${modeBadge}</div>
-                        <div style="font-size:12px; color:var(--text-sec); margin-bottom:8px;">${date} • ${game.state.history.length} manches</div>
-                        <div class="game-players-list">${playersScoresHtml}</div>
+                    <div class="collapsed-header" onclick="app.toggleGameItem('${safeId}')">
+                        <div class="collapsed-info">
+                            <span class="collapsed-icon">${icon}</span>
+                            <div>
+                                <div class="collapsed-title">${safeGameName}</div>
+                                <div class="collapsed-date">${date} • ${game.state.history.length} manches</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="collapsed-winner" style="color:${winner.color};">
+                                🏆 ${safeWinnerName} (${winner.total})
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
                     </div>
-                    <div class="game-actions"><button onclick="event.stopPropagation(); app.deleteGame('${game.id}')" title="Supprimer">🗑️</button></div>
+                    <div class="game-item-details">
+                        <div class="game-item-players">${playersHtml}</div>
+                        <div class="game-item-actions">
+                            <button onclick="app.loadGame('${safeId}')" style="padding:8px 16px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:700; font-size:13px; cursor:pointer;">▶️ Voir</button>
+                            <button onclick="event.stopPropagation(); app.deleteGame('${safeId}')" style="background:none; border:none; color:var(--danger); font-size:18px; cursor:pointer;">🗑️</button>
+                        </div>
+                    </div>
                 `;
-                list.appendChild(item);
+                historyList.appendChild(item);
             });
+        },
+        renderHistoryFilters(finishedGames, activeFilter = null) {
+            const filtersContainer = document.getElementById('history-filters');
+            if(!finishedGames || finishedGames.length === 0) {
+                filtersContainer.innerHTML = '';
+                return;
+            }
+            
+            // Compter les parties par type
+            const gameCounts = {};
+            finishedGames.forEach(g => {
+                const key = g.preset || (g.mode === 'belote' ? 'belote' : 'standard');
+                gameCounts[key] = (gameCounts[key] || 0) + 1;
+            });
+            
+            // Récupérer les infos des presets
+            const allPresets = this.getAllPresets();
+            
+            // Construire les boutons de filtre
+            let filtersHtml = '';
+            
+            // Filtre "Récents" (toujours affiché si il y a des parties)
+            const recentActive = activeFilter === 'recent' ? ' active' : '';
+            filtersHtml += `
+                <button class="history-filter-btn${recentActive}" data-filter="recent" onclick="app.filterHistory('recent')">
+                    <span class="filter-icon">🕐</span>
+                    <span class="filter-label">Récents</span>
+                </button>
+            `;
+            
+            // Filtres par jeu existant
+            Object.keys(gameCounts).sort().forEach(key => {
+                const count = gameCounts[key];
+                const preset = allPresets[key];
+                let icon, label;
+                
+                if(key === 'belote') {
+                    icon = '🃏';
+                    label = 'Belote';
+                } else if(key === 'standard') {
+                    icon = '🎲';
+                    label = 'Standard';
+                } else if(preset) {
+                    icon = preset.icon || '🎮';
+                    label = preset.name.length > 8 ? preset.name.substring(0, 7) + '.' : preset.name;
+                } else {
+                    icon = '🎮';
+                    label = key.length > 8 ? key.substring(0, 7) + '.' : key;
+                }
+                
+                const isActive = activeFilter === key ? ' active' : '';
+                filtersHtml += `
+                    <button class="history-filter-btn${isActive}" data-filter="${escapeHtml(key)}" onclick="app.filterHistory('${escapeHtml(key)}')">
+                        <span class="filter-icon">${icon}</span>
+                        <span class="filter-label">${escapeHtml(label)}</span>
+                    </button>
+                `;
+            });
+            
+            // Filtre "Tous" (seulement si plus d'un type de jeu)
+            if(Object.keys(gameCounts).length > 1) {
+                const allActive = activeFilter === 'all' ? ' active' : '';
+                filtersHtml += `
+                    <button class="history-filter-btn${allActive}" data-filter="all" onclick="app.filterHistory('all')">
+                        <span class="filter-icon">📋</span>
+                        <span class="filter-label">Tous</span>
+                    </button>
+                `;
+            }
+            
+            filtersContainer.innerHTML = filtersHtml;
+        },
+        toggleGameItem(id) {
+            const item = document.querySelector(`.game-item-collapsed[data-game-id="${id}"]`);
+            if(item) {
+                item.classList.toggle('expanded');
+            }
+        },
+        filterHistory(filter) {
+            SoundFX.click();
+            // Vérifier si ce filtre est déjà actif
+            const activeBtn = document.querySelector('.history-filter-btn.active');
+            const currentFilter = activeBtn?.getAttribute('data-filter');
+            
+            // Si le filtre est déjà actif, on le désélectionne et on ferme l'historique
+            if(currentFilter === filter) {
+                this.renderGamesList(null); // Ferme l'historique
+                return;
+            }
+            
+            // Re-render avec le filtre
+            this.renderGamesList(filter);
         },
         loadGame(id) {
             SoundFX.click();
+            
+            // Sauvegarder la partie en cours avant de charger la nouvelle
+            if (this.currentGame && !this.currentGame.finished) {
+                Storage.saveGame(this.currentGame);
+            }
+            
             const game = Storage.loadGames().find(g => g.id === id);
             if(game) {
                 try {
@@ -4160,9 +4671,14 @@ transition: all 0.3s ease;
             }
             
             // Vérifier les caractères interdits
-            const forbiddenChars = /[<>\"'&]/;
+            const forbiddenChars = /[<>"'&]/g;
             if (forbiddenChars.test(newName)) {
                 newName = newName.replace(forbiddenChars, '');
+                // Re-vérifier si le nom est vide après suppression
+                if (!newName || newName.length === 0) {
+                    UI.showToast('⚠️ Nom invalide après suppression des caractères', 'warning');
+                    return;
+                }
                 UI.showToast('⚠️ Caractères spéciaux supprimés', 'warning');
             }
             
@@ -4188,7 +4704,20 @@ transition: all 0.3s ease;
             this.renderSwitcher();
             document.getElementById('sheet').classList.add('active');
         },
-        closeSheet() { document.getElementById('sheet').classList.remove('active'); this.render(); },
+        closeSheet() { 
+            document.getElementById('sheet').classList.remove('active');
+            
+            // Réinitialiser le mode édition si on ferme sans valider
+            if (this.editIdx !== null) {
+                this.editIdx = null;
+                this.currentGame.state.temp = {};
+                const nextRound = this.currentGame.state.history.length + 1;
+                document.getElementById('save-btn').textContent = `ENREGISTRER MANCHE ${nextRound}`;
+                document.getElementById('save-btn').classList.remove('editing');
+            }
+            
+            this.render(); 
+        },
         renderSwitcher() {
             const cont = document.getElementById('input-switcher');
             cont.innerHTML = '';
@@ -4241,8 +4770,15 @@ transition: all 0.3s ease;
         },
         handleSmart() {
             SoundFX.click();
-            if(this.currentGame.mode === 'belote') { this.currentGame.state.temp[this.activePlayerId] = 252; }
-            else { const current = this.currentGame.state.temp[this.activePlayerId] || 0; this.currentGame.state.temp[this.activePlayerId] = current * -1; }
+            if(this.currentGame.mode === 'belote') {
+                this.currentGame.state.temp[this.activePlayerId] = 252;
+                // Mettre l'autre équipe à 0 pour le CAPOT
+                const otherPlayer = this.currentGame.state.players.find(p => p.id !== this.activePlayerId);
+                if (otherPlayer) this.currentGame.state.temp[otherPlayer.id] = 0;
+            } else {
+                const current = this.currentGame.state.temp[this.activePlayerId] || 0;
+                this.currentGame.state.temp[this.activePlayerId] = current * -1;
+            }
             this.renderSwitcher();
             this.render();
         },
@@ -4254,6 +4790,11 @@ transition: all 0.3s ease;
             const otherPlayer = players.find(p => p.id !== this.activePlayerId);
             if(otherPlayer) {
                 const currentScore = this.currentGame.state.temp[this.activePlayerId] || 0;
+                // Valider que le score n'excède pas 162
+                if (currentScore > 162) {
+                    UI.showToast('⚠️ Score supérieur à 162 impossible', 'warning');
+                    return;
+                }
                 this.currentGame.state.temp[otherPlayer.id] = Math.max(0, 162 - currentScore);
                 this.activePlayerId = otherPlayer.id;
                 this.renderSwitcher();
@@ -4281,16 +4822,6 @@ transition: all 0.3s ease;
             } else {
                 roundNumber = state.history.length + 1;
                 GameState.addRound(state, state.temp);
-                
-                // Protection findIndex = -1
-                const currentIdx = state.players.findIndex(p => p.id === state.dealerId);
-                if (currentIdx === -1) {
-                    console.warn('Dealer not found, resetting to first player');
-                    state.dealerId = state.players[0].id;
-                } else {
-                    state.dealerId = state.players[(currentIdx + 1) % state.players.length].id;
-                }
-                
                 UI.showToast(`✅ Manche ${roundNumber} enregistrée`, 'success');
             }
             // Milestones uniquement en mode 'highest' (pas en mode lowest)
@@ -4349,6 +4880,15 @@ transition: all 0.3s ease;
                 
                 this.currentGame.finished = true;
                 setTimeout(() => { UI.showVictory(winner, winner.total, state); }, 500);
+            } else if (this.editIdx === null) {
+                // Rotation du donneur uniquement si la partie continue et ce n'était pas une édition
+                const currentIdx = state.players.findIndex(p => p.id === state.dealerId);
+                if (currentIdx === -1) {
+                    console.warn('Dealer not found, resetting to first player');
+                    state.dealerId = state.players[0].id;
+                } else {
+                    state.dealerId = state.players[(currentIdx + 1) % state.players.length].id;
+                }
             }
             
             // Une seule sauvegarde pour tous les cas
@@ -4407,6 +4947,16 @@ transition: all 0.3s ease;
                 // Undo direct sans confirmation pour une action plus fluide
                 GameState.deleteRound(this.currentGame.state, history.length - 1);
                 this.lastRanks = {}; // Reset les ranks pour éviter les animations incorrectes
+                
+                // Réinitialiser editIdx si on annule la manche en cours d'édition
+                if (this.editIdx !== null && this.editIdx >= history.length - 1) {
+                    this.editIdx = null;
+                    this.currentGame.state.temp = {};
+                    const nextRound = this.currentGame.state.history.length + 1;
+                    document.getElementById('save-btn').textContent = `ENREGISTRER MANCHE ${nextRound}`;
+                    document.getElementById('save-btn').classList.remove('editing');
+                }
+                
                 Storage.saveGame(this.currentGame);
                 UI.showToast('↩️ Manche annulée', 'success');
                 this.render();
@@ -4492,6 +5042,10 @@ transition: all 0.3s ease;
         },
         
         addInstallButton() {
+            // Supprimer un éventuel ancien banner
+            const existing = document.getElementById('install-banner');
+            if (existing) existing.remove();
+            
             // Créer le bouton d'installation si pas encore installé
             if (!this.isInstalled) {
                 const setupContainer = document.getElementById('setup');
@@ -4556,7 +5110,11 @@ transition: all 0.3s ease;
         },
         
         showUpdateNotification() {
+            // Supprimer un éventuel ancien banner de mise à jour
+            document.querySelectorAll('.pwa-update-banner').forEach(b => b.remove());
+            
             const updateBanner = document.createElement('div');
+            updateBanner.className = 'pwa-update-banner';
             updateBanner.style.cssText = `
                 position: fixed;
                 top: max(20px, env(safe-area-inset-top));
@@ -4859,7 +5417,11 @@ transition: all 0.3s ease;
                 updateProgress(5, 'Analyse des données...');
                 const ai = this.analyzeGameData(gameState);
                 
-                const totalFrames = this.CONFIG.FPS * this.CONFIG.DURATION;
+                // Réduire les frames sur les appareils avec peu de mémoire
+                const baseFrames = this.CONFIG.FPS * this.CONFIG.DURATION;
+                const totalFrames = (navigator.deviceMemory && navigator.deviceMemory < 4) 
+                    ? Math.floor(baseFrames / 2)  // 16 frames au lieu de 32
+                    : baseFrames;
                 updateProgress(10, `Génération de ${totalFrames} frames...`);
                 
                 // Utiliser un seul canvas réutilisable pour réduire la mémoire
@@ -5481,10 +6043,17 @@ transition: all 0.3s ease;
             // Colonne 2
             ctx.font = '14px Arial';
             ctx.fillStyle = '#444';
-            ctx.fillText('🎯 Écart', col2X, statsY);
-            ctx.font = 'bold 15px Arial';
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillText(`${ai.finalGap} pts`, col2X, statsY + 20);
+            if (ai.finalGap === 0) {
+                ctx.fillText('🤝 Résultat', col2X, statsY);
+                ctx.font = 'bold 15px Arial';
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillText('Égalité !', col2X, statsY + 20);
+            } else {
+                ctx.fillText('🎯 Écart', col2X, statsY);
+                ctx.font = 'bold 15px Arial';
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillText(`${ai.finalGap} pts`, col2X, statsY + 20);
+            }
             
             // Ligne du bas - manches
             ctx.font = '14px Arial';
